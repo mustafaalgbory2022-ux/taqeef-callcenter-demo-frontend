@@ -17,28 +17,41 @@ models and tests elsewhere use only domain types (`src/shared/types/domain.ts`).
 | CSRF                            | cookie `csrf_token` → header `X-CSRF-Token` on non-GET | `src/shared/api/config.ts`                          |
 | Launch code                     | URL `launch_code` → `POST /session/launch`             | `config.ts`, `endpoints.ts`                         |
 | Channel layout field            | `channel_layout: "dual" \| "mixed"` on calls           | `src/shared/api/wire/calls.ts`                      |
+| Queue identity                  | `{ id, number: "6001" \| "6002", name }`               | `src/shared/api/wire/agents.ts`                     |
+| Caller number                   | `caller_masked` only (masked by the backend)           | `src/shared/api/wire/calls.ts`                      |
+| PBX durations                   | seconds (`*_s` fields)                                 | `src/shared/api/wire/operations.ts`                 |
+| Evaluation call date            | `call_recorded_at` on evaluations                      | `src/shared/api/wire/evaluations.ts`                |
+| Reporting week                  | Saturday–Friday (`WEEK_START_DAY`)                     | `src/shared/utils/dates.ts`                         |
 
 ## Endpoints (`src/shared/api/endpoints.ts`)
 
-| Method | Path                              | Request (wire)                                   | Response (wire)                       |
-| ------ | --------------------------------- | ------------------------------------------------ | ------------------------------------- |
-| GET    | `/session`                        | —                                                | `Session` · 401 → launch screen       |
-| POST   | `/session/launch`                 | `{ launch_code }`                                | `Session` · 401/422 → "code rejected" |
-| GET    | `/branding`                       | —                                                | `Branding` (all fields nullable)      |
-| GET    | `/queues`                         | —                                                | `Queue[]`                             |
-| GET    | `/agents`                         | —                                                | `Agent[]`                             |
-| POST   | `/agents`                         | `{ display_name, extension, status, queue_ids }` | `Agent`                               |
-| PATCH  | `/agents/{id}`                    | any subset of the above                          | `Agent`                               |
-| GET    | `/agents/{id}/history`            | —                                                | `AuditEntry[]`                        |
-| GET    | `/calls?agent_id=`                | —                                                | `Call[]` (newest first)               |
-| GET    | `/calls/{id}`                     | —                                                | `Call`                                |
-| POST   | `/calls`                          | multipart: `file`, `title`, `agent_id`           | `Call` (status `uploaded`)            |
-| GET    | `/calls/{id}/transcript`          | —                                                | `Transcript` · 409 while not ready    |
-| POST   | `/calls/{id}/rescore`             | —                                                | `Evaluation` (new, immutable)         |
-| GET    | `/evaluations?call_id=&agent_id=` | —                                                | `Evaluation[]` (full history)         |
-| GET    | `/scorecards/current`             | —                                                | `ScorecardVersion`                    |
-| GET    | `/scorecards/versions`            | —                                                | `ScorecardVersion[]`                  |
-| POST   | `/scorecards/versions`            | draft (below)                                    | `ScorecardVersion` (version n+1)      |
+| Method     | Path                                                                                               | Request (wire)                                      | Response (wire)                                                           |
+| ---------- | -------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------------- |
+| GET        | `/session`                                                                                         | —                                                   | `Session` · 401 → launch screen                                           |
+| POST       | `/session/launch`                                                                                  | `{ launch_code }`                                   | `Session` · 401/422 → "code rejected"                                     |
+| GET        | `/branding`                                                                                        | —                                                   | `Branding` (all fields nullable)                                          |
+| GET        | `/queues`                                                                                          | —                                                   | `Queue[]`                                                                 |
+| GET        | `/agents`                                                                                          | —                                                   | `Agent[]`                                                                 |
+| POST       | `/agents`                                                                                          | `{ display_name, extension, status, queue_ids }`    | `Agent`                                                                   |
+| PATCH      | `/agents/{id}`                                                                                     | any subset of the above                             | `Agent`                                                                   |
+| GET        | `/agents/{id}/history`                                                                             | —                                                   | `AuditEntry[]`                                                            |
+| GET        | `/calls?from=&to=&queue_id=&agent_id=&reason=&score_band=&review_status=&search=&page=&page_size=` | —                                                   | `{ items: Call[], total, page, page_size }` (newest first)                |
+| GET        | `/calls/{id}`                                                                                      | —                                                   | `Call`                                                                    |
+| POST       | `/calls`                                                                                           | multipart: `file`, `title`, `agent_id`              | `Call` (status `uploaded`)                                                |
+| GET        | `/calls/{id}/transcript`                                                                           | —                                                   | `Transcript` · 409 while not ready                                        |
+| POST       | `/calls/{id}/rescore`                                                                              | —                                                   | `Evaluation` (new, immutable)                                             |
+| GET        | `/evaluations?call_id=&agent_id=`                                                                  | —                                                   | `Evaluation[]` (full history)                                             |
+| GET        | `/scorecards/current`                                                                              | —                                                   | `ScorecardVersion`                                                        |
+| GET        | `/scorecards/versions`                                                                             | —                                                   | `ScorecardVersion[]`                                                      |
+| POST       | `/scorecards/versions`                                                                             | draft (below)                                       | `ScorecardVersion` (version n+1)                                          |
+| PUT        | `/calls/{id}/review`                                                                               | `{ status, note }`                                  | `Call`                                                                    |
+| GET        | `/evaluations?…&from=&to=&queue_id=`                                                               | —                                                   | date/queue filters by call                                                |
+| GET        | `/pbx/metrics?from=&to=&queue_id=`                                                                 | —                                                   | `{ simulated, queue_daily[], agent_daily[] }`                             |
+| GET        | `/live/status`                                                                                     | —                                                   | `{ generated_at, simulated, queues[], agents[], calls[] }`                |
+| GET        | `/insights/classifications?from=&to=&queue_id=&agent_id=`                                          | —                                                   | `InsightRow[]`                                                            |
+| POST       | `/reports/audio-sample`                                                                            | `{ agent_ids, from, to, count, min_duration_ms }`   | `{ seed, simulated, agents: [{ agent_id, requested, eligible, calls }] }` |
+| GET / POST | `/reports`                                                                                         | `{ title, period, from, to, queue_ids, agent_ids }` | `Report[]` / `Report`                                                     |
+| POST       | `/reports/{id}/email`                                                                              | —                                                   | `Report` (email status)                                                   |
 
 ## Wire shapes (decoders in `src/shared/api/wire/`)
 
