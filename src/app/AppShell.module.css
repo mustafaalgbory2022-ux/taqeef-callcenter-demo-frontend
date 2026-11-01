@@ -1,0 +1,218 @@
+.shell {
+  display: grid;
+  grid-template-columns: var(--layout-sidebar) minmax(0, 1fr);
+  grid-template-rows: var(--layout-header) minmax(0, 1fr);
+  grid-template-areas:
+    'brand header'
+    'nav main';
+  min-block-size: 100dvh;
+}
+
+.skip {
+  position: absolute;
+  inset-inline-start: var(--space-4);
+  inset-block-start: -100px;
+  z-index: 10;
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  border-radius: var(--radius-md);
+  text-decoration: none;
+  font-weight: var(--weight-semibold);
+}
+
+.skip:focus-visible {
+  inset-block-start: var(--space-2);
+}
+
+.brand {
+  grid-area: brand;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding-inline: var(--space-5);
+  background: var(--color-surface);
+  border-block-end: 1px solid var(--color-border);
+  border-inline-end: 1px solid var(--color-border);
+  min-inline-size: 0;
+}
+
+.logo {
+  inline-size: 28px;
+  block-size: 28px;
+  color: var(--color-text-subtle);
+  flex: none;
+}
+
+.brandText {
+  display: grid;
+  line-height: 1.2;
+  min-inline-size: 0;
+}
+
+.org {
+  font-size: var(--text-xs);
+  color: var(--color-text-subtle);
+  font-weight: var(--weight-medium);
+}
+
+.product {
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.header {
+  grid-area: header;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-inline: var(--space-6);
+  background: var(--color-surface);
+  border-block-end: 1px solid var(--color-border);
+}
+
+.nav {
+  grid-area: nav;
+  padding: var(--space-4) var(--space-3);
+  background: var(--color-surface);
+  border-inline-end: 1px solid var(--color-border);
+}
+
+.navList {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  inline-size: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text-muted);
+  font-weight: var(--weight-medium);
+  text-align: start;
+  cursor: default;
+  white-space: nowrap;
+}
+
+.navItem[aria-current='page'] {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-text);
+}
+
+.navItem[aria-disabled='true'] {
+  opacity: 0.6;
+}
+
+.navIcon {
+  inline-size: 16px;
+  block-size: 16px;
+  flex: none;
+}
+
+.main {
+  grid-area: main;
+  min-inline-size: 0;
+  padding: var(--space-8) var(--space-8) var(--space-12);
+}
+
+.mainInner {
+  max-inline-size: var(--layout-content-max);
+  margin-inline: auto;
+}
+
+.control {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.segmented {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}
+
+.segment {
+  padding: 3px var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+  cursor: pointer;
+  transition: background var(--duration-fast) var(--ease-standard);
+}
+
+.segment[aria-pressed='true'] {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+}
+
+.select {
+  padding: 4px var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.spacer {
+  flex: 1;
+}
+
+@media (max-width: 960px) {
+  .shell {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr);
+    grid-template-areas: 'brand' 'header' 'nav' 'main';
+  }
+
+  .brand {
+    block-size: var(--layout-header);
+    border-inline-end: 0;
+  }
+
+  .header {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    padding: var(--space-2) var(--space-4);
+  }
+
+  .header .spacer {
+    display: none;
+  }
+
+  .nav {
+    padding: var(--space-2) var(--space-4);
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--color-border);
+    overflow-x: auto;
+  }
+
+  .navList {
+    grid-auto-flow: column;
+    justify-content: start;
+  }
+
+  .main {
+    padding: var(--space-5) var(--space-4) var(--space-10);
+  }
+}

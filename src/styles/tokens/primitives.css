@@ -1,0 +1,97 @@
+/*
+ * Primitive tokens — raw values. Components must NOT use these directly;
+ * use semantic tokens (semantic.css) so themes and branding stay swappable.
+ */
+:root {
+  /* Neutral scale (cool slate) */
+  --p-neutral-0: #ffffff;
+  --p-neutral-25: #f8f9fb;
+  --p-neutral-50: #f2f4f7;
+  --p-neutral-100: #e6e9ee;
+  --p-neutral-200: #d3d8e0;
+  --p-neutral-300: #b4bcc8;
+  --p-neutral-400: #8a94a3;
+  --p-neutral-500: #667080;
+  --p-neutral-600: #4b5463;
+  --p-neutral-700: #353d4a;
+  --p-neutral-800: #232933;
+  --p-neutral-850: #1b2028;
+  --p-neutral-900: #14181e;
+  --p-neutral-950: #0d1014;
+
+  /* PLACEHOLDER accent — neutral corporate blue. Replace via src/styles/brand.css. */
+  --p-accent-50: #eef4fc;
+  --p-accent-100: #d8e5f7;
+  --p-accent-300: #8fb1e3;
+  --p-accent-400: #6b97da;
+  --p-accent-500: #3d72c4;
+  --p-accent-600: #2a5ba8;
+  --p-accent-700: #214a8a;
+  --p-accent-900: #142d54;
+
+  /* Status */
+  --p-red-50: #fef3f2;
+  --p-red-400: #f97066;
+  --p-red-600: #d92d20;
+  --p-red-700: #b42318;
+  --p-amber-50: #fffaeb;
+  --p-amber-400: #fdb022;
+  --p-amber-700: #9a6700;
+  --p-green-50: #ecfdf3;
+  --p-green-400: #47cd89;
+  --p-green-700: #067647;
+
+  /* Spacing — 4px base */
+  --space-0: 0;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-full: 999px;
+
+  /* Typography */
+  --font-sans:
+    'IBM Plex Sans Arabic', 'IBM Plex Sans', 'Segoe UI', 'Noto Sans Arabic', Tahoma, system-ui,
+    sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.875rem;
+  --text-base: 1rem;
+  --text-lg: 1.125rem;
+  --text-xl: 1.375rem;
+  --text-2xl: 1.75rem;
+  --text-3xl: 2.25rem;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-arabic: 1.7;
+
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgb(16 24 40 / 0.06);
+  --shadow-md: 0 2px 6px rgb(16 24 40 / 0.08), 0 1px 2px rgb(16 24 40 / 0.04);
+  --shadow-lg: 0 12px 24px rgb(16 24 40 / 0.12);
+
+  /* Motion */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Layout */
+  --layout-sidebar: 15rem;
+  --layout-content-max: 90rem;
+  --layout-header: 3.5rem;
+}

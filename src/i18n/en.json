@@ -1,0 +1,81 @@
+{
+  "app": {
+    "skipToContent": "Skip to main content",
+    "mainNav": "Main navigation",
+    "nav": {
+      "dashboard": "Dashboard",
+      "calls": "Calls",
+      "scorecards": "Scorecards",
+      "evaluations": "Evaluations"
+    },
+    "comingSoon": "Available in a later phase",
+    "dataSource": {
+      "mock": "Synthetic demo data",
+      "fastapi": "Live API"
+    },
+    "language": "Language",
+    "theme": {
+      "label": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    }
+  },
+  "preview": {
+    "eyebrow": "Phase 0 · Design preview",
+    "title": "Quality overview",
+    "subtitle": "Proposed visual direction for approval. All figures are synthetic samples.",
+    "period": "Demo set: 5 synthetic calls",
+    "kpi": {
+      "calls": "Calls evaluated",
+      "avg": "Average quality score",
+      "pass": "Calls meeting target",
+      "below": "Criteria below target",
+      "basis": "Based on 5 synthetic calls",
+      "ofFive": "of 5",
+      "ofTen": "/ 10",
+      "weighted": "Criteria-weighted"
+    },
+    "criteria": {
+      "title": "Scorecard criteria",
+      "caption": "Average across the demo set · target 7.0",
+      "weight": "Weight",
+      "greeting": "Greeting and identification",
+      "discovery": "Needs discovery",
+      "resolution": "Resolution accuracy",
+      "compliance": "Compliance statement",
+      "courtesy": "Courtesy and tone"
+    },
+    "band": {
+      "high": "Meets target",
+      "mid": "Near target",
+      "low": "Below target"
+    },
+    "transcript": {
+      "title": "Transcript evidence",
+      "caption": "Call DEMO-003 · Compliance statement",
+      "agent": "Agent",
+      "customer": "Customer",
+      "evidence": "Cited as evidence"
+    },
+    "table": {
+      "title": "Recent calls",
+      "caption": "Synthetic calls in the demo set",
+      "id": "Call",
+      "topic": "Topic",
+      "agent": "Agent",
+      "duration": "Duration",
+      "status": "Status",
+      "score": "Score"
+    },
+    "status": {
+      "scored": "Scored",
+      "scoring": "Scoring",
+      "transcribed": "Transcribed"
+    },
+    "tokens": {
+      "title": "Design tokens",
+      "caption": "Neutral placeholder palette — replaceable brand slot"
+    }
+  }
+}
