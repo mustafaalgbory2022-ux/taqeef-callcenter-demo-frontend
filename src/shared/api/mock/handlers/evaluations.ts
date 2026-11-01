@@ -3,6 +3,7 @@ import { latestScorecard } from '../processing';
 import { created, fail, ok, type Route } from '../router';
 import { simulateEvaluation } from '../scoring';
 import type { MockState } from '../types';
+import { callDate, inRange } from './callQueries';
 
 const byCreatedDesc = (a: { created_at: string }, b: { created_at: string }) =>
   Date.parse(b.created_at) - Date.parse(a.created_at);
@@ -12,13 +13,22 @@ export function evaluationRoutes(state: MockState, persist: () => void): Route[]
     {
       method: 'GET',
       pattern: '/evaluations',
-      handler: ({ query }) =>
-        ok(
+      handler: ({ query }) => {
+        const dateOf = new Map(state.calls.map((c) => [c.id, callDate(c)]));
+        const queueOf = new Map(state.calls.map((c) => [c.id, c.queue_id]));
+        return ok(
           state.evaluations
+            .filter(
+              (e) =>
+                !(query.from || query.to) ||
+                inRange(dateOf.get(e.call_id) ?? '', query.from, query.to),
+            )
+            .filter((e) => !query.queue_id || queueOf.get(e.call_id) === query.queue_id)
             .filter((e) => !query.call_id || e.call_id === query.call_id)
             .filter((e) => !query.agent_id || e.agent_id === query.agent_id)
             .sort(byCreatedDesc),
-        ),
+        );
+      },
     },
     {
       method: 'POST',

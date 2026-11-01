@@ -17,7 +17,13 @@
     "agents": "Agents",
     "scorecard": "Scorecard",
     "settings": "Settings",
-    "planned": "Planned areas"
+    "planned": "Planned areas",
+    "operations": "Operations",
+    "live": "Live center",
+    "agentPerformance": "Agent performance",
+    "insights": "Customer insights",
+    "reports": "Reports",
+    "quality": "AI quality"
   },
   "common": {
     "outOfTen": "/ 10",
@@ -62,8 +68,8 @@
   "dashboard": {
     "empty": "No evaluated calls yet.",
     "overview": {
-      "title": "Quality overview",
-      "scopeAll": "All agents · pooled across every evaluated call.",
+      "title": "Executive dashboard",
+      "scopeAll": "All agents and queues for the selected period.",
       "scopeAgent": "Filtered to {name}.",
       "openAgent": "Open agent dashboard",
       "viewCalls": "View calls"
@@ -124,11 +130,37 @@
       "missed": "Missed",
       "abandoned": "Abandoned",
       "sla": "SLA",
-      "formula": "SLA % = (Total incoming − Missed) ÷ Total incoming × 100. Abandoned calls are reported separately."
+      "formula": "SLA % = (Total incoming − Missed) ÷ Total incoming × 100. Abandoned calls are reported separately.",
+      "answered": "Answered",
+      "missedNote": "Ring-no-answer; used in SLA",
+      "abandonedNote": "Caller hung up while waiting; separate",
+      "slaShort": "(Incoming − Missed) ÷ Incoming",
+      "avgWait": "Average wait",
+      "maxWait": "Longest: {v}",
+      "simulatedShort": "Simulated PBX data",
+      "agentScopeNote": "Queue call-handling figures are not split by agent. Open the agent's dashboard for answered and missed calls.",
+      "agentMissed": "Missed (agent)",
+      "agentMissedNote": "Calls offered to the agent but not answered",
+      "avgTalk": "Average talk time"
     },
     "versionFilter": {
       "label": "Scorecard",
       "all": "All versions"
+    },
+    "sections": {
+      "callHandling": "Call handling (PBX)",
+      "quality": "AI quality"
+    },
+    "queues": {
+      "title": "Queues",
+      "caption": "Yeastar P550 queues · missed and abandoned reported separately"
+    },
+    "trends": {
+      "incoming": "Daily incoming calls",
+      "sla": "Daily SLA %",
+      "quality": "Weekly average quality",
+      "qualityCaption": "Pooled per call, scored calls only (Saturday–Friday weeks)",
+      "threshold": "Threshold {v}"
     }
   },
   "agents": {
@@ -211,7 +243,8 @@
       "duration": "Duration",
       "status": "Status",
       "score": "Score",
-      "noScore": "No score"
+      "noScore": "No score",
+      "caller": "Caller"
     },
     "status": {
       "uploaded": "Uploaded",
@@ -276,6 +309,36 @@
     "channel": {
       "mixedTitle": "Mixed channel — speakers unresolved",
       "mixedBody": "Speaker labels and agent attribution are not assumed until supported by evidence. Behaviour criteria may be insufficient and prohibited expressions are only flagged for review."
+    },
+    "filters": {
+      "label": "Call filters",
+      "reason": "Reason",
+      "score": "Score",
+      "any": "Any",
+      "search": "Search",
+      "searchPlaceholder": "Call ID or topic",
+      "bands": {
+        "low": "Below threshold",
+        "meets": "Meets threshold",
+        "no_score": "No score (insufficient evidence)",
+        "unscored": "Not yet evaluated"
+      }
+    },
+    "review": {
+      "label": "Review",
+      "title": "Supervisor review",
+      "note": "Review note",
+      "noteHint": "Required when follow-up is needed. Visible in the audit history.",
+      "noteRequired": "Describe the follow-up needed.",
+      "save": "Save review",
+      "saved": "Review saved.",
+      "last": "Last reviewed by {by} · {at}",
+      "none": "Not reviewed yet",
+      "status": {
+        "unreviewed": "Not reviewed",
+        "reviewed": "Reviewed",
+        "needs_follow_up": "Needs follow-up"
+      }
     }
   },
   "evaluations": {
@@ -527,6 +590,172 @@
         "title": "Branding and localization",
         "scope": "Logo upload, brand colours with contrast validation, default language and theme, translation management."
       }
+    }
+  },
+  "charts": {
+    "showTable": "Show data table"
+  },
+  "pagination": {
+    "label": "Pagination",
+    "summary": "{first}–{last} of {total}",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "dateRange": {
+    "label": "Date range",
+    "preset": "Period",
+    "from": "From",
+    "to": "To",
+    "presets": {
+      "last7": "Last 7 days",
+      "last30": "Last 30 days",
+      "last90": "Last 90 days",
+      "thisMonth": "This month",
+      "lastMonth": "Last month",
+      "thisYear": "This year",
+      "custom": "Custom"
+    }
+  },
+  "queues": {
+    "filter": {
+      "label": "Queue",
+      "all": "All queues"
+    }
+  },
+  "agentsCompare": {
+    "title": "Agent performance",
+    "description": "Compare agents side by side for the selected period. Alphabetical — not a ranking.",
+    "select": "Agents in comparison",
+    "table": "Comparison",
+    "trend": "Weekly trend"
+  },
+  "insights": {
+    "title": "Customer insights",
+    "description": "Why customers call: reasons, complaints and service requests from AI classification.",
+    "simulatedNote": "Classifications are simulated on synthetic calls. The real backend classifies calls with the on-premise AI model.",
+    "empty": "No classified calls in this period.",
+    "classified": "Classified calls",
+    "complaints": "Complaints",
+    "complaint": "Complaint",
+    "serviceRequests": "Service requests",
+    "serviceRequest": "Service request",
+    "topReason": "Most common reason",
+    "byReason": "Calls by reason",
+    "byReasonCaption": "Share of classified calls",
+    "complaintTrend": "Complaints per week",
+    "table": "Reasons",
+    "reason": "Reason",
+    "calls": "Calls",
+    "viewCalls": "View calls",
+    "confidence": "Classification confidence {v}%",
+    "reasons": {
+      "billing": "Billing",
+      "technical": "Technical issue",
+      "plan_change": "Plan change",
+      "new_service": "New service",
+      "cancellation": "Cancellation",
+      "general_inquiry": "General inquiry",
+      "other": "Other"
+    }
+  },
+  "live": {
+    "title": "Live call center",
+    "description": "Queue status, agent availability and active calls. Caller numbers are masked.",
+    "simulatedTitle": "Simulated live feed",
+    "simulatedBody": "Synthetic activity refreshed every {s} seconds. The real backend streams Yeastar queue and agent events.",
+    "updated": "Updated {at}",
+    "queues": "Queues",
+    "waiting": "Waiting",
+    "longestWait": "Longest wait",
+    "activeCalls": "Active calls",
+    "agentsAvailable": "Agents available",
+    "agents": "Agent availability",
+    "state": "State",
+    "since": "In state for",
+    "calls": "Live calls",
+    "callsCaption": "Waiting, ringing and connected calls",
+    "states": {
+      "available": "Available",
+      "ringing": "Ringing",
+      "on_call": "On a call",
+      "paused": "Paused",
+      "offline": "Offline"
+    },
+    "callStates": {
+      "waiting": "Waiting",
+      "ringing": "Ringing",
+      "talking": "Connected"
+    }
+  },
+  "reports": {
+    "pageTitle": "Reports",
+    "description": "Weekly, monthly and yearly management reports with Excel export and audio sampling.",
+    "parameters": "Report parameters",
+    "title": "Title",
+    "period": "Period",
+    "periods": {
+      "weekly": "Weekly",
+      "monthly": "Monthly",
+      "yearly": "Yearly",
+      "custom": "Custom range"
+    },
+    "anchor": "Any date in the period",
+    "resolved": "Covers {from} – {to}",
+    "invalidRange": "Choose a valid date range.",
+    "queues": "Queues",
+    "agents": "Agents (none selected = all active)",
+    "autoTitle": "{period} report {from} – {to}",
+    "exportExcel": "Export to Excel",
+    "exported": "Excel report downloaded.",
+    "save": "Save to report history",
+    "saved": "Report saved to history.",
+    "simulatedNote": "Built from simulated PBX data and synthetic evaluations. Real reports are generated by the backend.",
+    "queueReport": "Queue report",
+    "agentReport": "Agent report",
+    "audio": {
+      "title": "Audio sample",
+      "caption": "{n} random answered recordings per agent, at least {s} seconds each",
+      "draw": "Draw sample",
+      "redraw": "Draw a new sample",
+      "empty": "No sample drawn yet.",
+      "seed": "Sample reference: {seed}",
+      "shortage": "Only {got} of {n} recordings available ({eligible} eligible in this period)."
+    },
+    "email": {
+      "title": "Management email",
+      "caption": "One combined email per report",
+      "partQueue": "Queue report ({n} queues)",
+      "partAgent": "Agent report ({n} agents)",
+      "partAudio": "Audio pack ({n} recordings)",
+      "howTo": "Save the report, then send it from the report history. Recipients and the Microsoft 365 sender are configured in Notifications.",
+      "send": "Send email",
+      "simulatedSent": "Email simulated — nothing was sent.",
+      "status": "Email",
+      "statuses": {
+        "not_sent": "Not sent",
+        "simulated_sent": "Simulated",
+        "sent": "Sent"
+      }
+    },
+    "history": {
+      "title": "Report history",
+      "caption": "Saved reports, newest first",
+      "empty": "No saved reports yet.",
+      "created": "Created"
+    },
+    "xlsx": {
+      "summary": "Summary",
+      "queues": "Queues",
+      "agents": "Agents",
+      "audio": "Audio sample",
+      "slaPct": "SLA %",
+      "avgWaitS": "Average wait (s)",
+      "maxWaitS": "Longest wait (s)",
+      "avgTalkS": "Average talk (s)",
+      "durationS": "Duration (s)",
+      "generated": "Generated",
+      "slaFormula": "SLA formula",
+      "dataSource": "Data source"
     }
   }
 }

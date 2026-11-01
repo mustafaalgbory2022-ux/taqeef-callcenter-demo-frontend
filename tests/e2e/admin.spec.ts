@@ -6,7 +6,7 @@ async function addAgent(page: Page, name: string, ext: string) {
   const dialog = page.getByRole('dialog', { name: 'Add agent' });
   await dialog.getByRole('textbox', { name: 'Agent', exact: true }).fill(name);
   await dialog.getByLabel(/Extension/).fill(ext);
-  await dialog.getByLabel('Billing').check();
+  await dialog.getByLabel('After-Sales').check();
   await dialog.getByRole('button', { name: 'Save' }).click();
   await expect(dialog).toBeHidden();
 }

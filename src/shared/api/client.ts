@@ -1,4 +1,15 @@
 import type {
+  AudioSample,
+  AudioSampleRequest,
+  CallQuery,
+  CallReview,
+  DateRange,
+  InsightRow,
+  LiveStatus,
+  Page,
+  PbxMetrics,
+  ReportPeriod,
+  ReportRecord,
   Agent,
   AgentInput,
   AuditEntry,
@@ -27,18 +38,49 @@ import {
   wireQueue,
 } from './wire/agents';
 import { brandingFromWire, wireBranding } from './wire/branding';
-import { callFromWire, transcriptFromWire, wireCall, wireTranscript } from './wire/calls';
+import {
+  callFromWire,
+  reviewToWire,
+  transcriptFromWire,
+  wireCall,
+  wireCallPage,
+  wireTranscript,
+} from './wire/calls';
+import {
+  insightFromWire,
+  liveFromWire,
+  pbxFromWire,
+  reportFromWire,
+  wireInsightRow,
+  wireLiveStatus,
+  wirePbxMetrics,
+  wireReport,
+} from './wire/operations';
+import {
+  bool as decBool,
+  arrayOf as listOf,
+  num as decNum,
+  object as decObject,
+  str as decStr,
+} from './decode';
 import { evaluationFromWire, wireEvaluation } from './wire/evaluations';
 import { scorecardDraftToWire, scorecardFromWire, wireScorecardVersion } from './wire/scorecards';
 import { sessionFromWire, wireSession } from './wire/session';
 
-export interface CallFilter {
-  agentId?: string | undefined;
-}
-
 export interface EvaluationFilter {
   callId?: string | undefined;
   agentId?: string | undefined;
+  from?: string | undefined;
+  to?: string | undefined;
+  queueId?: string | undefined;
+}
+
+export interface ReportInput {
+  title: string;
+  period: ReportPeriod;
+  range: DateRange;
+  queueIds: readonly string[];
+  agentIds: readonly string[];
 }
 
 /** The only data-access surface for UI code. Returns domain types; throws ApiError. */
@@ -52,7 +94,18 @@ export interface ApiClient {
   createAgent(input: AgentInput): Promise<Agent>;
   updateAgent(id: string, patch: Partial<AgentInput>): Promise<Agent>;
   getAgentHistory(id: string): Promise<AuditEntry[]>;
-  listCalls(filter?: CallFilter): Promise<Call[]>;
+  listCalls(query?: CallQuery): Promise<Page<Call>>;
+  reviewCall(id: string, review: Pick<CallReview, 'status' | 'note'>): Promise<Call>;
+  getPbxMetrics(range: DateRange, queueId?: string): Promise<PbxMetrics>;
+  getLiveStatus(): Promise<LiveStatus>;
+  listInsights(
+    range: DateRange,
+    filter?: { queueId?: string | undefined; agentId?: string | undefined },
+  ): Promise<InsightRow[]>;
+  sampleAudio(request: AudioSampleRequest): Promise<AudioSample>;
+  listReports(): Promise<ReportRecord[]>;
+  saveReport(input: ReportInput): Promise<ReportRecord>;
+  emailReport(id: string): Promise<ReportRecord>;
   getCall(id: string): Promise<Call>;
   uploadCall(upload: CallUpload): Promise<Call>;
   getTranscript(callId: string): Promise<Transcript>;
@@ -87,7 +140,6 @@ export function createApiClient(transport: Transport, mode: ApiMode): ApiClient 
   });
 
   const agents = list(wireAgent, agentFromWire);
-  const calls = list(wireCall, callFromWire);
   const evaluations = list(wireEvaluation, evaluationFromWire);
   const versions = list(wireScorecardVersion, scorecardFromWire);
   const queues = list(wireQueue, queueFromWire);
@@ -127,12 +179,124 @@ export function createApiClient(transport: Transport, mode: ApiMode): ApiClient 
       ),
     getAgentHistory: (id) =>
       send({ method: 'GET', path: endpoints.agentHistory(id) }, audit.decoder, audit.map),
-    listCalls: (filter = {}) =>
+    listCalls: (query = {}) =>
       send(
-        { method: 'GET', path: endpoints.calls, query: { agent_id: filter.agentId } },
-        calls.decoder,
-        calls.map,
+        {
+          method: 'GET',
+          path: endpoints.calls,
+          query: {
+            from: query.from,
+            to: query.to,
+            queue_id: query.queueId,
+            agent_id: query.agentId,
+            reason: query.reason,
+            score_band: query.scoreBand,
+            review_status: query.reviewStatus,
+            search: query.search,
+            page: query.page === undefined ? undefined : String(query.page),
+            page_size: query.pageSize === undefined ? undefined : String(query.pageSize),
+          },
+        },
+        wireCallPage,
+        (w) => ({
+          items: w.items.map(callFromWire),
+          total: w.total,
+          page: w.page,
+          pageSize: w.page_size,
+        }),
       ),
+    reviewCall: (id, review) =>
+      send(
+        { method: 'PUT', path: endpoints.callReview(id), body: reviewToWire(review) },
+        wireCall,
+        callFromWire,
+      ),
+    getPbxMetrics: (range, queueId) =>
+      send(
+        {
+          method: 'GET',
+          path: endpoints.pbxMetrics,
+          query: { from: range.from, to: range.to, queue_id: queueId },
+        },
+        wirePbxMetrics,
+        pbxFromWire,
+      ),
+    getLiveStatus: () =>
+      send({ method: 'GET', path: endpoints.liveStatus }, wireLiveStatus, liveFromWire),
+    listInsights: (range, filter = {}) =>
+      send(
+        {
+          method: 'GET',
+          path: endpoints.insights,
+          query: {
+            from: range.from,
+            to: range.to,
+            queue_id: filter.queueId,
+            agent_id: filter.agentId,
+          },
+        },
+        listOf(wireInsightRow),
+        (rows) => rows.map(insightFromWire),
+      ),
+    sampleAudio: (req) =>
+      send(
+        {
+          method: 'POST',
+          path: endpoints.audioSample,
+          body: {
+            agent_ids: [...req.agentIds],
+            from: req.range.from,
+            to: req.range.to,
+            count: req.count,
+            min_duration_ms: req.minDurationMs,
+          },
+        },
+        decObject({
+          seed: decStr,
+          simulated: decBool,
+          agents: listOf(
+            decObject({
+              agent_id: decStr,
+              requested: decNum,
+              eligible: decNum,
+              calls: listOf(wireCall),
+            }),
+          ),
+        }),
+        (w) => ({
+          seed: w.seed,
+          simulated: w.simulated,
+          agents: w.agents.map((a) => ({
+            agentId: a.agent_id,
+            requested: a.requested,
+            eligible: a.eligible,
+            calls: a.calls.map(callFromWire),
+          })),
+        }),
+      ),
+    listReports: () =>
+      send({ method: 'GET', path: endpoints.reports }, listOf(wireReport), (rs) =>
+        rs.map(reportFromWire),
+      ),
+    saveReport: (input) =>
+      send(
+        {
+          method: 'POST',
+          path: endpoints.reports,
+          body: {
+            title: input.title.trim(),
+            period: input.period,
+            from: input.range.from,
+            to: input.range.to,
+            queue_ids: [...input.queueIds],
+            agent_ids: [...input.agentIds],
+          },
+        },
+        wireReport,
+        reportFromWire,
+      ),
+    emailReport: (id) =>
+      send({ method: 'POST', path: endpoints.reportEmail(id) }, wireReport, reportFromWire),
     getCall: (id) => send({ method: 'GET', path: endpoints.call(id) }, wireCall, callFromWire),
     uploadCall: ({ file, title, agentId }) => {
       const form = new FormData();
@@ -152,7 +316,13 @@ export function createApiClient(transport: Transport, mode: ApiMode): ApiClient 
         {
           method: 'GET',
           path: endpoints.evaluations,
-          query: { call_id: filter.callId, agent_id: filter.agentId },
+          query: {
+            call_id: filter.callId,
+            agent_id: filter.agentId,
+            from: filter.from,
+            to: filter.to,
+            queue_id: filter.queueId,
+          },
         },
         evaluations.decoder,
         evaluations.map,

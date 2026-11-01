@@ -17,18 +17,27 @@ export interface NavGroup {
 
 export const navigation: readonly NavGroup[] = [
   {
-    label: 'nav.performance',
+    label: 'nav.operations',
     items: [
       { to: '/', label: 'nav.overview', icon: 'dashboard', keepAgentFilter: true, end: true },
-      { to: '/calls', label: 'nav.calls', icon: 'phone', keepAgentFilter: true },
+      { to: '/live', label: 'nav.live', icon: 'phone' },
+      { to: '/agents', label: 'nav.agentPerformance', icon: 'users', end: true },
+      { to: '/calls', label: 'nav.calls', icon: 'clipboard', keepAgentFilter: true },
+      { to: '/insights', label: 'nav.insights', icon: 'info' },
+      { to: '/reports', label: 'nav.reports', icon: 'arrowDown' },
+    ],
+  },
+  {
+    label: 'nav.quality',
+    items: [
       { to: '/evaluations', label: 'nav.evaluations', icon: 'history', keepAgentFilter: true },
+      { to: '/admin/scorecard', label: 'nav.scorecard', icon: 'check' },
     ],
   },
   {
     label: 'nav.administration',
     items: [
       { to: '/admin/agents', label: 'nav.agents', icon: 'users' },
-      { to: '/admin/scorecard', label: 'nav.scorecard', icon: 'clipboard' },
       { to: '/admin/settings', label: 'nav.settings', icon: 'settings' },
       { to: '/admin/planned', label: 'nav.planned', icon: 'grid' },
     ],

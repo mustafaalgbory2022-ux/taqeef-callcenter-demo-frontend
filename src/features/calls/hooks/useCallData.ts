@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useApiContext } from '@/shared/api/ApiProvider';
 import { useApiMutation } from '@/shared/hooks/useApiMutation';
 import { useApiQuery } from '@/shared/hooks/useApiQuery';
-import type { Call, CallUpload } from '@/shared/types/domain';
+import type { Call, CallQuery, CallReview, CallUpload } from '@/shared/types/domain';
 
 const PROCESSING_POLL_MS = 1000;
 
@@ -25,18 +25,22 @@ function useRefreshWhenProcessingSettles(processingCount: number | undefined) {
   }, [processingCount, store]);
 }
 
-/** Polls while any listed call is still being processed. */
-export function useCalls(agentId: string | null) {
-  const query = useApiQuery(
-    ['calls', 'list', agentId],
-    (api) => api.listCalls({ agentId: agentId ?? undefined }),
-    {
-      refetchIntervalMs: (data) => (data?.some(isProcessing) ? PROCESSING_POLL_MS * 2 : undefined),
-    },
-  );
-  useRefreshWhenProcessingSettles(query.data?.filter(isProcessing).length);
-  return query;
+/** Paginated, filtered calls. Polls while any listed call is still being processed. */
+export function useCalls(query: CallQuery) {
+  const result = useApiQuery(['calls', 'list', query], (api) => api.listCalls(query), {
+    refetchIntervalMs: (data) =>
+      data?.items.some(isProcessing) ? PROCESSING_POLL_MS * 2 : undefined,
+  });
+  useRefreshWhenProcessingSettles(result.data?.items.filter(isProcessing).length);
+  return result;
 }
+
+export const useReviewCall = () =>
+  useApiMutation(
+    (api, { id, review }: { id: string; review: Pick<CallReview, 'status' | 'note'> }) =>
+      api.reviewCall(id, review),
+    ['calls'],
+  );
 
 /** Polls while the (simulated or real) backend is still processing the call. */
 export function useCall(id: string) {

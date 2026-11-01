@@ -6,6 +6,9 @@ const PERMISSIONS = [
   'scorecards.manage',
   'calls.upload',
   'evaluations.rescore',
+  'calls.review',
+  'reports.export',
+  'reports.manage',
   'settings.manage',
 ] as const satisfies readonly Permission[];
 

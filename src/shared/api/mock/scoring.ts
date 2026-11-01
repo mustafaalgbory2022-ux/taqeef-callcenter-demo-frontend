@@ -4,7 +4,7 @@ import type { Judgment, WireCall, WireEvaluation, WireScorecard, WireSegment } f
 
 export interface SimulateInput {
   id: string;
-  call: Pick<WireCall, 'id' | 'agent_id' | 'channel_layout'>;
+  call: Pick<WireCall, 'id' | 'agent_id' | 'channel_layout' | 'recorded_at'>;
   segments: readonly WireSegment[];
   judgments: readonly Judgment[];
   scorecard: WireScorecard;
@@ -156,6 +156,7 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
   return {
     id: input.id,
     call_id: call.id,
+    call_recorded_at: call.recorded_at,
     agent_id: call.agent_id,
     scorecard_id: scorecard.scorecard_id,
     scorecard_version: scorecard.version,

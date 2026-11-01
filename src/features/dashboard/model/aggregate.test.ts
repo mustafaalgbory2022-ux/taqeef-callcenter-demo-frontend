@@ -5,7 +5,13 @@ import type {
   Evaluation,
   ScorecardVersion,
 } from '@/shared/types/domain';
-import { currentEvaluations, filterByVersion, summarize, summarizeByAgent } from './aggregate';
+import {
+  currentEvaluations,
+  filterByVersion,
+  summarize,
+  summarizeByAgent,
+  weeklyQuality,
+} from './aggregate';
 
 const version = (v: number, threshold = 7): ScorecardVersion => ({
   scorecardId: 'sc',
@@ -61,6 +67,7 @@ const ev = (
   return {
     id: `e${++seq}`,
     callId,
+    callRecordedAt: createdAt,
     agentId,
     scorecardId: 'sc',
     scorecardVersion: v,
@@ -182,6 +189,23 @@ describe('summarizeByAgent', () => {
     ).toEqual([
       ['Amy', 0, 1],
       ['Zed', 1, 0],
+    ]);
+  });
+});
+
+describe('weeklyQuality', () => {
+  it('pools scored calls per week and keeps no-score weeks empty', () => {
+    const rows = weeklyQuality(
+      [
+        ev('1', 'a', 8, '2026-10-01T00:00:00Z'),
+        ev('2', 'a', 6, '2026-10-02T00:00:00Z'),
+        ev('3', 'a', null, '2026-10-09T00:00:00Z'),
+      ],
+      (d) => (d < '2026-10-05' ? 'w1' : 'w2'),
+    );
+    expect(rows).toEqual([
+      { week: 'w1', averageScore: 7, scoredCalls: 2 },
+      { week: 'w2', averageScore: null, scoredCalls: 0 },
     ]);
   });
 });

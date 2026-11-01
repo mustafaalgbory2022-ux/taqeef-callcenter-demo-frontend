@@ -137,3 +137,30 @@ export function summarizeByAgent(
       ),
     }));
 }
+
+export interface WeeklyQuality {
+  week: string;
+  averageScore: number | null;
+  scoredCalls: number;
+}
+
+/** Pooled quality per reporting week (by call date); weeks without scored calls are null. */
+export function weeklyQuality(
+  current: readonly Evaluation[],
+  weekOf: (date: string) => string,
+): WeeklyQuality[] {
+  const byWeek = new Map<string, number[]>();
+  for (const e of current) {
+    const week = weekOf(e.callRecordedAt.slice(0, 10));
+    const list = byWeek.get(week) ?? [];
+    if (isScored(e)) list.push(e.overallScore ?? 0);
+    byWeek.set(week, list);
+  }
+  return [...byWeek.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([week, scores]) => ({
+      week,
+      scoredCalls: scores.length,
+      averageScore: scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null,
+    }));
+}

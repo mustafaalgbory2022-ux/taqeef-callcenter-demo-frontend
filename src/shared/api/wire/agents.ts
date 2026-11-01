@@ -2,10 +2,10 @@ import type { Agent, AgentInput, AuditEntry, Queue } from '@/shared/types/domain
 import { arrayOf, bool, nullable, object, oneOf, str, type Decoded } from '../decode';
 import { localizedText } from './common';
 
-export const wireQueue = object({ id: str, name: localizedText });
+export const wireQueue = object({ id: str, number: str, name: localizedText });
 
 export function queueFromWire(w: Decoded<typeof wireQueue>): Queue {
-  return { id: w.id, name: w.name };
+  return { id: w.id, number: w.number, name: w.name };
 }
 
 export const wireAgent = object({

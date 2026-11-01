@@ -13,6 +13,7 @@ import type { Call } from '@/shared/types/domain';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { CallStatusBadge } from '../components/CallStatusBadge';
 import { ProcessingStatus } from '../components/ProcessingStatus';
+import { ReviewPanel } from '../components/ReviewPanel';
 import { TranscriptView } from '../components/TranscriptView';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { useCall, useTranscript } from '../hooks/useCallData';
@@ -72,6 +73,25 @@ function CallDetail({ call }: { call: Call }) {
               </>
             )}
             <CallStatusBadge status={call.status} />
+            {call.callerMasked && (
+              <>
+                {t('calls.table.caller')}: <bdi>{call.callerMasked}</bdi>
+              </>
+            )}
+            {call.classification && (
+              <Badge
+                tone="accent"
+                title={t('insights.confidence', {
+                  v: Math.round(call.classification.confidence * 100),
+                })}
+              >
+                {t(`insights.reasons.${call.classification.reason}`)}
+              </Badge>
+            )}
+            {call.classification?.complaint && (
+              <Badge tone="warning">{t('insights.complaint')}</Badge>
+            )}
+            {call.classification?.serviceRequest && <Badge>{t('insights.serviceRequest')}</Badge>}
             {call.synthetic && <SyntheticBadge />}
             {call.simulated && <Badge tone="mock">{t('common.simulated')}</Badge>}
           </span>
@@ -118,6 +138,7 @@ function CallDetail({ call }: { call: Call }) {
         </div>
       </div>
       {call.status === 'scored' && <EvaluationHistoryPanel callId={call.id} />}
+      <ReviewPanel key={`${call.id}-${call.review.reviewedAt ?? ''}`} call={call} />
     </>
   );
 }

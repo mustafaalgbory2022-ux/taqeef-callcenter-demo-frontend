@@ -17,6 +17,9 @@ const wireCall = {
   simulated: false,
   source: 'fixture',
   channel_layout: 'dual',
+  caller_masked: '•••• 1234',
+  classification: null,
+  review: { status: 'unreviewed', note: '', reviewed_by: null, reviewed_at: null },
 };
 
 const respond = (status: number, body: unknown) =>
@@ -24,8 +27,10 @@ const respond = (status: number, body: unknown) =>
 
 describe('ApiClient over a transport', () => {
   it('maps snake_case wire data to camelCase domain types', async () => {
-    const transport = respond(200, [wireCall]);
-    const [call] = await createApiClient(transport, 'live').listCalls({ agentId: 'agt-001' });
+    const transport = respond(200, { items: [wireCall], total: 1, page: 1, page_size: 25 });
+    const {
+      items: [call],
+    } = await createApiClient(transport, 'live').listCalls({ agentId: 'agt-001' });
     expect(call).toMatchObject({
       agentId: 'agt-001',
       durationMs: 78000,
@@ -58,7 +63,15 @@ describe('ApiClient over a transport', () => {
   });
 
   it('rejects responses that break the contract', async () => {
-    const client = createApiClient(respond(200, [{ ...wireCall, duration_ms: 'long' }]), 'live');
+    const client = createApiClient(
+      respond(200, {
+        items: [{ ...wireCall, duration_ms: 'long' }],
+        total: 1,
+        page: 1,
+        page_size: 25,
+      }),
+      'live',
+    );
     await expect(client.listCalls()).rejects.toMatchObject({ code: 'contract_mismatch' });
   });
 
@@ -135,6 +148,7 @@ describe('ApiClient over a transport', () => {
     const failed = {
       id: 'e',
       call_id: 'c',
+      call_recorded_at: '2026-10-01T10:00:00+03:00',
       agent_id: null,
       scorecard_id: 's',
       scorecard_version: 1,

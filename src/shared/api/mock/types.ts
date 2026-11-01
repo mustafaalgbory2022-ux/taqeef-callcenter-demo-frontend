@@ -2,6 +2,7 @@ import type { Decoded } from '../decode';
 import type { wireAgent, wireAuditEntry, wireQueue } from '../wire/agents';
 import type { wireCall, wireTranscript } from '../wire/calls';
 import type { WireEvaluation } from '../wire/evaluations';
+import type { wireReport } from '../wire/operations';
 import type { wireScorecardVersion } from '../wire/scorecards';
 
 export type WireQueue = Decoded<typeof wireQueue>;
@@ -11,6 +12,7 @@ export type WireCall = Decoded<typeof wireCall>;
 export type WireTranscript = Decoded<typeof wireTranscript>;
 export type WireSegment = WireTranscript['segments'][number];
 export type WireScorecard = Decoded<typeof wireScorecardVersion>;
+export type WireReport = Decoded<typeof wireReport>;
 export type { WireEvaluation };
 
 /** Simulated model output for one criterion of one call (synthetic). */
@@ -32,6 +34,9 @@ export interface MockState {
   judgments: Record<string, Judgment[]>;
   scorecards: WireScorecard[];
   evaluations: WireEvaluation[];
+  /** Review status per call id (persisted separately so generated calls keep reviews). */
+  reviews: Record<string, WireCall['review']>;
+  reports: WireReport[];
   /** Upload time (epoch ms) per uploaded call, used to simulate processing stages. */
   uploads: Record<string, number>;
   seq: number;

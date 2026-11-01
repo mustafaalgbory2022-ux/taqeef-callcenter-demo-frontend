@@ -51,7 +51,18 @@ const call = (
   source: 'fixture',
   // Fixtures assume agent and customer on separate channels (reliable attribution).
   channel_layout: 'dual',
+  caller_masked: `•••• ${String(1000 + Number(id.slice(-1)) * 1111).slice(-4)}`,
+  classification: DEMO_CLASSIFICATION[id] ?? null,
+  review: { status: 'unreviewed', note: '', reviewed_by: null, reviewed_at: null },
 });
+
+const DEMO_CLASSIFICATION: Record<string, NonNullable<WireCall['classification']>> = {
+  'DEMO-001': { reason: 'billing', complaint: false, service_request: true, confidence: 0.93 },
+  'DEMO-002': { reason: 'plan_change', complaint: false, service_request: true, confidence: 0.95 },
+  'DEMO-003': { reason: 'billing', complaint: true, service_request: true, confidence: 0.9 },
+  'DEMO-004': { reason: 'technical', complaint: true, service_request: false, confidence: 0.81 },
+  'DEMO-005': { reason: 'technical', complaint: false, service_request: true, confidence: 0.88 },
+};
 
 export const callFixtures: CallFixture[] = [
   {
@@ -59,7 +70,7 @@ export const callFixtures: CallFixture[] = [
       'DEMO-001',
       'Billing inquiry',
       'agt-001',
-      'q-billing',
+      'q-6002',
       'ar',
       78,
       '2026-10-20T10:12:00+03:00',
@@ -109,7 +120,7 @@ export const callFixtures: CallFixture[] = [
       'DEMO-002',
       'Plan change',
       'agt-002',
-      'q-sales',
+      'q-6001',
       'ar',
       70,
       '2026-10-21T13:40:00+03:00',
@@ -144,7 +155,7 @@ export const callFixtures: CallFixture[] = [
       'DEMO-003',
       'Billing dispute',
       'agt-001',
-      'q-billing',
+      'q-6002',
       'ar',
       92,
       '2026-10-22T09:05:00+03:00',
@@ -190,7 +201,7 @@ export const callFixtures: CallFixture[] = [
       'DEMO-004',
       'Internet outage (call dropped)',
       'agt-003',
-      'q-support',
+      'q-6002',
       'en',
       32,
       '2026-10-23T08:30:00+03:00',
@@ -242,7 +253,7 @@ export const callFixtures: CallFixture[] = [
       'DEMO-005',
       'Router setup',
       'agt-004',
-      'q-support',
+      'q-6002',
       'ar',
       88,
       '2026-10-24T16:20:00+03:00',

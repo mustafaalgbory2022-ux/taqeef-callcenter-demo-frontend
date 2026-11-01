@@ -1,6 +1,16 @@
-import type { Call, Transcript } from '@/shared/types/domain';
+import type { Call, CallReview, Transcript } from '@/shared/types/domain';
 import { arrayOf, bool, nullable, num, object, oneOf, str, type Decoded } from '../decode';
 import { wireTimeToMs } from './common';
+
+export const CALL_REASONS = [
+  'billing',
+  'technical',
+  'plan_change',
+  'new_service',
+  'cancellation',
+  'general_inquiry',
+  'other',
+] as const;
 
 export const wireCall = object({
   id: str,
@@ -14,8 +24,30 @@ export const wireCall = object({
   audio_url: nullable(str),
   synthetic: bool,
   simulated: bool,
-  source: oneOf(['fixture', 'upload']),
+  source: oneOf(['fixture', 'upload', 'pbx']),
   channel_layout: oneOf(['dual', 'mixed']),
+  caller_masked: nullable(str),
+  classification: nullable(
+    object({
+      reason: oneOf(CALL_REASONS),
+      complaint: bool,
+      service_request: bool,
+      confidence: num,
+    }),
+  ),
+  review: object({
+    status: oneOf(['unreviewed', 'reviewed', 'needs_follow_up']),
+    note: str,
+    reviewed_by: nullable(str),
+    reviewed_at: nullable(str),
+  }),
+});
+
+export const wireCallPage = object({
+  items: arrayOf(wireCall),
+  total: num,
+  page: num,
+  page_size: num,
 });
 
 export function callFromWire(w: Decoded<typeof wireCall>): Call {
@@ -33,6 +65,19 @@ export function callFromWire(w: Decoded<typeof wireCall>): Call {
     simulated: w.simulated,
     source: w.source,
     channelLayout: w.channel_layout,
+    callerMasked: w.caller_masked,
+    classification: w.classification && {
+      reason: w.classification.reason,
+      complaint: w.classification.complaint,
+      serviceRequest: w.classification.service_request,
+      confidence: w.classification.confidence,
+    },
+    review: {
+      status: w.review.status,
+      note: w.review.note,
+      reviewedBy: w.review.reviewed_by,
+      reviewedAt: w.review.reviewed_at,
+    },
   };
 }
 
@@ -62,4 +107,8 @@ export function transcriptFromWire(w: Decoded<typeof wireTranscript>): Transcrip
       text: s.text,
     })),
   };
+}
+
+export function reviewToWire(review: Pick<CallReview, 'status' | 'note'>): Record<string, unknown> {
+  return { status: review.status, note: review.note.trim() };
 }

@@ -24,6 +24,34 @@ export const routes: RouteObject[] = [
         ),
       },
       {
+        path: 'live',
+        element: page(
+          () => import('@/features/live/pages/LivePage'),
+          (m) => m.LivePage,
+        ),
+      },
+      {
+        path: 'agents',
+        element: page(
+          () => import('@/features/dashboard/pages/AgentsComparePage'),
+          (m) => m.AgentsComparePage,
+        ),
+      },
+      {
+        path: 'insights',
+        element: page(
+          () => import('@/features/insights/pages/InsightsPage'),
+          (m) => m.InsightsPage,
+        ),
+      },
+      {
+        path: 'reports',
+        element: page(
+          () => import('@/features/reports/pages/ReportsPage'),
+          (m) => m.ReportsPage,
+        ),
+      },
+      {
         path: 'agents/:agentId',
         element: page(
           () => import('@/features/dashboard/pages/AgentPerformancePage'),

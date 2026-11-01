@@ -5,6 +5,8 @@ import { agentRoutes } from './handlers/agents';
 import { callRoutes } from './handlers/calls';
 import { evaluationRoutes } from './handlers/evaluations';
 import { scorecardRoutes } from './handlers/scorecards';
+import { operationsRoutes } from './handlers/operations';
+import { addGeneratedData } from './generate';
 import { fail, findRoute, ok, type Route } from './router';
 
 const SESSION_KEY = 'taqeef.mock.session';
@@ -19,6 +21,9 @@ const syntheticSession = {
     'scorecards.manage',
     'calls.upload',
     'evaluations.rescore',
+    'calls.review',
+    'reports.export',
+    'reports.manage',
     'settings.manage',
   ],
   expires_at: null,
@@ -50,6 +55,7 @@ export interface MockTransportOptions {
 /** In-browser SIMULATED backend speaking the same wire format as the FastAPI adapter. */
 export function createMockTransport({ latencyMs = 160 }: MockTransportOptions = {}): Transport {
   const state = loadState();
+  const generated = addGeneratedData(state);
   const persist = () => saveState(state);
 
   const sessionRoutes: Route[] = [
@@ -98,6 +104,7 @@ export function createMockTransport({ latencyMs = 160 }: MockTransportOptions = 
     ...callRoutes(state, persist),
     ...evaluationRoutes(state, persist),
     ...scorecardRoutes(state, persist),
+    ...operationsRoutes(state, generated, persist),
   ];
 
   return async (req) => {

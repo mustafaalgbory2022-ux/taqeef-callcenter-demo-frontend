@@ -2,6 +2,7 @@ import { cachedAudioUrl, registerUploadedAudio, synthesizeCallAudio } from '../a
 import { nextId } from '../db';
 import { refreshUpload } from '../processing';
 import { created, fail, invalid, ok, type Route } from '../router';
+import { DEFAULT_REVIEW, filterCalls } from './callQueries';
 import type { MockState, WireCall } from '../types';
 
 export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
@@ -11,14 +12,20 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
     if (state.calls.map((c) => refreshUpload(state, c)).some(Boolean)) persist();
   };
 
+  const withReview = (call: WireCall): WireCall => ({
+    ...call,
+    review: state.reviews[call.id] ?? DEFAULT_REVIEW,
+  });
+
   const withAudio = (call: WireCall): WireCall => {
-    if (call.source === 'upload') return { ...call, audio_url: cachedAudioUrl(call.id) };
+    if (call.source === 'upload')
+      return withReview({ ...call, audio_url: cachedAudioUrl(call.id) });
     const transcript = state.transcripts[call.id];
     const url =
       transcript && call.duration_ms
         ? synthesizeCallAudio(call.id, call.duration_ms, transcript.segments)
         : null;
-    return { ...call, audio_url: url };
+    return withReview({ ...call, audio_url: url });
   };
 
   return [
@@ -27,10 +34,11 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
       pattern: '/calls',
       handler: ({ query }) => {
         refreshAll();
-        const list = query.agent_id
-          ? state.calls.filter((c) => c.agent_id === query.agent_id)
-          : state.calls;
-        return ok([...list].sort((a, b) => Date.parse(b.recorded_at) - Date.parse(a.recorded_at)));
+        const all = filterCalls(state, query);
+        const pageSize = Math.min(100, Math.max(1, Number(query.page_size) || 25));
+        const page = Math.max(1, Number(query.page) || 1);
+        const items = all.slice((page - 1) * pageSize, page * pageSize).map(withReview);
+        return ok({ items, total: all.length, page, page_size: pageSize });
       },
     },
     {
@@ -40,6 +48,34 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
         refreshAll();
         const call = state.calls.find((c) => c.id === params.id);
         return call ? ok(withAudio(call)) : fail(404, 'Call not found.');
+      },
+    },
+    {
+      method: 'PUT',
+      pattern: '/calls/:id/review',
+      handler: ({ params, body }) => {
+        const call = state.calls.find((c) => c.id === params.id);
+        if (!call) return fail(404, 'Call not found.');
+        const b = (body ?? {}) as { status?: unknown; note?: unknown };
+        if (
+          b.status !== 'unreviewed' &&
+          b.status !== 'reviewed' &&
+          b.status !== 'needs_follow_up'
+        ) {
+          return invalid('status', 'Invalid review status.');
+        }
+        const note = typeof b.note === 'string' ? b.note.trim() : '';
+        if (note.length > 1000) return invalid('note', 'Note must be at most 1000 characters.');
+        if (b.status === 'needs_follow_up' && !note)
+          return invalid('note', 'Describe the follow-up needed.');
+        state.reviews[call.id] = {
+          status: b.status,
+          note,
+          reviewed_by: 'Synthetic administrator',
+          reviewed_at: new Date().toISOString(),
+        };
+        persist();
+        return ok(withAudio(call));
       },
     },
     {
@@ -86,6 +122,9 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
           source: 'upload',
           // Uploads are treated as a single mixed channel: speakers stay unresolved.
           channel_layout: 'mixed',
+          caller_masked: null,
+          classification: null,
+          review: DEFAULT_REVIEW,
         };
         state.calls.push(call);
         state.uploads[id] = Date.now();

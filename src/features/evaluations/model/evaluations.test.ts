@@ -12,6 +12,7 @@ const ev = (
 ): Evaluation => ({
   id,
   callId: 'call',
+  callRecordedAt: createdAt,
   agentId: 'a',
   scorecardId: 'sc',
   scorecardVersion: version,

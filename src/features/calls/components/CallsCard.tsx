@@ -1,50 +1,75 @@
 import { useMemo, type ReactNode } from 'react';
-import { useAgents } from '@/features/agents';
+import { useAgents, useQueues } from '@/features/agents';
 import { currentEvaluations, useEvaluations } from '@/features/evaluations';
 import { useScorecardVersions } from '@/features/scorecards';
 import { combineQueries } from '@/shared/hooks/combineQueries';
 import { useI18n } from '@/shared/i18n/I18nProvider';
+import type { CallQuery } from '@/shared/types/domain';
 import { Card } from '@/shared/ui/Card';
+import { Pagination } from '@/shared/ui/Pagination';
 import { EmptyState, QueryView } from '@/shared/ui/States';
 import { useCalls } from '../hooks/useCallData';
 import { CallsTable } from './CallsTable';
 
-/** Calls list with current scores, optionally for one agent. Reused by dashboards. */
-export function CallsCard({ agentId, actions }: { agentId: string | null; actions?: ReactNode }) {
+/** Paginated calls list with current scores. Reused by the calls page and agent dashboards. */
+export function CallsCard({
+  query,
+  onPage,
+  actions,
+}: {
+  query: CallQuery;
+  onPage: (page: number) => void;
+  actions?: ReactNode;
+}) {
   const { t, fmt } = useI18n();
-  const query = combineQueries([
-    useCalls(agentId),
+  const result = combineQueries([
+    useCalls(query),
     useAgents(),
-    useEvaluations({ agentId: agentId ?? undefined }),
+    useQueues(),
+    useEvaluations({
+      agentId: query.agentId,
+      from: query.from,
+      to: query.to,
+      queueId: query.queueId,
+    }),
     useScorecardVersions(),
   ] as const);
   const current = useMemo(
     () =>
-      query.status === 'success'
-        ? new Map(currentEvaluations(query.data[2]).map((e) => [e.callId, e]))
+      result.status === 'success'
+        ? new Map(currentEvaluations(result.data[3]).map((e) => [e.callId, e]))
         : new Map(),
-    [query.status, query.data],
+    [result.status, result.data],
   );
 
   return (
-    <QueryView query={query}>
-      {([calls, agents, , versions]) => (
+    <QueryView query={result}>
+      {([page, agents, queues, , versions]) => (
         <Card
           title={t('calls.list.title')}
-          caption={t('calls.list.caption', { n: fmt.integer(calls.length) })}
+          caption={t('calls.list.caption', { n: fmt.integer(page.total) })}
           actions={actions}
           flush
         >
-          {calls.length === 0 ? (
+          {page.total === 0 ? (
             <EmptyState title={t('calls.list.empty')} />
           ) : (
-            <CallsTable
-              calls={calls}
-              agents={agents}
-              current={current}
-              versions={versions}
-              label={t('calls.list.title')}
-            />
+            <>
+              <CallsTable
+                calls={page.items}
+                agents={agents}
+                queues={queues}
+                current={current}
+                versions={versions}
+                label={t('calls.list.title')}
+              />
+              <Pagination
+                page={page.page}
+                pageSize={page.pageSize}
+                total={page.total}
+                onPage={onPage}
+              />
+            </>
           )}
         </Card>
       )}

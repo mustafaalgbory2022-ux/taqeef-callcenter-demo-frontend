@@ -4,7 +4,7 @@ import { scorecardVersions } from './fixtures/scorecards';
 import { simulateEvaluation } from './scoring';
 import type { MockState, WireScorecard } from './types';
 
-const STORAGE_KEY = 'taqeef.mock.db.v2';
+const STORAGE_KEY = 'taqeef.mock.db.v3';
 
 function versionOf(n: number): WireScorecard {
   const v = scorecardVersions.find((sc) => sc.version === n);
@@ -26,6 +26,8 @@ export function createSeedState(): MockState {
     scorecards: structuredClone(scorecardVersions),
     evaluations: [],
     uploads: {},
+    reviews: {},
+    reports: [],
     seq: 100,
   };
 
@@ -73,9 +75,23 @@ export function loadState(): MockState {
   return createSeedState();
 }
 
+/** Generated (deterministic) data is rebuilt on load and never persisted. */
+const isGenerated = (id: string) => id.startsWith('C-') || id.startsWith('gev-');
+
 export function saveState(state: MockState): void {
+  const persistable: MockState = {
+    ...state,
+    calls: state.calls.filter((c) => c.source !== 'pbx'),
+    evaluations: state.evaluations.filter((e) => !e.id.startsWith('gev-')),
+    judgments: Object.fromEntries(
+      Object.entries(state.judgments).filter(([id]) => !isGenerated(id)),
+    ),
+    transcripts: Object.fromEntries(
+      Object.entries(state.transcripts).filter(([id]) => !isGenerated(id)),
+    ),
+  };
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(persistable));
   } catch {
     /* non-persistent session */
   }

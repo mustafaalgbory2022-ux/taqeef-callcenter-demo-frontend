@@ -20,6 +20,7 @@ const wireEvidence = object({ segment_id: str, start_ms: num, end_ms: num, quote
 export const wireEvaluation = object({
   id: str,
   call_id: str,
+  call_recorded_at: str,
   agent_id: nullable(str),
   scorecard_id: str,
   scorecard_version: num,
@@ -84,6 +85,7 @@ export function evaluationFromWire(w: WireEvaluation): Evaluation {
   return {
     id: w.id,
     callId: w.call_id,
+    callRecordedAt: w.call_recorded_at,
     agentId: w.agent_id,
     scorecardId: w.scorecard_id,
     scorecardVersion: w.scorecard_version,

@@ -15,6 +15,9 @@ export type Permission =
   | 'scorecards.manage'
   | 'calls.upload'
   | 'evaluations.rescore'
+  | 'calls.review'
+  | 'reports.export'
+  | 'reports.manage'
   | 'settings.manage';
 
 export interface Session {
@@ -26,6 +29,8 @@ export interface Session {
 
 export interface Queue {
   id: string;
+  /** Yeastar queue number, e.g. "6001" (Sales) or "6002" (After-Sales). */
+  number: string;
   name: LocalizedText;
 }
 
@@ -80,12 +85,161 @@ export interface Call {
   synthetic: boolean;
   /** True when processing was simulated by the mock backend. */
   simulated: boolean;
-  source: 'fixture' | 'upload';
+  source: 'fixture' | 'upload' | 'pbx';
   /**
    * 'dual' = agent and customer on separate channels (speaker attribution reliable);
    * 'mixed' = single mixed channel: speakers stay unresolved unless evidence supports them.
    */
   channelLayout: 'dual' | 'mixed';
+  /** Caller number as served by the backend: masked by default (e.g. "•••• 4821"). */
+  callerMasked: string | null;
+  classification: CallClassification | null;
+  review: CallReview;
+}
+
+export type CallReason =
+  | 'billing'
+  | 'technical'
+  | 'plan_change'
+  | 'new_service'
+  | 'cancellation'
+  | 'general_inquiry'
+  | 'other';
+
+/** AI classification of the call (simulated in mock mode). */
+export interface CallClassification {
+  reason: CallReason;
+  complaint: boolean;
+  serviceRequest: boolean;
+  confidence: number;
+}
+
+export type ReviewStatus = 'unreviewed' | 'reviewed' | 'needs_follow_up';
+
+export interface CallReview {
+  status: ReviewStatus;
+  note: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+}
+
+export type ScoreBand = 'low' | 'meets' | 'no_score' | 'unscored';
+
+/** Filters for the paginated calls list (all optional). Dates are inclusive YYYY-MM-DD. */
+export interface CallQuery {
+  from?: string | undefined;
+  to?: string | undefined;
+  queueId?: string | undefined;
+  agentId?: string | undefined;
+  reason?: CallReason | undefined;
+  scoreBand?: ScoreBand | undefined;
+  reviewStatus?: ReviewStatus | undefined;
+  search?: string | undefined;
+  page?: number | undefined;
+  pageSize?: number | undefined;
+}
+
+export interface Page<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+}
+
+/** Inclusive calendar date range, YYYY-MM-DD. */
+export interface DateRange {
+  from: string;
+  to: string;
+}
+
+/** Daily queue statistics from the PBX (Yeastar). Missed and abandoned are separate. */
+export interface QueueDailyStat {
+  date: string;
+  queueId: string;
+  incoming: number;
+  answered: number;
+  missed: number;
+  abandoned: number;
+  totalWaitS: number;
+  maxWaitS: number;
+  totalTalkS: number;
+}
+
+export interface AgentDailyStat {
+  date: string;
+  agentId: string;
+  queueId: string;
+  answered: number;
+  missed: number;
+  totalTalkS: number;
+}
+
+export interface PbxMetrics {
+  queueDaily: QueueDailyStat[];
+  agentDaily: AgentDailyStat[];
+  simulated: boolean;
+}
+
+export type LiveAgentState = 'available' | 'ringing' | 'on_call' | 'paused' | 'offline';
+
+export interface LiveStatus {
+  generatedAt: string;
+  simulated: boolean;
+  queues: {
+    queueId: string;
+    waiting: number;
+    longestWaitS: number;
+    activeCalls: number;
+    agentsAvailable: number;
+  }[];
+  agents: { agentId: string; state: LiveAgentState; sinceS: number; queueIds: string[] }[];
+  calls: {
+    id: string;
+    queueId: string;
+    agentId: string | null;
+    state: 'waiting' | 'ringing' | 'talking';
+    durationS: number;
+    callerMasked: string;
+  }[];
+}
+
+/** Light classification rows used for customer-insight aggregation. */
+export interface InsightRow {
+  callId: string;
+  recordedAt: string;
+  queueId: string | null;
+  agentId: string | null;
+  reason: CallReason;
+  complaint: boolean;
+  serviceRequest: boolean;
+}
+
+export interface AudioSampleRequest {
+  agentIds: readonly string[];
+  range: DateRange;
+  count: number;
+  minDurationMs: number;
+}
+
+export interface AudioSample {
+  seed: string;
+  simulated: boolean;
+  agents: { agentId: string; requested: number; eligible: number; calls: Call[] }[];
+}
+
+export type ReportPeriod = 'weekly' | 'monthly' | 'yearly' | 'custom';
+
+export interface ReportRecord {
+  id: string;
+  title: string;
+  period: ReportPeriod;
+  range: DateRange;
+  queueIds: string[];
+  agentIds: string[];
+  createdAt: string;
+  createdBy: string;
+  emailStatus: 'not_sent' | 'simulated_sent' | 'sent';
+  simulated: boolean;
 }
 
 export interface CallUpload {
@@ -201,6 +355,8 @@ export interface ProhibitedHit {
 export interface Evaluation {
   id: string;
   callId: string;
+  /** When the evaluated call was recorded (used for date filters and trends). */
+  callRecordedAt: string;
   agentId: string | null;
   scorecardId: string;
   scorecardVersion: number;

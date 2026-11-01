@@ -21,9 +21,11 @@ describe('simulated backend', () => {
   it('serves synthetic, labelled data and immutable re-score history', async () => {
     const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
     await api.openSession('SYN-TEST02-DEMO');
-    const calls = await api.listCalls();
-    expect(calls).toHaveLength(5);
-    expect(calls.every((c) => c.synthetic)).toBe(true);
+    const demo = await api.listCalls({ search: 'DEMO-' });
+    expect(demo.total).toBe(5);
+    const all = await api.listCalls({ pageSize: 100 });
+    expect(all.total).toBeGreaterThan(200);
+    expect(all.items.every((c) => c.synthetic)).toBe(true);
     const before = await api.listEvaluations({ callId: 'DEMO-005' });
     const rescored = await api.rescoreCall('DEMO-005');
     expect(rescored).toMatchObject({
