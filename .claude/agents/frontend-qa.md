@@ -16,7 +16,7 @@ Review for:
 1. Functional correctness against the stated phase requirements; edge cases (empty, loading,
    error, long Arabic text, 0 and 10 scores, missing evidence).
 2. Data integrity: KPIs derived from data, not hard-coded; scoring maths; re-score history.
-3. Contract: components use `ApiClient` only; responses Zod-validated; mock vs live clearly
+3. Contract: components use `ApiClient` only; responses decoded in shared/api/wire; mock vs live clearly
    labelled; no backend shapes leaking into UI.
 4. Visual consistency: semantic tokens only (no raw hex in components), shared primitives
    reused, both themes and both languages.

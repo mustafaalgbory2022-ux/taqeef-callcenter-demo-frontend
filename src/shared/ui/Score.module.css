@@ -1,0 +1,83 @@
+.value {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.max {
+  color: var(--color-text-subtle);
+  font-weight: var(--weight-regular);
+  font-size: var(--text-sm);
+}
+
+.flag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: var(--weight-medium);
+}
+
+.low {
+  color: var(--color-score-low);
+}
+
+.ok {
+  color: var(--color-score-high);
+}
+
+.meter {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.meterHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.meterLabel {
+  font-weight: var(--weight-medium);
+}
+
+.track {
+  position: relative;
+  block-size: 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-score-track);
+}
+
+.fill {
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  border-radius: var(--radius-full);
+  background: var(--color-score-high);
+}
+
+.fill.lowFill {
+  background: var(--color-score-low);
+}
+
+.target {
+  position: absolute;
+  inset-block: -4px;
+  inline-size: 2px;
+  margin-inline-start: -1px;
+  background: var(--color-text-muted);
+  border-radius: 1px;
+}
+
+.meterMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}

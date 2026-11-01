@@ -1,0 +1,97 @@
+import { agents, initialAudit, queues } from './fixtures/agents';
+import { callFixtures } from './fixtures/calls';
+import { scorecardVersions } from './fixtures/scorecards';
+import { simulateEvaluation } from './scoring';
+import type { MockState, WireScorecard } from './types';
+
+const STORAGE_KEY = 'taqeef.mock.db.v1';
+
+function versionOf(n: number): WireScorecard {
+  const v = scorecardVersions.find((sc) => sc.version === n);
+  if (!v) throw new Error(`Missing fixture scorecard v${n}`);
+  return v;
+}
+
+/** Build the initial synthetic dataset, including evaluation history for DEMO-003. */
+export function createSeedState(): MockState {
+  const state: MockState = {
+    queues: structuredClone(queues),
+    agents: structuredClone(agents),
+    audit: Object.fromEntries(agents.map((a) => [a.id, initialAudit(a)])),
+    calls: callFixtures.map((f) => structuredClone(f.call)),
+    transcripts: Object.fromEntries(
+      callFixtures.map((f) => [f.call.id, { call_id: f.call.id, segments: f.segments }]),
+    ),
+    judgments: Object.fromEntries(callFixtures.map((f) => [f.call.id, f.judgments])),
+    scorecards: structuredClone(scorecardVersions),
+    evaluations: [],
+    uploads: {},
+    seq: 100,
+  };
+
+  callFixtures.forEach((f, i) => {
+    const recorded = Date.parse(f.call.recorded_at);
+    state.evaluations.push(
+      simulateEvaluation({
+        id: `ev-${String(i + 1).padStart(3, '0')}`,
+        callId: f.call.id,
+        agentId: f.call.agent_id,
+        segments: f.segments,
+        judgments: f.judgments,
+        scorecard: versionOf(1),
+        trigger: 'initial',
+        supersedesId: null,
+        createdAt: new Date(recorded + 15 * 60_000).toISOString(),
+      }),
+    );
+  });
+
+  const dispute = callFixtures.find((f) => f.call.id === 'DEMO-003');
+  if (dispute) {
+    state.evaluations.push(
+      simulateEvaluation({
+        id: 'ev-006',
+        callId: dispute.call.id,
+        agentId: dispute.call.agent_id,
+        segments: dispute.segments,
+        judgments: dispute.judgments,
+        scorecard: versionOf(2),
+        trigger: 'rescore',
+        supersedesId: 'ev-003',
+        createdAt: '2026-10-28T11:00:00+03:00',
+      }),
+    );
+  }
+  return state;
+}
+
+export function loadState(): MockState {
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw) as MockState;
+  } catch {
+    /* storage unavailable or corrupt: fall back to seed */
+  }
+  return createSeedState();
+}
+
+export function saveState(state: MockState): void {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  } catch {
+    /* non-persistent session */
+  }
+}
+
+export function clearSavedState(): void {
+  try {
+    window.localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+export function nextId(state: MockState, prefix: string): string {
+  state.seq += 1;
+  return `${prefix}-${state.seq}`;
+}

@@ -1,40 +1,19 @@
-import { useEffect, useState } from 'react';
-import type { Language } from '@/api/contract';
-import { apiClient } from '@/api/client';
-import { AppShell } from './AppShell';
-import { DesignPreview } from './design-preview/DesignPreview';
-import {
-  applyLanguage,
-  applyTheme,
-  loadLanguage,
-  loadTheme,
-  type ThemePreference,
-} from './preferences';
+import { useState } from 'react';
+import { RouterProvider } from 'react-router';
+import { AppProviders } from './providers/AppProviders';
+import { createAppRouter } from './router';
+import { takeLaunchCodeFromUrl } from './session/launchCode';
+import { SessionGate } from './session/SessionGate';
 
 export function App() {
-  const [lang, setLang] = useState<Language>(loadLanguage);
-  const [theme, setTheme] = useState<ThemePreference>(loadTheme);
-
-  useEffect(() => applyLanguage(lang), [lang]);
-
-  useEffect(() => {
-    applyTheme(theme);
-    if (theme !== 'system') return;
-    const mq = window.matchMedia?.('(prefers-color-scheme: dark)');
-    const onChange = () => applyTheme('system');
-    mq?.addEventListener('change', onChange);
-    return () => mq?.removeEventListener('change', onChange);
-  }, [theme]);
-
+  // Order matters: strip the launch code first, then let the router read the clean URL.
+  const [launchCode] = useState(takeLaunchCodeFromUrl);
+  const [router] = useState(createAppRouter);
   return (
-    <AppShell
-      lang={lang}
-      theme={theme}
-      apiMode={apiClient.mode}
-      onLanguageChange={setLang}
-      onThemeChange={setTheme}
-    >
-      <DesignPreview lang={lang} />
-    </AppShell>
+    <AppProviders>
+      <SessionGate launchCode={launchCode}>
+        <RouterProvider router={router} />
+      </SessionGate>
+    </AppProviders>
   );
 }

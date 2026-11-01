@@ -21,7 +21,23 @@ export default tseslint.config(
     plugins: { 'react-hooks': reactHooks, 'react-refresh': reactRefresh },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      // Context modules intentionally export their provider together with its hook.
+      'react-refresh/only-export-components': [
+        'warn',
+        {
+          allowConstantExport: true,
+          allowExportNames: [
+            'useApiContext',
+            'useApiClient',
+            'createDefaultClient',
+            'useBranding',
+            'useI18n',
+            'useTheme',
+            'useToast',
+            'tableStyles',
+          ],
+        },
+      ],
       '@typescript-eslint/consistent-type-imports': 'error',
       'no-restricted-syntax': [
         'error',

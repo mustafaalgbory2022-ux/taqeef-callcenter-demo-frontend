@@ -1,0 +1,102 @@
+import { lazy, type ComponentType } from 'react';
+import { createBrowserRouter, createHashRouter, type RouteObject } from 'react-router';
+import { NotFoundPage } from './pages/NotFoundPage';
+import { RouteErrorPage } from './pages/RouteErrorPage';
+import { AppShell } from './shell/AppShell';
+
+/** Route-level code splitting: each page is its own chunk. */
+function page<M>(load: () => Promise<M>, pick: (m: M) => ComponentType) {
+  const Page = lazy(async () => ({ default: pick(await load()) }));
+  return <Page />;
+}
+
+export const routes: RouteObject[] = [
+  {
+    path: '/',
+    element: <AppShell />,
+    errorElement: <RouteErrorPage />,
+    children: [
+      {
+        index: true,
+        element: page(
+          () => import('@/features/dashboard/pages/OverviewPage'),
+          (m) => m.OverviewPage,
+        ),
+      },
+      {
+        path: 'agents/:agentId',
+        element: page(
+          () => import('@/features/dashboard/pages/AgentPerformancePage'),
+          (m) => m.AgentPerformancePage,
+        ),
+      },
+      {
+        path: 'calls',
+        element: page(
+          () => import('@/features/calls/pages/CallsPage'),
+          (m) => m.CallsPage,
+        ),
+      },
+      {
+        path: 'calls/upload',
+        element: page(
+          () => import('@/features/calls/pages/UploadPage'),
+          (m) => m.UploadPage,
+        ),
+      },
+      {
+        path: 'calls/:callId',
+        element: page(
+          () => import('@/features/calls/pages/CallDetailPage'),
+          (m) => m.CallDetailPage,
+        ),
+      },
+      {
+        path: 'evaluations',
+        element: page(
+          () => import('@/features/evaluations/pages/EvaluationsPage'),
+          (m) => m.EvaluationsPage,
+        ),
+      },
+      {
+        path: 'admin/agents',
+        element: page(
+          () => import('@/features/agents/pages/AgentsAdminPage'),
+          (m) => m.AgentsAdminPage,
+        ),
+      },
+      {
+        path: 'admin/scorecard',
+        element: page(
+          () => import('@/features/scorecards/pages/ScorecardPage'),
+          (m) => m.ScorecardPage,
+        ),
+      },
+      {
+        path: 'admin/settings',
+        element: page(
+          () => import('@/features/settings/pages/SettingsPage'),
+          (m) => m.SettingsPage,
+        ),
+      },
+      {
+        path: 'admin/planned',
+        element: page(
+          () => import('@/features/settings/pages/PlannedAreasPage'),
+          (m) => m.PlannedAreasPage,
+        ),
+      },
+      { path: '*', element: <NotFoundPage /> },
+    ],
+  },
+];
+
+/**
+ * History routing by default (FastAPI must serve index.html for non-/api paths).
+ * Set VITE_ROUTER_MODE=hash at build time if the host cannot provide that fallback.
+ */
+export function createAppRouter() {
+  const create =
+    import.meta.env.VITE_ROUTER_MODE === 'hash' ? createHashRouter : createBrowserRouter;
+  return create(routes, { basename: import.meta.env.BASE_URL.replace(/\/$/, '') || '/' });
+}

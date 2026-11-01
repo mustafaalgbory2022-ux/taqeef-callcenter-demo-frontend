@@ -1,0 +1,55 @@
+.page {
+  display: grid;
+  place-items: center;
+  min-block-size: 100dvh;
+  padding: var(--space-6) var(--space-4);
+}
+
+.panel {
+  display: grid;
+  gap: var(--space-5);
+  inline-size: min(28rem, 100%);
+  padding: var(--space-8);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.logo {
+  inline-size: 36px;
+  block-size: 36px;
+  color: var(--color-text-subtle);
+}
+
+.org {
+  font-size: var(--text-sm);
+  color: var(--color-text-subtle);
+}
+
+.title {
+  font-size: var(--text-xl);
+}
+
+.body {
+  color: var(--color-text-muted);
+}
+
+.form {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}

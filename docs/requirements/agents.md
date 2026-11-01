@@ -97,7 +97,7 @@ number. Capacity required for at least seven agents. Demo data: five synthetic r
 
 ## Proposed contract additions (draft, not yet in code)
 
-See `docs/fastapi-adapter.md` → _Agents (planned)_. Summary:
+Implemented in the provisional adapter — see `docs/api-adapter.md`. Summary:
 
 - `Agent { id, displayName, extension, agentNumber|null, status, queueIds[], synthetic, createdAt, updatedAt }`
 - `Queue { id, name {ar,en} }`

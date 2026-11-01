@@ -1,30 +1,124 @@
-# Architecture
+# Architecture guide
+
+A feature-based React 19 + TypeScript (strict) application built with Vite. It has
+**two runtime dependencies besides React**: `react-router`, and nothing else. Data validation,
+caching, i18n and the simulated backend are small in-house modules, so the local offline
+build needs no extra packages.
+
+## Layout
 
 ```
 src/
-  app/            App, AppShell (layout, language/theme controls), preferences, design-preview (Phase 0)
-  api/
-    contract/     Zod schemas + derived types (calls, transcripts, scorecards, evaluations), scoring
-    endpoints.ts  single endpoint map (provisional)
-    http.ts       fetch wrapper: base URL, Zod validation, FastAPI error mapping
-    client.ts     ApiClient interface + implementation (the only data-access surface)
-  components/ui/  shared primitives: Card, StatTile, ScoreMeter, BandIcon, DataSourceBadge
-  config/         env.ts (validated VITE_* vars), brand.config.ts (logo slot)
-  i18n/           en.json, ar.json (i18next-compatible), formatting helpers
-  styles/         tokens/primitives.css → tokens/semantic.css → brand.css → base.css
-  features/       feature modules (Phase 3+)
-  fixtures/       synthetic demo data (Phase 2)
-tests/e2e/        Playwright specs
+  app/                       Composition only: providers, router, shell, session gate
+    providers/               I18n → Theme → Api → Toast
+    session/                 "Open local demo session" (one-time launch code), SessionGate
+    shell/                   AppShell (sidebar, top bar), navigation config, preference controls
+    router.tsx               Route table; every page is lazy-loaded (own chunk)
+  features/                  One folder per business capability
+    dashboard/               Overall + individual agent performance
+    agents/                  Agent profiles, Yeastar extensions, queues, change history
+    calls/                   Upload, audio player, synced transcript, call review
+    scorecards/              Editable scorecard, versions, prohibited expressions
+    evaluations/             Evidence, re-scoring, history, previous-vs-new comparison
+    settings/                Language/theme, reporting rules, demo data, planned admin areas
+  shared/
+    api/                     ApiClient, transport, endpoints, wire mappers, errors, query cache
+      wire/                  snake_case wire decoders + mappers (one file per resource)
+      mock/                  SIMULATED backend (same wire format), synthetic fixtures
+    ui/                      Accessible, reusable components (Button, Card, Dialog, Field…)
+    hooks/                   useApiQuery, useApiMutation, combineQueries, useSession…
+    types/domain.ts          The single set of domain types (camelCase)
+    utils/                   Pure, tested functions (score rounding, time, validation)
+    theme/                   Design tokens (primitive → semantic), base CSS, ThemeProvider
+    branding/                Runtime brand tokens + logo slot, defaults (neutral placeholder)
+    i18n/                    Typed t(), formatters, en.json / ar.json
 ```
 
-## Key decisions
+Inside a feature: `pages/` (route components), `components/` (presentation),
+`hooks/` (data access + behaviour), `model/` (pure business rules + tests), `index.ts`
+(public API).
 
-- **One data path.** Mock mode is implemented with MSW at the network layer, so `ApiClient`
-  and every hook run identically against synthetic data and the real FastAPI backend.
-- **Contract-first.** Zod schemas validate every response; contract drift fails loudly.
-- **Tokens, not themes-in-components.** Components reference semantic tokens only; themes and
-  branding change values, not code.
-- **Logical CSS everywhere** so RTL needs no separate stylesheet.
-- **Score model.** 0–10 per criterion; overall = weighted mean (`computeOverallScore`);
-  scorecards are versioned and immutable once used; re-scoring creates a new evaluation that
-  references the one it supersedes, enabling historical comparison.
+## Dependency rules
+
+1. `app → features → shared`. `shared` never imports from `features` or `app`.
+2. Features import other features only through their `index.ts`, or through a pure
+   `model/index.ts` barrel (no React) when a model needs another feature's rules.
+3. Current feature graph (acyclic): `dashboard → calls, evaluations, agents, scorecards`;
+   `calls → evaluations, agents, scorecards`; `evaluations → scorecards, agents`;
+   `agents`, `scorecards`, `settings` → shared only.
+4. UI components never call `fetch` and never compute scores or aggregates. Business
+   rules live in `model/` or `shared/utils/` and are unit-tested.
+
+## Data flow
+
+```
+Page → feature hook (useApiQuery / useApiMutation) → ApiClient (domain types)
+     → wire decoder + mapper (snake_case ↔ camelCase, validation)
+     → Transport ─┬─ fetch transport  (live: same-origin /api, cookies, CSRF header)
+                  └─ mock transport   (simulated backend, synthetic data, labelled)
+```
+
+- **Validation:** every response is decoded; unexpected shapes raise
+  `ApiError('contract_mismatch')` instead of rendering wrong data.
+- **Caching:** `QueryStore` deduplicates requests; mutations invalidate key prefixes
+  (`'agents'`, `'calls'`, `'evaluations'`, `'scorecards'`) so dashboards, lists and history
+  refresh together. An invalidation during an in-flight request triggers a fresh fetch.
+  Lists poll while calls are processing and refresh all views when processing settles.
+- **Errors:** one `ApiError` type; `describeError()` gives localised, user-safe messages;
+  422 field issues map back onto form fields.
+
+## Business rules (where they live)
+
+| Rule                                                                                                                                                                                         | Module                                                           |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Two decimals, always rounded down; low = strictly below threshold (7.00 default)                                                                                                             | `shared/utils/score.ts`                                          |
+| Overall = weighted mean of scored criteria; not-assessable / insufficient-evidence excluded                                                                                                  | `shared/utils/score.ts` (reference; backend authoritative)       |
+| Each call counted once via latest eligible evaluation; history immutable                                                                                                                     | `features/evaluations/model/current.ts`                          |
+| Pooled per-call averages, never mean of agent means; low-score count uses each evaluation's own version threshold; optional scorecard-version filter (`?version=`) to compare like with like | `features/dashboard/model/aggregate.ts`                          |
+| Previous-vs-new comparison by criterion id                                                                                                                                                   | `features/evaluations/model/compare.ts`                          |
+| Agent validation (unique extension), alphabetical lists (no ranking)                                                                                                                         | `features/agents/model/agents.ts`                                |
+| Scorecard validation, new immutable version per save                                                                                                                                         | `features/scorecards/model/draft.ts`                             |
+| Sample-size warning always shown; PBX metrics never estimated                                                                                                                                | `features/dashboard/components/SampleNotice.tsx`, `PbxPanel.tsx` |
+
+## Cross-cutting concerns
+
+- **i18n:** all strings in `shared/i18n/locales/{en,ar}.json`; keys are type-checked
+  (`MessageKey`); a unit test enforces identical keys in both languages. Bilingual data
+  uses `{ en, ar }` and `pick()`. Numbers via `Intl` with Western digits
+  (`NUMBERING_SYSTEM`).
+- **RTL:** `<html dir>` follows the language; CSS uses logical properties only; ids,
+  times and numbers are wrapped in `<bdi>`; mixed-language text carries its own `lang`/`dir`.
+- **Themes:** Light / Dark / System via `data-theme` on `<html>`; components use semantic
+  tokens only.
+- **Branding:** `GET /branding` at runtime → CSS custom properties (hex-validated) + logo URL.
+  Build-time defaults are a neutral placeholder; official assets are never redrawn here.
+- **Security / CSP:** no inline scripts or styles in HTML, no remote origins, styles set via
+  CSSOM only, no `dangerouslySetInnerHTML`. The launch code is removed from the URL _before_
+  the router is created (so navigation can never reintroduce it). Runtime logo URLs must be
+  same-origin paths or inline images. Scores are range-checked (0–10) when decoded.
+- **Accessibility:** native elements first, labelled controls, focus moves to the page
+  heading on navigation, native `<dialog>` for modals, meters with text values, never
+  colour-only status.
+
+## Maintaining each feature
+
+| Feature     | Change data shape           | Change behaviour                       | Tests                                    |
+| ----------- | --------------------------- | -------------------------------------- | ---------------------------------------- |
+| dashboard   | `shared/types`, wire mapper | `model/aggregate.ts`                   | `aggregate.test.ts`, `dashboard.spec.ts` |
+| agents      | `wire/agents.ts`            | `model/agents.ts`, `AgentFormDialog`   | `agents.test.ts`, `admin.spec.ts`        |
+| calls       | `wire/calls.ts`             | `hooks/useAudioPlayer.ts`, `model/*`   | `calls.test.ts`, `calls.spec.ts`         |
+| scorecards  | `wire/scorecards.ts`        | `model/draft.ts`, editors              | `draft.test.ts`, `admin.spec.ts`         |
+| evaluations | `wire/evaluations.ts`       | `model/current.ts`, `model/compare.ts` | `evaluations.test.ts`, `calls.spec.ts`   |
+| settings    | —                           | `model/adminAreas.ts`                  | `a11y.spec.ts`                           |
+
+**Adding a feature:** create `features/<name>/{pages,components,hooks,model}`, add a lazy
+route in `app/router.tsx`, a nav entry in `app/shell/navigation.ts`, strings in both
+locale files, endpoints in `shared/api/endpoints.ts` + a wire mapper, and model tests.
+
+## Testing
+
+`npm run check` (typecheck, lint, format, unit) · `npm run test:e2e` (Playwright: desktop +
+mobile; session, dashboards, click-through, audio/transcript sync, re-scoring, upload,
+agent management incl. 8 agents, scorecard versioning; axe WCAG 2.2 AA in EN/AR ×
+light/dark on every page; no horizontal overflow; no console/CSP errors under the strict
+CSP served by `vite preview`).

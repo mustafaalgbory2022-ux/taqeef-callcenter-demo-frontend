@@ -1,0 +1,41 @@
+.state {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-3);
+  padding: var(--space-10) var(--space-5);
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.title {
+  color: var(--color-text);
+  font-weight: var(--weight-semibold);
+}
+
+.skeleton {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-5);
+}
+
+.bar {
+  block-size: 0.875rem;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(
+    90deg,
+    var(--color-surface-sunken),
+    var(--color-border),
+    var(--color-surface-sunken)
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}

@@ -9,8 +9,8 @@ system (FastAPI backend, ORD-0035 frontend). This repo is frontend-only.
   local source code. Fixtures are invented and marked `synthetic: true`.
 - **Never touch the Orva repository** or any repo other than this one.
 - Work on the assigned feature branch. **Never merge into `main`.**
-- **Do not invent company branding.** Brand values go only in `src/styles/brand.css` and
-  `src/config/brand.config.ts`; until official assets arrive, the neutral placeholder stays.
+- **Do not invent company branding.** Official branding arrives at runtime (`GET /api/branding`);
+  build-time defaults in `src/shared/branding/` stay a neutral placeholder. Never redraw logos.
 - No new plugins, MCP servers, hooks or external services. No runtime CDN calls.
 - **Everything is managed in the GUI** (see `docs/requirements/gui-administration.md`): no admin
   task may require CLI, DB, config-file or code changes. Admin settings are API resources, not
@@ -24,8 +24,10 @@ system (FastAPI backend, ORD-0035 frontend). This repo is frontend-only.
   data, never estimated. SLA % = (Total incoming − Missed) / Total incoming × 100.
 - All sample data is clearly labelled synthetic.
 - Mock behaviour must always be distinguishable from the live API (`DataSourceBadge`).
-- Dependency versions are **provisional** until confirmed against ORD-0035
-  (see `docs/integration.md`). Pin exact versions; check license + provenance before adding.
+- Stack is pinned to the confirmed ORD-0035 versions (`docs/handoff.md` §2). Do not add runtime
+  dependencies without explicit reconciliation; pin exact versions; check license + provenance.
+- Respect the strict CSP: no inline scripts/styles in HTML, no remote origins, no
+  `dangerouslySetInnerHTML`. Use Node 24 (`/opt/node24/bin` in the cloud container).
 
 ## Commands
 
@@ -35,12 +37,16 @@ system (FastAPI backend, ORD-0035 frontend). This repo is frontend-only.
 
 ## Architecture (see docs/architecture.md)
 
-- `src/api/contract/` — Zod schemas = the frontend's data contract. Types derive from schemas.
-- `src/api/client.ts` — `ApiClient`, the only data-access surface. Components never `fetch`.
-- `src/api/endpoints.ts` — single endpoint map to align with FastAPI.
-- `src/styles/tokens/` — primitive → semantic tokens. Components use semantic tokens only.
-- `src/i18n/{en,ar}.json` — all user-visible strings. No hard-coded UI text.
-- `src/features/<feature>/` — feature modules (added from Phase 3).
+- `src/app/` composition · `src/features/<feature>/{pages,components,hooks,model}` ·
+  `src/shared/{api,ui,hooks,types,utils,theme,branding,i18n}`.
+- `app → features → shared`; cross-feature imports only via a feature's `index.ts` (or its
+  pure `model/index.ts`). No scoring/aggregation logic in components.
+- `src/shared/api/client.ts` — `ApiClient`, the only data-access surface. Wire format is
+  snake_case, decoded in `shared/api/wire/`; endpoints only in `shared/api/endpoints.ts`.
+- `src/shared/api/mock/` — simulated backend with synthetic fixtures (always labelled).
+- `src/shared/types/domain.ts` — the single set of domain types.
+- `src/shared/i18n/locales/{en,ar}.json` — all user-visible strings (typed keys).
+- `src/shared/theme/tokens/` — primitive → semantic tokens. Components use semantic tokens only.
 
 ## Project skills (.claude/skills)
 

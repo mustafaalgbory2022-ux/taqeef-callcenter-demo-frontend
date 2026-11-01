@@ -1,0 +1,19 @@
+/*
+ * BRAND SLOT — intentionally empty (build-time defaults).
+ *
+ * Production branding is loaded at RUNTIME from the backend (GET /branding) and applied
+ * as CSS custom properties by shared/branding/applyBrandTokens.ts, so administrators can
+ * rebrand without code changes. Values here are only fallbacks.
+ *
+ * The approved Taqeef brand lives in the local project. When the official values are
+ * supplied, define them here (and only here). Every variable is optional; unset values
+ * fall back to the neutral placeholder palette in tokens/primitives.css.
+ *
+ * :root {
+ *   --brand-primary: <hex>;           --brand-primary-dark: <hex>;
+ *   --brand-primary-hover: <hex>;     --brand-primary-dark-hover: <hex>;
+ *   --brand-primary-soft: <hex>;      --brand-primary-dark-soft: <hex>;
+ *   --brand-primary-text: <hex>;      --brand-primary-dark-text: <hex>;
+ *   --font-sans: <stack>;
+ * }
+ */

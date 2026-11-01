@@ -16,17 +16,16 @@ description: React + TypeScript engineering conventions for the Taqeef demo fron
 
 - `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes` are on — do not loosen.
 - No `any`. Use `unknown` + narrowing. No non-null `!` unless provably safe and commented.
-- API types are **derived from Zod schemas** (`z.infer`) in `src/api/contract/`. Never
-  hand-write a parallel interface for server data.
+- Domain types live once in `src/shared/types/domain.ts`. Wire types are inferred from the
+  decoders in `src/shared/api/wire/` (`Decoded<typeof decoder>`). Never duplicate them.
 - `import type` for type-only imports (lint-enforced).
 
 ## React
 
 - Function components and hooks only. Keep components presentational; data access goes
-  through `ApiClient` via TanStack Query hooks in the feature (`useCalls`, `useEvaluations`…).
-- **Version neutrality:** until ORD-0035's React version is confirmed, avoid React-19-only
-  APIs (`use()`, Actions/`useActionState`, `useOptimistic`, ref-as-prop, `<form action>`).
-  Code must also run on React 18.
+  through `ApiClient` via `useApiQuery` / `useApiMutation` in the feature's `hooks/`.
+- Confirmed stack: React 19.3.0, React Router 8.4.0, TypeScript 6.0.3, Vite 8.3.2, Node 24.
+  No other runtime dependencies without explicit reconciliation with ORD-0035.
 - Derive state instead of syncing it with effects. Effects are for external systems only.
 - Lists need stable keys from data ids, never array indexes.
 - Every user-visible string comes from `src/i18n/*.json`.
@@ -44,4 +43,4 @@ description: React + TypeScript engineering conventions for the Taqeef demo fron
 
 ## Sources
 
-react.dev · typescriptlang.org/docs · vite.dev · tanstack.com/query · zod.dev
+react.dev · reactrouter.com · typescriptlang.org/docs · vite.dev

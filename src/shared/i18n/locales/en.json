@@ -1,0 +1,486 @@
+{
+  "app": {
+    "title": "Call Center AI",
+    "skipToContent": "Skip to main content",
+    "mainNav": "Main navigation",
+    "menu": "Menu",
+    "logo": "Organization logo",
+    "logoPlaceholder": "Organization logo (placeholder)",
+    "notFound": "This page does not exist."
+  },
+  "nav": {
+    "performance": "Performance",
+    "overview": "Overview",
+    "calls": "Calls",
+    "evaluations": "Evaluations",
+    "administration": "Administration",
+    "agents": "Agents",
+    "scorecard": "Scorecard",
+    "settings": "Settings",
+    "planned": "Planned areas"
+  },
+  "common": {
+    "outOfTen": "/ 10",
+    "belowThreshold": "Below threshold",
+    "meetsThreshold": "Meets threshold",
+    "noScore": "No score",
+    "synthetic": "Synthetic",
+    "simulated": "Simulated",
+    "mockData": "Synthetic demo data · simulated backend",
+    "liveData": "Live backend",
+    "mockHint": "All data is synthetic and processing is simulated in the browser.",
+    "dataLabel": "Data",
+    "loading": "Loading…",
+    "loadFailed": "Could not load this data",
+    "retry": "Retry",
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "close": "Close",
+    "actions": "Actions",
+    "readOnly": "You have read-only access to this area."
+  },
+  "errors": {
+    "network": "The server could not be reached. Check that the local application is running.",
+    "unauthorized": "Your session has ended. Open a new local demo session.",
+    "forbidden": "You do not have permission for this action.",
+    "notFound": "The requested item was not found.",
+    "validation": "Some values are not valid. Please review the form.",
+    "conflict": "The item changed or is not ready yet. Try again.",
+    "contract": "The server response did not match the expected format.",
+    "server": "The server reported an error. Try again later.",
+    "generic": "Something went wrong."
+  },
+  "session": {
+    "open": "Open local demo session",
+    "body": "This management demonstration opens with a one-time launch code issued by the local application.",
+    "codeLabel": "One-time launch code",
+    "mockHint": "Simulated mode: a synthetic code has been generated for you.",
+    "liveHint": "Normally supplied automatically by the launch link.",
+    "codeRejected": "This launch code is invalid, expired or has already been used. Request a new one from the local application."
+  },
+  "dashboard": {
+    "empty": "No evaluated calls yet.",
+    "overview": {
+      "title": "Quality overview",
+      "scopeAll": "All agents · pooled across every evaluated call.",
+      "scopeAgent": "Filtered to {name}.",
+      "openAgent": "Open agent dashboard",
+      "viewCalls": "View calls"
+    },
+    "agent": {
+      "title": "Agent performance",
+      "notFound": "Agent not found.",
+      "inOverview": "Show in overview",
+      "history": "Evaluation history",
+      "allCalls": "Open in Calls",
+      "rescoreTitle": "Evaluations and re-scoring",
+      "rescoreCaption": "Every evaluation is kept; changes are shown against the previous evaluation of the same call."
+    },
+    "kpi": {
+      "label": "Key figures",
+      "evaluated": "Evaluated calls",
+      "evaluatedNote": "Each call counted once (latest evaluation)",
+      "average": "Average quality score",
+      "averageNote": "Pooled over n = {n} calls · rounded down",
+      "low": "Calls below {threshold}",
+      "ofN": "of {n}",
+      "lowNote": "Strictly below the scorecard threshold",
+      "versions": "Scorecard versions",
+      "versionsNote": "Used by the counted evaluations",
+      "lowMixed": "Calls below their version's threshold"
+    },
+    "sample": {
+      "title": "Sample only — n = {n} evaluated calls. Not a performance ranking.",
+      "body": "Synthetic demonstration data. Results stay labelled as a sample until an approved reporting policy defines when agent results are reliable."
+    },
+    "versions": {
+      "title": "Evaluations use scorecard versions {versions}.",
+      "body": "Criteria are matched by id across versions; weights and thresholds may differ. Low-score calls use each version's own threshold. Filter by version to compare like with like, or re-score calls to apply the latest version."
+    },
+    "criteria": {
+      "title": "Criterion performance",
+      "caption": "Pooled averages · threshold {threshold} (v{version})",
+      "n": "n = {n}",
+      "notAssessable": "{n} not assessable",
+      "insufficient": "{n} insufficient evidence"
+    },
+    "agents": {
+      "title": "Agents (sample)",
+      "caption": "Alphabetical — not a ranking. Open an agent for details.",
+      "evaluated": "Evaluated calls",
+      "average": "Average",
+      "low": "Below threshold"
+    },
+    "pbx": {
+      "title": "Call handling (PBX)",
+      "caption": "Kept separate from quality scores",
+      "unavailable": "Not available — awaiting PBX data",
+      "unavailableBody": "These figures come only from Yeastar PBX metadata. They are never estimated from recordings.",
+      "notAvailable": "Not available",
+      "incoming": "Total incoming",
+      "missed": "Missed",
+      "abandoned": "Abandoned",
+      "sla": "SLA",
+      "formula": "SLA % = (Total incoming − Missed) ÷ Total incoming × 100. Abandoned calls are reported separately."
+    },
+    "versionFilter": {
+      "label": "Scorecard",
+      "all": "All versions"
+    }
+  },
+  "agents": {
+    "fields": {
+      "name": "Agent",
+      "extension": "Extension / agent number",
+      "status": "Status",
+      "queues": "Queues"
+    },
+    "status": {
+      "active": "Active",
+      "inactive": "Disabled",
+      "disable": "Disable",
+      "enable": "Enable",
+      "disableTitle": "Disable {name}?",
+      "enableTitle": "Enable {name}?",
+      "disableBody": "The agent is hidden from new uploads and default filters. Calls, evaluations and history are kept.",
+      "enableBody": "The agent becomes available for uploads and filters again.",
+      "disabledToast": "{name} was disabled.",
+      "enabledToast": "{name} was enabled."
+    },
+    "filter": {
+      "label": "Agent",
+      "all": "All agents",
+      "inactiveGroup": "Disabled agents"
+    },
+    "admin": {
+      "title": "Agents",
+      "description": "Manage agent profiles, Yeastar extensions and queue assignments. Designed for seven or more agents.",
+      "add": "Add agent",
+      "listTitle": "Agent profiles",
+      "listCaption": "{count} agents · {active} active",
+      "syntheticTitle": "Synthetic identities",
+      "syntheticBody": "Names and SYN- extensions are fictional placeholders until the real Yeastar extension numbers are supplied."
+    },
+    "table": {
+      "label": "Agent profiles",
+      "updated": "Last changed"
+    },
+    "form": {
+      "createTitle": "Add agent",
+      "editTitle": "Edit agent",
+      "extensionHint": "2–20 letters, digits or hyphens. Must be unique.",
+      "syntheticNote": "Use fictional names and synthetic extensions only.",
+      "created": "{name} was added.",
+      "updated": "{name} was updated.",
+      "errors": {
+        "nameRequired": "Enter the agent's name.",
+        "nameTooLong": "Use at most 80 characters.",
+        "extensionFormat": "Use 2–20 letters, digits or hyphens.",
+        "extensionTaken": "This extension is already assigned to another agent."
+      }
+    },
+    "history": {
+      "open": "History",
+      "title": "Change history — {name}",
+      "empty": "No changes recorded.",
+      "actions": {
+        "created": "Created",
+        "updated": "Updated",
+        "disabled": "Disabled",
+        "enabled": "Enabled"
+      }
+    }
+  },
+  "calls": {
+    "page": {
+      "title": "Calls",
+      "description": "Upload synthetic recordings and review transcripts, evidence and evaluations."
+    },
+    "list": {
+      "title": "Calls",
+      "caption": "{n} calls · newest first",
+      "empty": "No calls for this selection."
+    },
+    "table": {
+      "call": "Call",
+      "topic": "Topic",
+      "recorded": "Recorded",
+      "duration": "Duration",
+      "status": "Status",
+      "score": "Score"
+    },
+    "status": {
+      "uploaded": "Uploaded",
+      "transcribing": "Transcribing",
+      "scoring": "Scoring",
+      "scored": "Scored",
+      "failed": "Failed"
+    },
+    "processing": {
+      "title": "Processing",
+      "simulated": "Simulated in the browser — the real backend transcribes and scores.",
+      "failed": "Processing failed."
+    },
+    "player": {
+      "title": "Recording",
+      "play": "Play",
+      "pause": "Pause",
+      "back": "Back 5 seconds",
+      "forward": "Forward 5 seconds",
+      "seek": "Playback position",
+      "speed": "Speed",
+      "syntheticAudio": "Synthetic audio generated for the demo (tones aligned to the transcript). No real recording.",
+      "unavailable": "Audio is not available",
+      "unavailableBody": "Uploaded audio is kept in this browser tab only and is not stored by the simulated backend.",
+      "error": "The recording could not be played."
+    },
+    "transcript": {
+      "title": "Transcript",
+      "caption": "Select a line to play from that moment.",
+      "follow": "Follow playback",
+      "playFrom": "Play from",
+      "agent": "Agent",
+      "customer": "Customer",
+      "pending": "The transcript will appear when processing reaches this stage.",
+      "count": "{n} transcript segments"
+    },
+    "upload": {
+      "open": "Upload call",
+      "pageTitle": "Upload a call",
+      "description": "Add a synthetic recording for transcription and scoring.",
+      "formTitle": "Recording details",
+      "syntheticTitle": "Synthetic recordings only",
+      "syntheticBody": "Do not upload PBX exports or customer recordings. In this demo, processing is simulated and the file stays in your browser.",
+      "file": "Audio file",
+      "fileHint": "WAV, MP3, OGG or WebM · up to {mb} MB",
+      "title": "Title",
+      "selectAgent": "Select an agent",
+      "confirm": "I confirm this recording is synthetic and contains no customer data.",
+      "submit": "Upload and process",
+      "done": "Call {id} uploaded. Processing has started.",
+      "errors": {
+        "fileRequired": "Choose an audio file.",
+        "fileType": "Only audio files are accepted.",
+        "fileSize": "The file is larger than 25 MB.",
+        "titleRequired": "Enter a title.",
+        "titleTooLong": "Use at most 120 characters.",
+        "agentRequired": "Select the agent who handled the call.",
+        "confirmRequired": "Confirm that the recording is synthetic."
+      }
+    }
+  },
+  "evaluations": {
+    "title": "Evaluation",
+    "caption": "Scorecard v{version} · {date}",
+    "none": "No evaluations yet.",
+    "overall": "Overall",
+    "criteria": "Criteria",
+    "evidenceAt": "Play evidence at",
+    "result": {
+      "notAssessable": "Not assessable",
+      "insufficient": "Insufficient evidence",
+      "absent": "Not in this version"
+    },
+    "trigger": {
+      "initial": "Initial",
+      "rescore": "Re-score"
+    },
+    "delta": {
+      "up": "increase",
+      "down": "decrease",
+      "same": "no change"
+    },
+    "rescore": {
+      "action": "Re-score with latest scorecard",
+      "done": "Re-scored with scorecard v{version}: {score} (previously {previous})."
+    },
+    "prohibited": {
+      "title": "Prohibited expressions",
+      "none": "None detected.",
+      "note": "Detected expressions are reported for review; they do not change the score automatically."
+    },
+    "history": {
+      "title": "Evaluation history",
+      "caption": "{n} immutable evaluations · compare any two",
+      "single": "Only one evaluation so far. Re-score to compare versions."
+    },
+    "compare": {
+      "title": "Previous versus new",
+      "before": "Previous",
+      "after": "New",
+      "change": "Change",
+      "criterion": "Criterion",
+      "pickTwo": "Select two different evaluations to compare.",
+      "versionChanged": "Scorecard changed from v{from} to v{to}."
+    },
+    "log": {
+      "date": "Evaluated",
+      "call": "Call",
+      "type": "Type",
+      "version": "Scorecard",
+      "change": "Change vs previous"
+    },
+    "page": {
+      "title": "Evaluations",
+      "description": "All evaluations and re-scoring results. History is immutable.",
+      "logTitle": "Evaluation log",
+      "logCaption": "{n} evaluations · newest first",
+      "rescoresOnly": "Re-scores only"
+    },
+    "latestFailed": "The latest re-score attempt failed. The previous evaluation is still current."
+  },
+  "scorecards": {
+    "page": {
+      "title": "Quality scorecard",
+      "description": "Configure criteria, weights, the low-score threshold and prohibited expressions. Every save creates a new version.",
+      "placeholderTitle": "Placeholder criteria",
+      "placeholderBody": "The six criteria are synthetic placeholders matching the approved count. Replace them with the approved Taqeef criteria."
+    },
+    "editor": {
+      "title": "{name} — editing from v{version}",
+      "caption": "Scores are whole points 0–10 per criterion."
+    },
+    "general": {
+      "title": "General",
+      "nameEn": "Name (English)",
+      "nameAr": "Name (Arabic)",
+      "threshold": "Low-score threshold",
+      "thresholdHint": "Calls strictly below this value are low-scoring. Default 7.00."
+    },
+    "criteria": {
+      "title": "Criteria ({n})",
+      "rule": "Overall score = weighted mean of scored criteria, shown to two decimals and rounded down. Not assessable and insufficient-evidence criteria are excluded.",
+      "item": "Criterion {n}",
+      "labelEn": "Label (English)",
+      "labelAr": "Label (Arabic)",
+      "descriptionEn": "Guidance (English)",
+      "descriptionAr": "Guidance (Arabic)",
+      "weight": "Weight",
+      "weightHint": "Whole number 1–{max}",
+      "share": "{pct}% of total weight",
+      "moveUp": "Move up",
+      "moveDown": "Move down",
+      "remove": "Remove",
+      "add": "Add criterion"
+    },
+    "prohibited": {
+      "title": "Prohibited expressions",
+      "hint": "Matched in transcripts and reported with evidence on each evaluation.",
+      "phrase": "Expression {n}",
+      "language": "Language",
+      "remove": "Remove",
+      "add": "Add expression"
+    },
+    "save": {
+      "note": "Change note",
+      "noteHint": "Recorded in the version history.",
+      "immutable": "Saving creates version v{next}. Existing evaluations keep their version; re-score calls to apply it.",
+      "submit": "Save as v{next}",
+      "discard": "Discard changes",
+      "unsaved": "Unsaved changes"
+    },
+    "saved": "Scorecard saved as version v{version}.",
+    "errors": {
+      "fix": "Please correct the highlighted fields.",
+      "name": "Enter the name in both languages.",
+      "threshold": "Use a value from 0 to 10 with at most two decimals.",
+      "criteriaCount": "A scorecard needs 1 to 12 criteria.",
+      "label": "Required.",
+      "weight": "Whole number from 1 to 10.",
+      "phraseEmpty": "Enter the expression or remove it.",
+      "phraseDuplicate": "This expression is already listed.",
+      "changeNote": "Describe what changed."
+    },
+    "history": {
+      "title": "Version history",
+      "caption": "Versions are immutable. Expand a version to see its configuration.",
+      "current": "Current",
+      "threshold": "Threshold {value}",
+      "counts": "{criteria} criteria · {expressions} prohibited expressions"
+    }
+  },
+  "settings": {
+    "page": {
+      "title": "Settings",
+      "description": "Display preferences and demo information. Production settings are managed here too as they become available."
+    },
+    "appearance": {
+      "title": "Language and theme",
+      "caption": "Saved in this browser"
+    },
+    "language": {
+      "label": "Language",
+      "ar": "العربية",
+      "en": "English"
+    },
+    "theme": {
+      "label": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "reporting": {
+      "title": "Reporting rules",
+      "caption": "Applied to every dashboard",
+      "sampleWarnings": "Sample-size warnings",
+      "sampleWarningsValue": "Always shown — no reporting policy has been approved yet.",
+      "ranking": "Agent ranking",
+      "rankingValue": "Disabled. Agents are listed alphabetically.",
+      "rounding": "Score display",
+      "roundingValue": "Two decimals, always rounded down. Low score: strictly below the threshold."
+    },
+    "session": {
+      "title": "Session",
+      "user": "User",
+      "mode": "Data source",
+      "permissions": "Permissions"
+    },
+    "demo": {
+      "title": "Synthetic demo data",
+      "caption": "Simulated backend only",
+      "body": "Changes made in this demo are stored in this browser. Resetting restores the original 4 agents, 5 calls and evaluations.",
+      "reset": "Reset demo data",
+      "confirmTitle": "Reset synthetic demo data?",
+      "confirmBody": "All simulated changes (agents, uploads, scorecard versions, re-scores) will be discarded."
+    },
+    "planned": {
+      "title": "Planned administration areas",
+      "description": "Production requirements recorded for later. Every area will be fully manageable in this interface — no command line, database or file editing.",
+      "noticeTitle": "Not part of the five-call demo",
+      "noticeBody": "Each area will include validation, permissions, feedback and audit history.",
+      "badge": "Planned",
+      "cardTitle": "Production administration",
+      "cardCaption": "PBX, AI, reports, users and security, storage, system health and branding",
+      "open": "View planned areas",
+      "pbx": {
+        "title": "PBX connections and call ingestion",
+        "scope": "Yeastar connection setup and testing, ingestion schedule and status, retry of failed ingestion, CDR import for missed, abandoned and SLA metrics."
+      },
+      "ai": {
+        "title": "AI models and processing",
+        "scope": "Model selection, versioned prompts, Iraqi dialect dictionary and processing controls (pause, resume, priority, re-run)."
+      },
+      "reports": {
+        "title": "Reports, exports and notifications",
+        "scope": "Scheduled and on-demand reports, CSV/XLSX/PDF exports, email notification rules with a test send."
+      },
+      "security": {
+        "title": "Users, roles, MFA and security",
+        "scope": "Users and roles, permissions, MFA enrolment and reset, session policies and the security audit log."
+      },
+      "storage": {
+        "title": "Storage, retention, backup and restore",
+        "scope": "Storage usage, retention policies, backup schedules and verified restore."
+      },
+      "health": {
+        "title": "System health and diagnostics",
+        "scope": "Service health, error log browser, diagnostics bundle and general application settings."
+      },
+      "branding": {
+        "title": "Branding and localization",
+        "scope": "Logo upload, brand colours with contrast validation, default language and theme, translation management."
+      }
+    }
+  }
+}

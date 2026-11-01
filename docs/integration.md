@@ -1,41 +1,31 @@
-# Integration with the local Taqeef system
+# Integration status
 
-## Provisional dependency versions (Phase 0)
+## Confirmed by the Local ORD-0035 project
 
-All versions are pinned exactly in `package.json` and are **provisional** until confirmed
-against the local ORD-0035 frontend. Code avoids React-19-only APIs so React 18 remains viable.
+- Stack: React/react-dom 19.3.0, React Router 8.4.0, TypeScript 6.0.3, Vite 8.3.2,
+  @vitejs/plugin-react 6.1.1, Vitest 5.0.3, ESLint 10.12.0, Playwright 1.63.0, Node ≥24.15 <25,
+  CSS Modules + custom properties, Light/Dark/System themes, English/Arabic RTL. **Adopted.**
+- Built static files served by FastAPI on 127.0.0.1:8000; same-origin `/api`. **Adopted.**
+- No separate frontend server, CDN, remote fonts or external scripts. **Adopted.**
+- Strict CSP, cookie session, CSRF. **Adopted** (see `docs/handoff.md` §3).
+- One-time launch-code exchange labelled "Open local demo session". **Implemented.**
+- snake_case wire format behind a typed adapter. **Implemented** (`src/shared/api/wire`).
+- Scoring rules (six criteria, whole points, two decimals rounded down, low < 7.00,
+  Not Assessable vs Insufficient Evidence, immutable history, latest eligible evaluation,
+  pooled aggregation, sample sizes, no ranking, no invented PBX metrics, SLA formula).
+  **Implemented.**
 
-Runtime: react 19.3.1, react-dom 19.3.1, zod 4.6.7.
-Deferred until versions are confirmed: react-router, @tanstack/react-query, i18next +
-react-i18next, msw, @fontsource/ibm-plex-sans-arabic.
+## Open questions
 
-## Questions for the local project
-
-1. React, TypeScript, Vite/bundler and Node versions used by ORD-0035.
-2. Router (React Router version? other?), data-fetching and i18n libraries already in use.
-3. Styling approach (CSS Modules, Tailwind, UI kit?) — affects how tokens are delivered.
-4. Delivery target: separate app served by FastAPI `StaticFiles`, or modules merged into
-   ORD-0035?
-5. FastAPI OpenAPI spec (`/openapi.json`) or contract document; JSON casing; time units.
-6. Auth model the host provides (cookie session, bearer token) — this repo ships none.
-7. Official brand tokens, fonts (with licences) and logo files; dark-mode logo variant.
-8. Arabic numerals: Western (0–9) or Arabic-Indic (٠–٩)?
-9. Scorecard: default criteria, weights, pass threshold; who may edit; versioning rules.
-10. Audio formats produced by the pipeline and whether Range requests are supported.
-
-11. Agent data: does the backend already store agents/queues? Field names for Yeastar
-    extension vs agent number; can an agent have several extensions?
-12. How calls are linked to agents (extension in recording metadata, CDR join, manual).
-13. Yeastar PBX metadata (CDR/queue stats) availability and the fields for total incoming,
-    missed and abandoned. SLA formula is confirmed:
-    (Total incoming − Missed) / Total incoming × 100.
-14. Who may add/disable agents in the UI; is agent management done in the backend instead?
-15. Reporting policy for when per-agent results may be treated as reliable (sample-size
-    warnings stay on until this is approved).
-16. Does the backend expose (or plan) settings, permissions/current-user and audit-log APIs
-    for GUI administration? Same-origin `/api` in production?
-
-## Handoff plan
-
-The local team pulls this branch (or the built `dist/`), sets `VITE_API_MODE=fastapi` and
-`VITE_API_BASE_URL`, and resolves any contract differences inside `src/api/` only.
+1. Final API routes and payloads (current ones are provisional — `docs/api-adapter.md`).
+2. Agent id convention (treated as opaque strings) and timestamp units (ms assumed).
+3. The six approved criteria (labels, guidance, weights) — placeholders are used.
+4. Rule for whether "Insufficient evidence" on some criteria makes an evaluation
+   ineligible (currently: excluded per criterion; evaluation eligible if any criterion scored).
+5. Whether prohibited expressions should affect scores (currently: reported only).
+6. CSRF cookie/header names and session lifetime/expiry behaviour.
+7. SPA fallback availability in FastAPI (else `VITE_ROUTER_MODE=hash`).
+8. Official logo files and Light/Dark brand tokens via `GET /api/branding`.
+9. Arabic numerals: Western (current default) or Arabic-Indic.
+10. Reporting policy for when agent results may be treated as reliable.
+11. Vite 8.3.2 → 8.3.5 security upgrade (dev server advisories) for both projects.

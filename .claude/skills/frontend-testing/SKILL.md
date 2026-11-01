@@ -7,12 +7,12 @@ description: Testing strategy for the Taqeef frontend — Vitest + Testing Libra
 
 ## Layers
 
-| Layer     | Tool                             | Location              | What                                           |
-| --------- | -------------------------------- | --------------------- | ---------------------------------------------- |
-| Unit      | Vitest                           | `src/**/*.test.ts`    | pure logic: scoring, formatting, mappers       |
-| Component | Vitest + Testing Library (jsdom) | `src/**/*.test.tsx`   | behaviour via roles/labels                     |
-| Contract  | Vitest                           | `src/api/*.test.ts`   | ApiClient: URLs, Zod validation, error mapping |
-| E2E       | Playwright                       | `tests/e2e/*.spec.ts` | user flows, RTL, themes, responsive, axe       |
+| Layer     | Tool                             | Location                  | What                                      |
+| --------- | -------------------------------- | ------------------------- | ----------------------------------------- |
+| Unit      | Vitest                           | `src/**/*.test.ts`        | pure logic: scoring, formatting, mappers  |
+| Component | Vitest + Testing Library (jsdom) | `src/**/*.test.tsx`       | behaviour via roles/labels                |
+| Contract  | Vitest                           | `src/shared/**/*.test.ts` | wire decoding, snake_case mapping, errors |
+| E2E       | Playwright                       | `tests/e2e/*.spec.ts`     | user flows, RTL, themes, responsive, axe  |
 
 ## Rules
 

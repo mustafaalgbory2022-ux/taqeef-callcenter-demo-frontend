@@ -84,7 +84,7 @@ Demo treatment of the cross-cutting rules:
 - **Runtime configuration over build-time configuration.** `VITE_*` variables are developer
   settings only (mock/live mode for development). Production builds default to the
   same-origin `/api`, so installation needs no file editing.
-- **Branding:** `src/styles/brand.css` and `brand.config.ts` remain the defaults. Production
+- **Branding:** `src/shared/branding/` holds neutral defaults. Production
   branding will be loaded from a settings API at runtime and applied as CSS variables and a logo
   URL (ADM-11), so rebranding needs no code change.
 - **Settings are API resources.** Each admin area is a feature module under
