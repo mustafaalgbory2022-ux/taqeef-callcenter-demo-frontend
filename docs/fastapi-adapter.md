@@ -29,6 +29,22 @@ times in milliseconds, scores 0–10, bilingual labels `{ar, en}`.
 | network failure               | `status: 0, code: network_error`                 |
 | schema mismatch               | `code: contract_mismatch`, `details: ZodIssue[]` |
 
+## Agents (planned — see docs/requirements/agents.md)
+
+| Method | Path                                    | Request                          | Response schema                              |
+| ------ | --------------------------------------- | -------------------------------- | -------------------------------------------- |
+| GET    | `/agents?includeInactive=`              | —                                | `Agent[]`                                    |
+| GET    | `/agents/{id}`                          | —                                | `Agent`                                      |
+| POST   | `/agents`                               | `Agent` without id/timestamps    | `Agent`                                      |
+| PATCH  | `/agents/{id}`                          | partial `Agent` (incl. `status`) | `Agent`                                      |
+| GET    | `/queues`                               | —                                | `Queue[]`                                    |
+| GET    | `/calls?agentId=`                       | —                                | `Call[]` (agent filter on existing endpoint) |
+| GET    | `/pbx/agent-metrics?agentId=&from=&to=` | —                                | `PbxAgentMetrics[]` or 404 = not available   |
+
+Planned change: `Call.agentAlias` → `Call.agentId`. Quality aggregates are computed in the
+frontend from calls + current evaluations (pooled by call); an optional server
+`/dashboard/summary?agentId=` may replace this later without UI changes.
+
 ## Open alignment items
 
 See `docs/integration.md`.

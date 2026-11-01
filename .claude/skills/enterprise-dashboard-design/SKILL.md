@@ -35,6 +35,19 @@ dependable internal enterprise tool — calm, precise, evidence-driven — not a
 - **Empty / loading / error** states for every data view (skeletons, not spinners, for tables).
 - **Motion:** 120–200 ms, standard easing, opacity/transform only; respect reduced motion.
 
+## Agent dashboards
+
+Full rules: `docs/requirements/agents.md`.
+
+- Overall = pooled over evaluated calls (Σ scores / n calls), never the mean of agent means.
+  Use the current (non-superseded) evaluation per call. Always show n.
+- Below `minIndicativeSample`, show the "Sample only — not a performance ranking" notice; no
+  leaderboards, rank numbers or score-sorted agent lists.
+- Agent filter: searchable select, state in URL, consistent across screens; design and test for
+  8 agents.
+- PBX metrics (missed / abandoned / SLA) are a separate section; "Not available" until PBX data
+  exists. Never estimate them.
+
 ## Charts
 
 Load the built-in `dataviz` skill before any chart. Small hand-built SVG, one axis, legend

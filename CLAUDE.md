@@ -12,6 +12,9 @@ system (FastAPI backend, ORD-0035 frontend). This repo is frontend-only.
 - **Do not invent company branding.** Brand values go only in `src/styles/brand.css` and
   `src/config/brand.config.ts`; until official assets arrive, the neutral placeholder stays.
 - No new plugins, MCP servers, hooks or external services. No runtime CDN calls.
+- Agents are data, not code (see `docs/requirements/agents.md`). Overall metrics are pooled
+  per call, never an average of agent averages. Small samples are labelled "sample only"
+  with no rankings. PBX figures (missed/abandoned/SLA) come only from PBX data, never estimated.
 - Mock behaviour must always be distinguishable from the live API (`DataSourceBadge`).
 - Dependency versions are **provisional** until confirmed against ORD-0035
   (see `docs/integration.md`). Pin exact versions; check license + provenance before adding.

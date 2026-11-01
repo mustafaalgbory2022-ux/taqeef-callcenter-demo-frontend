@@ -23,6 +23,15 @@ react-i18next, msw, @fontsource/ibm-plex-sans-arabic.
 9. Scorecard: default criteria, weights, pass threshold; who may edit; versioning rules.
 10. Audio formats produced by the pipeline and whether Range requests are supported.
 
+11. Agent data: does the backend already store agents/queues? Field names for Yeastar
+    extension vs agent number; can an agent have several extensions?
+12. How calls are linked to agents (extension in recording metadata, CDR join, manual).
+13. Yeastar PBX metadata (CDR/queue stats) availability, fields for missed / abandoned / SLA,
+    and the SLA definition (e.g. answered within N seconds).
+14. Who may add/disable agents in the UI; is agent management done in the backend instead?
+15. Minimum evaluated calls before per-agent results are treated as indicative
+    (provisional default 10).
+
 ## Handoff plan
 
 The local team pulls this branch (or the built `dist/`), sets `VITE_API_MODE=fastapi` and

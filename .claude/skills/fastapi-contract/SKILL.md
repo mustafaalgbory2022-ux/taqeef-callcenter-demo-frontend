@@ -28,6 +28,12 @@ UI components → feature hooks (TanStack Query) → ApiClient (src/api/client.t
 - If the backend uses snake_case or different shapes, add a mapper inside the adapter —
   never leak backend shapes into components.
 
+## Agents
+
+Planned entities `Agent`, `Queue`, optional `PbxAgentMetrics`; `Call.agentId` references
+`Agent.id` (stable id, separate from the Yeastar extension). Synthetic agents use `SYN-1xx`
+extensions until real numbers are supplied. See `docs/requirements/agents.md`.
+
 ## Endpoints
 
 Single map in `src/api/endpoints.ts`; documented in `docs/fastapi-adapter.md`. Change both
