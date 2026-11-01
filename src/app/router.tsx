@@ -129,6 +129,13 @@ export const routes: RouteObject[] = [
         ),
       },
       {
+        path: 'admin/notifications',
+        element: page(
+          () => import('@/features/notifications/pages/NotificationsPage'),
+          (m) => m.NotificationsPage,
+        ),
+      },
+      {
         path: 'admin/settings',
         element: page(
           () => import('@/features/settings/pages/SettingsPage'),

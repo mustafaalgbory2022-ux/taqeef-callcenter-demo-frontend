@@ -28,6 +28,7 @@ import { endpoints } from './endpoints';
 import { createAiAdminApi, type AiAdminApi } from './adapters/ai';
 import { createAuditApi, type AuditApi } from './adapters/audit';
 import { createDictionaryApi, type DictionaryApi } from './adapters/dictionary';
+import { createNotificationsApi, type NotificationsApi } from './adapters/notifications';
 import { createPbxAdminApi, type PbxAdminApi } from './adapters/pbx';
 import { createQueueAdminApi, type QueueAdminApi } from './adapters/queues';
 import { ApiError } from './errors';
@@ -125,6 +126,7 @@ export interface ApiClient {
   readonly ai: AiAdminApi;
   readonly dictionary: DictionaryApi;
   readonly pbx: PbxAdminApi;
+  readonly notifications: NotificationsApi;
 }
 
 export function createApiClient(transport: Transport, mode: ApiMode): ApiClient {
@@ -144,6 +146,7 @@ export function createApiClient(transport: Transport, mode: ApiMode): ApiClient 
     ai: createAiAdminApi(send),
     dictionary: createDictionaryApi(send),
     pbx: createPbxAdminApi(send),
+    notifications: createNotificationsApi(send),
     async getSession() {
       try {
         return await send({ method: 'GET', path: endpoints.session }, wireSession, sessionFromWire);

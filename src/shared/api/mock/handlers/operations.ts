@@ -1,3 +1,4 @@
+import { recordReportDelivery } from './notifications';
 import type { GeneratedData } from '../generate';
 import { generateLiveStatus } from '../generate/live';
 import { prng } from '../generate/random';
@@ -144,8 +145,10 @@ export function operationsRoutes(
       handler: ({ params }) => {
         const report = state.reports.find((r) => r.id === params.id);
         if (!report) return fail(404, 'Report not found.');
-        // SIMULATED: nothing is sent. The real backend sends via the Microsoft 365 sender.
+        // SIMULATED: nothing is sent. The real backend sends via the Microsoft 365 sender
+        // using the management report email options; the delivery is recorded in history.
         report.email_status = 'simulated_sent';
+        recordReportDelivery(state, report.id, report.title, `${report.from} – ${report.to}`);
         persist();
         return ok(report);
       },

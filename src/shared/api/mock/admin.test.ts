@@ -235,3 +235,80 @@ describe('simulated PBX administration', () => {
     expect((await api.pbx.listSyncs('pbx-main'))[0]?.id).toBe(run.id);
   });
 });
+
+describe('simulated notifications and email', () => {
+  const guid = '00000000-0000-4000-8000-000000000001';
+  const sender = {
+    senderAddress: 'callcenter.ai@example.invalid',
+    displayName: 'Call Center AI',
+    tenantId: guid,
+    clientId: guid,
+    replyTo: '',
+    secret: '',
+  };
+
+  it('configures the sender with a write-only secret and simulates tests', async () => {
+    expect((await api.notifications.getSender()).state).toBe('not_configured');
+    await expect(api.notifications.saveSender(sender)).rejects.toMatchObject({
+      code: 'validation_error',
+    });
+    await expect(api.notifications.sendTestEmail('qa@example.invalid')).rejects.toMatchObject({
+      code: 'conflict',
+    });
+    const saved = await api.notifications.saveSender({ ...sender, secret: 'synthetic-secret' });
+    expect(saved).toMatchObject({ credentialSet: true, state: 'configured' });
+    expect(JSON.stringify(saved)).not.toContain('synthetic-secret');
+    const test = await api.notifications.testSender();
+    expect(test.steps.find((s) => s.step === 'network')?.result).toBe('skipped');
+    const d = await api.notifications.sendTestEmail('qa@example.invalid');
+    expect(d).toMatchObject({ kind: 'test', status: 'simulated' });
+  });
+
+  it('validates rules and templates, tests rules and records report emails', async () => {
+    await expect(
+      api.notifications.createRule({
+        name: 'X',
+        trigger: 'low_score',
+        enabled: true,
+        thresholdMode: 'custom',
+        customThreshold: 12,
+        queueIds: [],
+        recipients: ['a@example.invalid'],
+        delivery: 'immediate',
+        templateId: 'tpl-alert-en',
+      }),
+    ).rejects.toMatchObject({ code: 'validation_error' });
+    const alert = await api.notifications.testRule('rule-low');
+    expect(alert).toMatchObject({ kind: 'low_quality_alert', status: 'simulated' });
+    expect(alert.subject).toMatch(/^Quality alert: call /);
+    const [tpl] = await api.notifications.listTemplates();
+    if (!tpl) throw new Error('missing');
+    await expect(
+      api.notifications.saveTemplate(tpl.id, {
+        ...tpl,
+        body: 'No placeholders',
+        changeNote: 'edit',
+      }),
+    ).rejects.toMatchObject({ code: 'validation_error' });
+    const v2 = await api.notifications.saveTemplate(tpl.id, {
+      ...tpl,
+      subject: `${tpl.subject}!`,
+      changeNote: 'edit',
+    });
+    expect(v2.version).toBe(2);
+    const report = await api.saveReport({
+      title: 'W',
+      period: 'weekly',
+      range: { from: '2026-10-24', to: '2026-10-30' },
+      queueIds: [],
+      agentIds: [],
+    });
+    await api.emailReport(report.id);
+    const [latest] = await api.notifications.listDeliveries('management_report');
+    expect(latest).toMatchObject({
+      relatedId: report.id,
+      status: 'simulated',
+      recipients: ['management@example.invalid'],
+    });
+  });
+});

@@ -2,6 +2,7 @@ import { seedAdminAudit } from './audit';
 import { agents, initialAudit, queues } from './fixtures/agents';
 import { aiModels, initialAiConfig, seedAiJobs } from './fixtures/ai';
 import { initialConnector, pbxVendors } from './fixtures/pbx';
+import { deliveries, initialSender, reportEmail, rules, templates } from './fixtures/notifications';
 import { corrections, dictionaryEntries, initialVersions } from './fixtures/dictionary';
 import { callFixtures } from './fixtures/calls';
 import { scorecardVersions } from './fixtures/scorecards';
@@ -49,6 +50,13 @@ export function createSeedState(): MockState {
       vendors: structuredClone(pbxVendors),
       connectors: [structuredClone(initialConnector)],
       syncs: {},
+    },
+    notifications: {
+      sender: structuredClone(initialSender),
+      rules: structuredClone(rules),
+      templates: structuredClone(templates),
+      reportEmail: structuredClone(reportEmail),
+      deliveries: structuredClone(deliveries),
     },
     seq: 100,
   };

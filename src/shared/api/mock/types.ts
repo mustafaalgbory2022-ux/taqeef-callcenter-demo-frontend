@@ -2,6 +2,13 @@ import type { Decoded } from '../decode';
 import type { WireAiConfig, WireAiJob, WireAiModel } from './fixtures/ai';
 import type { WirePbxConnector, WirePbxSync, WirePbxVendor } from './fixtures/pbx';
 import type {
+  WireDelivery,
+  WireReportEmail,
+  WireRule,
+  WireSender,
+  WireTemplate,
+} from './fixtures/notifications';
+import type {
   WireCorrection,
   WireDictionaryEntry,
   WireDictionaryVersion,
@@ -67,6 +74,13 @@ export interface MockState {
     vendors: WirePbxVendor[];
     connectors: WirePbxConnector[];
     syncs: Record<string, WirePbxSync[]>;
+  };
+  notifications: {
+    sender: WireSender;
+    rules: WireRule[];
+    templates: WireTemplate[];
+    reportEmail: WireReportEmail;
+    deliveries: WireDelivery[];
   };
   seq: number;
 }

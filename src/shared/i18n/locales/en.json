@@ -27,7 +27,8 @@
     "queues": "Queues",
     "ai": "AI administration",
     "dictionary": "Iraqi Arabic dictionary",
-    "pbx": "PBX administration"
+    "pbx": "PBX administration",
+    "notifications": "Notifications and email"
   },
   "common": {
     "outOfTen": "/ 10",
@@ -1287,6 +1288,168 @@
       "recordings": "Recordings",
       "queue_statistics": "Queue statistics",
       "live_events": "Live events"
+    }
+  },
+  "notifications": {
+    "title": "Notifications and email",
+    "description": "Dedicated Microsoft 365 sender, low-quality notifications, management report email options, templates and delivery history.",
+    "syntheticTitle": "No email is sent",
+    "syntheticBody": "The simulated backend never contacts Microsoft 365. Tests and deliveries are recorded as simulated. Sample recipients use the reserved, non-deliverable .invalid domain.",
+    "errors": {
+      "email": "Enter a valid email address.",
+      "tooLong": "This value is too long.",
+      "guid": "Enter the ID as a GUID (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx).",
+      "secret": "The client secret must be 8–256 characters.",
+      "secretRequired": "Enter the client secret.",
+      "recipientsRequired": "Enter at least one recipient.",
+      "tooManyRecipients": "Use at most 20 recipients.",
+      "recipientInvalid": "One or more addresses are not valid.",
+      "name": "Enter a name (up to 60–80 characters).",
+      "threshold": "Enter a threshold above 0 and up to 10.",
+      "template": "Choose a template.",
+      "subject": "Enter a subject of up to 200 characters.",
+      "body": "Enter a body of up to 5,000 characters.",
+      "placeholderMissing": "Add the required placeholders.",
+      "placeholderUnknown": "Remove placeholders that cannot be filled.",
+      "changeNote": "Describe the change (at least 3 characters).",
+      "reportParts": "Include at least the queue report or the agent report."
+    },
+    "sender": {
+      "title": "Microsoft 365 sender",
+      "caption": "A dedicated mailbox and app registration used only for this application.",
+      "test": "Test connection",
+      "saved": "Sender settings saved.",
+      "testPassed": "Sender test passed",
+      "testFailed": "Sender test failed",
+      "testEmailRecorded": "Test email recorded as simulated — nothing was sent.",
+      "states": {
+        "not_configured": "Not configured",
+        "configured": "Configured",
+        "verified": "Verified",
+        "error": "Error"
+      },
+      "fields": {
+        "senderAddress": "Sender mailbox",
+        "displayName": "Display name",
+        "tenantId": "Directory (tenant) ID",
+        "clientId": "Application (client) ID",
+        "replyTo": "Reply-to address",
+        "secret": "Client secret"
+      },
+      "hints": {
+        "senderAddress": "Use a dedicated mailbox, not a personal one.",
+        "displayName": "Shown as the sender name.",
+        "tenantId": "From the Microsoft Entra app registration.",
+        "clientId": "From the Microsoft Entra app registration.",
+        "replyTo": "Optional.",
+        "secret": "Write-only: stored by the backend and never shown again."
+      },
+      "save": "Save sender",
+      "testTo": "Send a test email to",
+      "testToHint": "The delivery is recorded in the history below.",
+      "sendTest": "Send test email"
+    },
+    "rules": {
+      "title": "Low-quality notifications",
+      "caption": "Who is notified when a call needs attention. Rankings are never sent.",
+      "add": "Add rule",
+      "empty": "No notification rules yet.",
+      "name": "Rule name",
+      "trigger": "Trigger",
+      "recipients": "Recipients",
+      "delivery": "Delivery",
+      "on": "On",
+      "off": "Off",
+      "disable": "Turn off",
+      "enable": "Turn on",
+      "test": "Test",
+      "disabledToast": "Rule “{name}” turned off.",
+      "enabledToast": "Rule “{name}” turned on.",
+      "testRecorded": "Test recorded (simulated): {subject}",
+      "customThresholdValue": "Below {n}",
+      "scorecardThreshold": "Scorecard low-score threshold",
+      "editTitle": "Edit notification rule",
+      "createTitle": "Add notification rule",
+      "updated": "Rule “{name}” saved.",
+      "created": "Rule “{name}” added.",
+      "threshold": "Threshold",
+      "thresholdHint": "The scorecard threshold applies each evaluation's own version.",
+      "customThreshold": "Custom threshold",
+      "recipientsHint": "Separate addresses with commas.",
+      "template": "Template",
+      "queues": "Queues",
+      "queuesHint": "None selected = all queues.",
+      "enabled": "Rule is on"
+    },
+    "triggers": {
+      "low_score": "Low score",
+      "insufficient_evidence": "Insufficient evidence — No score",
+      "prohibited_flag": "Prohibited expression flagged for review"
+    },
+    "deliveryModes": {
+      "immediate": "Immediately",
+      "daily_digest": "Daily digest"
+    },
+    "templates": {
+      "title": "Email templates",
+      "caption": "Each save creates a new version.",
+      "name": "Template",
+      "kind": "Used for",
+      "subject": "Subject",
+      "history": "Template changes",
+      "editTitle": "Edit template “{name}”",
+      "language": "Language",
+      "body": "Body",
+      "preview": "Preview with sample values",
+      "saved": "Template saved as v{v}."
+    },
+    "templateKinds": {
+      "low_quality_alert": "Low-quality alert",
+      "management_report": "Management report"
+    },
+    "reportEmail": {
+      "title": "Management report email",
+      "caption": "Used when a saved report is emailed from Reports.",
+      "recipients": "Recipients",
+      "cc": "Copy (CC)",
+      "content": "Content",
+      "flags": {
+        "includeQueueReport": "Queue report",
+        "includeAgentReport": "Agent report",
+        "includeAudioSample": "Random recording sample",
+        "attachExcel": "Attach the Excel workbook"
+      },
+      "language": "Language",
+      "languages": {
+        "both": "Arabic and English"
+      },
+      "noSchedule": "Reports are emailed only when someone sends them from Reports. Automatic scheduling is not authorized.",
+      "save": "Save email options",
+      "saved": "Report email options saved."
+    },
+    "deliveries": {
+      "title": "Delivery history",
+      "caption": "Immutable record of every email the system attempted.",
+      "filter": "Show",
+      "all": "All deliveries",
+      "kinds": {
+        "test": "Test email",
+        "low_quality_alert": "Low-quality alert",
+        "management_report": "Management report"
+      },
+      "empty": "No deliveries yet.",
+      "at": "Time",
+      "kind": "Type",
+      "status": "Status",
+      "statuses": {
+        "simulated": "Simulated",
+        "sent": "Sent",
+        "failed": "Failed"
+      }
+    },
+    "audit": {
+      "sender": "Sender changes",
+      "rules": "Rule changes"
     }
   }
 }

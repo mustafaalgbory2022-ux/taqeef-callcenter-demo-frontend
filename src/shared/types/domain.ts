@@ -728,3 +728,104 @@ export interface PbxTestResult {
     message: string;
   }[];
 }
+
+/* Notifications and email ------------------------------------------------------------------ */
+
+export type SenderState = 'not_configured' | 'configured' | 'verified' | 'error';
+
+/** Dedicated Microsoft 365 sender mailbox (app registration). The secret is write-only. */
+export interface EmailSender {
+  provider: 'microsoft_365';
+  senderAddress: string;
+  displayName: string;
+  tenantId: string;
+  clientId: string;
+  replyTo: string;
+  credentialSet: boolean;
+  credentialUpdatedAt: string | null;
+  state: SenderState;
+  stateMessage: string;
+  checkedAt: string | null;
+  updatedAt: string;
+  simulated: boolean;
+}
+
+export interface EmailSenderInput {
+  senderAddress: string;
+  displayName: string;
+  tenantId: string;
+  clientId: string;
+  replyTo: string;
+  /** Write-only. Empty keeps the stored secret. */
+  secret: string;
+}
+
+export type NotificationTrigger = 'low_score' | 'insufficient_evidence' | 'prohibited_flag';
+
+export interface NotificationRuleInput {
+  name: string;
+  trigger: NotificationTrigger;
+  enabled: boolean;
+  /** 'scorecard' uses each evaluation's own scorecard threshold. */
+  thresholdMode: 'scorecard' | 'custom';
+  customThreshold: number | null;
+  /** Empty = all queues. */
+  queueIds: readonly string[];
+  recipients: readonly string[];
+  delivery: 'immediate' | 'daily_digest';
+  templateId: string;
+}
+
+export interface NotificationRule extends NotificationRuleInput {
+  id: string;
+  updatedAt: string;
+  synthetic: boolean;
+}
+
+export type EmailTemplateKind = 'low_quality_alert' | 'management_report';
+
+export interface EmailTemplate {
+  id: string;
+  kind: EmailTemplateKind;
+  name: string;
+  language: Language;
+  subject: string;
+  body: string;
+  version: number;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface EmailTemplateInput {
+  name: string;
+  language: Language;
+  subject: string;
+  body: string;
+  changeNote: string;
+}
+
+export interface ReportEmailOptions {
+  recipients: readonly string[];
+  cc: readonly string[];
+  includeQueueReport: boolean;
+  includeAgentReport: boolean;
+  includeAudioSample: boolean;
+  attachExcel: boolean;
+  language: Language | 'both';
+  templateId: string;
+  updatedAt: string;
+}
+
+export type DeliveryKind = 'test' | 'low_quality_alert' | 'management_report';
+
+/** Immutable delivery record. In mock mode every record is 'simulated' — nothing is sent. */
+export interface DeliveryRecord {
+  id: string;
+  at: string;
+  kind: DeliveryKind;
+  recipients: readonly string[];
+  subject: string;
+  status: 'simulated' | 'sent' | 'failed';
+  detail: string;
+  relatedId: string | null;
+}
