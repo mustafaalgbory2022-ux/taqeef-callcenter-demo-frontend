@@ -16,6 +16,7 @@ const PAGES = [
   '/admin/scorecard',
   '/admin/settings',
   '/admin/queues',
+  '/admin/ai',
 ];
 
 for (const lang of ['en', 'ar'] as const) {

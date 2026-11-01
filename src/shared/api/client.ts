@@ -25,6 +25,7 @@ import type {
 } from '@/shared/types/domain';
 import type { ApiMode } from './config';
 import { endpoints } from './endpoints';
+import { createAiAdminApi, type AiAdminApi } from './adapters/ai';
 import { createAuditApi, type AuditApi } from './adapters/audit';
 import { createQueueAdminApi, type QueueAdminApi } from './adapters/queues';
 import { ApiError } from './errors';
@@ -119,6 +120,7 @@ export interface ApiClient {
   /** Administration adapters (Phase B) — each replaceable on its own. */
   readonly audit: AuditApi;
   readonly queueAdmin: QueueAdminApi;
+  readonly ai: AiAdminApi;
 }
 
 export function createApiClient(transport: Transport, mode: ApiMode): ApiClient {
@@ -135,6 +137,7 @@ export function createApiClient(transport: Transport, mode: ApiMode): ApiClient 
     mode,
     audit: createAuditApi(send),
     queueAdmin: createQueueAdminApi(send),
+    ai: createAiAdminApi(send),
     async getSession() {
       try {
         return await send({ method: 'GET', path: endpoints.session }, wireSession, sessionFromWire);

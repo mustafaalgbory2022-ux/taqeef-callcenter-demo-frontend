@@ -470,3 +470,92 @@ export interface AdminAuditEntry {
   changes: readonly AuditChange[];
   simulated: boolean;
 }
+
+/* AI administration ------------------------------------------------------------------------ */
+
+export type AiModelKind = 'transcription' | 'evaluation';
+
+/** A locally installed on-premise model as reported by the backend (synthetic in mock mode). */
+export interface AiModel {
+  id: string;
+  kind: AiModelKind;
+  name: string;
+  version: string;
+  sizeGb: number;
+  minVramGb: number;
+  languages: readonly string[];
+  status: 'available' | 'not_installed' | 'incompatible';
+  synthetic: boolean;
+}
+
+export type AiPromptKind = 'evaluation' | 'classification' | 'summary';
+export type TranscriptionLanguage = 'ar-IQ' | 'ar' | 'auto';
+export type Diarization = 'channel' | 'model' | 'off';
+export type LowConfidenceAction = 'flag_for_review' | 'exclude_from_reports';
+
+export interface AiLimits {
+  maxConcurrentJobs: number;
+  maxAudioMinutes: number;
+  maxQueueLength: number;
+  retryLimit: number;
+  jobTimeoutMinutes: number;
+}
+
+export interface AiConfigDraft {
+  transcriptionModelId: string;
+  evaluationModelId: string;
+  language: TranscriptionLanguage;
+  diarization: Diarization;
+  applyDictionary: boolean;
+  temperature: number;
+  minClassificationConfidence: number;
+  lowConfidenceAction: LowConfidenceAction;
+  requireEvidenceQuotes: boolean;
+  /** 'latest' follows the current scorecard; 'pinned' evaluates with one fixed version. */
+  scorecardBinding: 'latest' | 'pinned';
+  pinnedScorecardVersion: number | null;
+  limits: AiLimits;
+  prompts: Readonly<Record<AiPromptKind, string>>;
+  changeNote: string;
+}
+
+/** Saved AI configuration. Each save creates a new immutable version. */
+export interface AiConfigVersion extends AiConfigDraft {
+  version: number;
+  createdAt: string;
+  createdBy: string;
+  simulated: boolean;
+}
+
+export type AiServiceState = 'ready' | 'loading' | 'degraded' | 'offline';
+
+export interface AiStatus {
+  generatedAt: string;
+  simulated: boolean;
+  configVersion: number;
+  services: readonly {
+    kind: AiModelKind;
+    state: AiServiceState;
+    modelId: string;
+    message: string;
+  }[];
+}
+
+export type AiJobState = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+
+export interface AiJob {
+  id: string;
+  callId: string;
+  stage: 'transcription' | 'evaluation' | 'classification';
+  state: AiJobState;
+  attempts: number;
+  createdAt: string;
+  updatedAt: string;
+  error: string | null;
+}
+
+export interface AiJobQueue {
+  paused: boolean;
+  simulated: boolean;
+  jobs: readonly AiJob[];
+}

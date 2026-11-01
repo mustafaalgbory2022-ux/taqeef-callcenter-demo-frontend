@@ -1,4 +1,5 @@
 import type { Decoded } from '../decode';
+import type { WireAiConfig, WireAiJob, WireAiModel } from './fixtures/ai';
 import type { wireAdminAudit } from '../wire/admin';
 import type { wireAgent, wireAuditEntry, wireQueue } from '../wire/agents';
 import type { wireCall, wireTranscript } from '../wire/calls';
@@ -43,5 +44,13 @@ export interface MockState {
   uploads: Record<string, number>;
   /** Append-only administration audit log (newest first). */
   adminAudit: WireAdminAudit[];
+  ai: {
+    models: WireAiModel[];
+    configs: WireAiConfig[];
+    jobs: WireAiJob[];
+    paused: boolean;
+    /** Epoch ms when each service last switched model (drives the simulated "loading" state). */
+    loadedAt: { transcription: number; evaluation: number };
+  };
   seq: number;
 }

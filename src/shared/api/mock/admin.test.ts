@@ -58,3 +58,42 @@ describe('simulated queue administration', () => {
     ).rejects.toMatchObject({ code: 'validation_error' });
   });
 });
+
+describe('simulated AI administration', () => {
+  it('saves validated configuration as a new immutable version', async () => {
+    const v1 = await api.ai.getCurrentConfig();
+    const draft = { ...v1, changeNote: 'Use the small speech model.' };
+    await expect(
+      api.ai.saveConfig({ ...draft, evaluationModelId: 'syn-llm-70b' }),
+    ).rejects.toMatchObject({ code: 'validation_error' });
+    await expect(
+      api.ai.saveConfig({ ...draft, prompts: { ...v1.prompts, summary: 'No placeholder' } }),
+    ).rejects.toMatchObject({ code: 'validation_error' });
+    await expect(api.ai.saveConfig(draft)).rejects.toMatchObject({ code: 'conflict' }); // no change
+    const v2 = await api.ai.saveConfig({ ...draft, transcriptionModelId: 'syn-asr-small' });
+    expect(v2.version).toBe(2);
+    const versions = await api.ai.listConfigVersions();
+    expect(versions.map((v) => v.version)).toEqual([2, 1]);
+    expect(versions[1]?.transcriptionModelId).toBe('syn-asr-large'); // unchanged history
+    const status = await api.ai.getStatus();
+    expect(status.services.find((s) => s.kind === 'transcription')).toMatchObject({
+      state: 'loading',
+      modelId: 'syn-asr-small',
+    });
+  });
+
+  it('controls the job queue with retry limits and audit', async () => {
+    const queue = await api.ai.getJobs();
+    expect(queue.simulated).toBe(true);
+    await expect(api.ai.retryJob('job-6')).rejects.toMatchObject({ code: 'conflict' }); // limit
+    const retried = await api.ai.retryJob('job-5');
+    expect(retried.jobs.find((j) => j.id === 'job-5')).toMatchObject({
+      state: 'queued',
+      attempts: 2,
+    });
+    await expect(api.ai.cancelJob('job-7')).rejects.toMatchObject({ code: 'conflict' });
+    expect((await api.ai.pauseJobs()).paused).toBe(true);
+    const actions = (await api.audit.list({ resource: 'ai_jobs' })).map((e) => e.action);
+    expect(actions).toEqual(['paused', 'retried']);
+  });
+});

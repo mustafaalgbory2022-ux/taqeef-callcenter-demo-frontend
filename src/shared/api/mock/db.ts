@@ -1,5 +1,6 @@
 import { seedAdminAudit } from './audit';
 import { agents, initialAudit, queues } from './fixtures/agents';
+import { aiModels, initialAiConfig, seedAiJobs } from './fixtures/ai';
 import { callFixtures } from './fixtures/calls';
 import { scorecardVersions } from './fixtures/scorecards';
 import { simulateEvaluation } from './scoring';
@@ -30,6 +31,13 @@ export function createSeedState(): MockState {
     reviews: {},
     reports: [],
     adminAudit: [],
+    ai: {
+      models: structuredClone(aiModels),
+      configs: [structuredClone(initialAiConfig)],
+      jobs: seedAiJobs(Date.now()),
+      paused: false,
+      loadedAt: { transcription: 0, evaluation: 0 },
+    },
     seq: 100,
   };
   state.adminAudit = seedAdminAudit(state);

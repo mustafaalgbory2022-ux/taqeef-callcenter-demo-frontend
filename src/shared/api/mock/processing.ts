@@ -11,6 +11,19 @@ export function latestScorecard(state: MockState) {
   return latest;
 }
 
+/**
+ * Scorecard used for automatic evaluation of newly processed calls, following the AI
+ * configuration's binding ('latest' or a pinned version). Manual re-scoring uses the latest.
+ */
+export function automaticScorecard(state: MockState) {
+  const cfg = state.ai.configs.at(-1);
+  if (cfg?.scorecard_binding === 'pinned') {
+    const pinned = state.scorecards.find((v) => v.version === cfg.pinned_scorecard_version);
+    if (pinned) return pinned;
+  }
+  return latestScorecard(state);
+}
+
 /** Advance an uploaded call through simulated stages; materialise results when done. */
 export function refreshUpload(state: MockState, call: WireCall, now = Date.now()): boolean {
   const uploadedAt = state.uploads[call.id];
@@ -32,7 +45,7 @@ export function refreshUpload(state: MockState, call: WireCall, now = Date.now()
     call.duration_ms ??= 60_000;
   }
   if (stage === 'scored') {
-    const scorecard = latestScorecard(state);
+    const scorecard = automaticScorecard(state);
     const judgments = syntheticUploadJudgments(scorecard);
     state.judgments[call.id] = judgments;
     state.evaluations.push(

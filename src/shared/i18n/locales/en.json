@@ -24,7 +24,8 @@
     "insights": "Customer insights",
     "reports": "Reports",
     "quality": "AI quality",
-    "queues": "Queues"
+    "queues": "Queues",
+    "ai": "AI administration"
   },
   "common": {
     "outOfTen": "/ 10",
@@ -851,6 +852,190 @@
       "nameRequired": "Enter a name.",
       "nameTooLong": "Use at most 60 characters.",
       "descriptionTooLong": "Use at most 200 characters."
+    }
+  },
+  "aiAdmin": {
+    "title": "AI administration",
+    "description": "Local transcription and evaluation models, processing limits and job controls, prompts and evaluation rules.",
+    "syntheticTitle": "Simulated AI services",
+    "syntheticBody": "No model runs in the browser. Models, job progress and service status are synthetic and simulated; the local backend performs transcription and evaluation.",
+    "kinds": {
+      "transcription": "Transcription",
+      "evaluation": "Evaluation"
+    },
+    "status": {
+      "title": "Service status",
+      "caption": "Running configuration v{v}",
+      "checked": "Checked {at}",
+      "states": {
+        "ready": "Ready",
+        "loading": "Switching model",
+        "degraded": "Degraded",
+        "offline": "Offline"
+      }
+    },
+    "jobs": {
+      "title": "Processing queue",
+      "caption": "Transcription, evaluation and classification jobs. Refreshes every 5 seconds.",
+      "resume": "Resume queue",
+      "pause": "Pause queue",
+      "paused": "Paused",
+      "running": "Processing",
+      "counts": "{queued} queued · {running} running · {failed} failed · {completed} completed · {cancelled} cancelled",
+      "table": "Processing jobs",
+      "call": "Call",
+      "stage": "Stage",
+      "state": "State",
+      "attempts": "Attempts",
+      "updated": "Updated",
+      "retry": "Retry",
+      "cancel": "Cancel job",
+      "limitReached": "Retry limit reached",
+      "stages": {
+        "transcription": "Transcription",
+        "evaluation": "Evaluation",
+        "classification": "Classification"
+      },
+      "states": {
+        "queued": "Queued",
+        "running": "Running",
+        "completed": "Completed",
+        "failed": "Failed",
+        "cancelled": "Cancelled"
+      },
+      "done": {
+        "pause": "Processing queue paused.",
+        "resume": "Processing queue resumed.",
+        "retry": "Job queued for retry.",
+        "cancel": "Job cancelled."
+      },
+      "pauseTitle": "Pause the processing queue?",
+      "pauseBody": "Running jobs finish; no new jobs start until the queue is resumed. New recordings keep arriving and wait in the queue.",
+      "cancelTitle": "Cancel this job?",
+      "cancelBody": "The call stays unprocessed until it is retried or re-scored. The job record is kept."
+    },
+    "form": {
+      "label": "AI configuration",
+      "saved": "AI configuration saved as v{v}.",
+      "transcriptionModelId": "Transcription model",
+      "evaluationModelId": "Evaluation model",
+      "modelHint": "Only models installed on the local server can be selected.",
+      "modelsTitle": "Models",
+      "modelsCaption": "On-premise models used for new processing jobs.",
+      "language": "Transcription language",
+      "diarization": "Speaker separation",
+      "diarizationHint": "Dual-channel recordings give reliable agent attribution.",
+      "applyDictionary": "Apply the Iraqi Arabic dictionary to transcripts",
+      "limitsTitle": "Processing limits",
+      "limitsCaption": "Protect the local server from overload.",
+      "range": "From {min} to {max}",
+      "rulesTitle": "Evaluation rules and scorecard",
+      "rulesCaption": "How the evaluation model applies the scorecard.",
+      "temperature": "Model temperature",
+      "temperatureHint": "0 gives the most repeatable results.",
+      "minConfidence": "Minimum classification confidence",
+      "lowConfidenceAction": "Below the minimum confidence",
+      "requireEvidence": "Require quoted transcript evidence for every scored criterion",
+      "binding": "Scorecard for new evaluations",
+      "bindingHint": "Applies to automatic evaluation of new calls. Manual re-scoring always uses the latest version.",
+      "pinnedVersion": "Pinned scorecard version",
+      "boundScorecard": "New calls are evaluated with scorecard v{v}: {n} criteria, {points} points, minimum {min} assessable points.",
+      "openScorecard": "Open scorecard",
+      "promptsTitle": "Prompts",
+      "promptsCaption": "Templates sent to the local evaluation model. Placeholders are filled by the backend.",
+      "saveTitle": "Save configuration",
+      "saveCaption": "Saving creates version v{v}. Earlier versions stay unchanged.",
+      "noChanges": "No changes yet.",
+      "changes": "Changed: {list}",
+      "changeNote": "Change note",
+      "save": "Save as v{v}",
+      "discard": "Discard changes"
+    },
+    "models": {
+      "available": "Available",
+      "not_installed": "Not installed",
+      "incompatible": "Not compatible with this server"
+    },
+    "languages": {
+      "arIQ": "Iraqi Arabic",
+      "ar": "Arabic (general)",
+      "auto": "Detect automatically"
+    },
+    "diarization": {
+      "channel": "By recording channel",
+      "model": "By model",
+      "off": "Off"
+    },
+    "limits": {
+      "maxConcurrentJobs": "Concurrent jobs",
+      "maxAudioMinutes": "Maximum recording length (minutes)",
+      "maxQueueLength": "Maximum queue length",
+      "retryLimit": "Automatic retries",
+      "jobTimeoutMinutes": "Job timeout (minutes)"
+    },
+    "lowConfidence": {
+      "flag_for_review": "Flag the call for review",
+      "exclude_from_reports": "Exclude the classification from reports"
+    },
+    "binding": {
+      "latest": "Latest scorecard version",
+      "pinned": "A pinned version"
+    },
+    "locked": {
+      "badge": "Approved",
+      "caption": "These rules are approved policy and cannot be changed here.",
+      "penalty": "Prohibited expressions deduct points only under the scorecard's penalty rule with reliable agent attribution; otherwise they are flagged for review.",
+      "mixed": "Speakers on mixed-channel recordings stay unresolved.",
+      "minimum": "Below {n} assessable points the result is “Insufficient evidence — No score”.",
+      "noEstimate": "PBX figures (missed, abandoned, SLA) are never estimated from recordings."
+    },
+    "prompts": {
+      "evaluation": "Evaluation prompt",
+      "classification": "Classification prompt",
+      "summary": "Summary prompt",
+      "hint": "Required: {required} · optional: {optional}",
+      "missing": "Missing placeholders:",
+      "unknown": "Unknown placeholders:"
+    },
+    "fieldNames": {
+      "transcriptionModelId": "transcription model",
+      "evaluationModelId": "evaluation model",
+      "language": "language",
+      "diarization": "speaker separation",
+      "applyDictionary": "dictionary",
+      "temperature": "temperature",
+      "minClassificationConfidence": "minimum confidence",
+      "lowConfidenceAction": "low-confidence action",
+      "requireEvidenceQuotes": "evidence quotes",
+      "scorecardBinding": "scorecard binding",
+      "pinnedScorecardVersion": "pinned version",
+      "limits": "processing limits",
+      "prompts": "prompts",
+      "changeNote": "change note"
+    },
+    "errors": {
+      "modelRequired": "Select a model.",
+      "modelUnavailable": "This model is not available on the local server.",
+      "temperature": "Enter a value from 0 to 1.",
+      "confidence": "Enter a value from 0.5 to 0.99.",
+      "pinnedVersion": "Select an existing scorecard version.",
+      "limit": "Enter a whole number within the allowed range.",
+      "promptRequired": "Enter a prompt.",
+      "promptTooLong": "The prompt is too long (8,000 characters at most).",
+      "promptMissing": "Add the required placeholders.",
+      "promptUnknown": "Remove placeholders the backend cannot fill.",
+      "changeNote": "Describe what changed (at least 5 characters)."
+    },
+    "versions": {
+      "title": "Configuration versions",
+      "caption": "Immutable: each save adds a version.",
+      "version": "Version",
+      "note": "Change note",
+      "by": "Saved by",
+      "at": "Saved",
+      "current": "Current",
+      "auditTitle": "Configuration changes",
+      "jobAuditTitle": "Queue actions"
     }
   }
 }
