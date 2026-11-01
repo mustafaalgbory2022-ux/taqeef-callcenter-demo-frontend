@@ -18,6 +18,7 @@ const PAGES = [
   '/admin/queues',
   '/admin/ai',
   '/admin/dictionary',
+  '/admin/pbx',
 ];
 
 for (const lang of ['en', 'ar'] as const) {

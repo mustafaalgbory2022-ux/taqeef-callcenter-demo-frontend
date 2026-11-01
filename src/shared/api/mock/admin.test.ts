@@ -171,3 +171,67 @@ describe('simulated Iraqi Arabic dictionary', () => {
     ).rejects.toMatchObject({ code: 'conflict' });
   });
 });
+
+describe('simulated PBX administration', () => {
+  const base = {
+    name: 'Main PBX',
+    settings: {
+      host: 'pbx.local',
+      port: 443,
+      use_tls: true,
+      verify_certificate: true,
+      api_client_id: 'taqeef01',
+    },
+    queueIds: ['q-6001', 'q-6002'],
+    ingestionStartDate: '2026-08-01',
+    pollIntervalMinutes: 5,
+    secret: '',
+  };
+
+  it('starts unconfigured, never returns the secret and audits replacement', async () => {
+    const [c] = await api.pbx.listConnectors();
+    expect(c).toMatchObject({ state: 'not_configured', credentialSet: false, enabled: false });
+    await expect(
+      api.pbx.updateConnector(
+        'pbx-main',
+        { ...base, settings: { ...base.settings, host: 'http://x/y' } },
+        false,
+      ),
+    ).rejects.toMatchObject({ code: 'validation_error' });
+    const saved = await api.pbx.updateConnector(
+      'pbx-main',
+      { ...base, secret: 'synthetic-secret' },
+      false,
+    );
+    expect(saved).toMatchObject({ credentialSet: true, state: 'disabled' });
+    expect(JSON.stringify(saved)).not.toContain('synthetic-secret');
+    const audit = await api.audit.list({ resource: 'pbx_connector' });
+    expect(audit.map((e) => e.action)).toContain('credential_replaced');
+    expect(JSON.stringify(audit)).not.toContain('synthetic-secret');
+  });
+
+  it('requires confirmation for ingestion changes and simulates tests and syncs', async () => {
+    await api.pbx.updateConnector('pbx-main', { ...base, secret: 'synthetic-secret' }, false);
+    await expect(
+      api.pbx.updateConnector('pbx-main', { ...base, ingestionStartDate: '2026-07-01' }, false),
+    ).rejects.toMatchObject({ code: 'conflict' });
+    const test = await api.pbx.testConnector('pbx-main');
+    expect(test.ok).toBe(true);
+    expect(test.steps.find((s) => s.step === 'network')?.result).toBe('skipped');
+    await expect(
+      api.pbx.startSync('pbx-main', { from: '2026-10-01', to: '2026-10-07' }),
+    ).rejects.toMatchObject({
+      code: 'conflict',
+    });
+    await api.pbx.setEnabled('pbx-main', true);
+    await expect(
+      api.pbx.startSync('pbx-main', { from: '2026-07-01', to: '2026-07-07' }),
+    ).rejects.toMatchObject({
+      code: 'validation_error',
+    });
+    const run = await api.pbx.startSync('pbx-main', { from: '2026-10-01', to: '2026-10-07' });
+    expect(run).toMatchObject({ status: 'simulated', trigger: 'manual' });
+    expect(run.cdrRecords).toBeGreaterThan(0);
+    expect((await api.pbx.listSyncs('pbx-main'))[0]?.id).toBe(run.id);
+  });
+});

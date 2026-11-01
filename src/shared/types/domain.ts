@@ -649,3 +649,82 @@ export interface CorrectionReview {
   note: string;
   addToDictionary: boolean;
 }
+
+/* PBX administration ----------------------------------------------------------------------- */
+
+export type PbxCapability = 'cdr' | 'recordings' | 'queue_statistics' | 'live_events';
+
+/** A PBX vendor adapter known to the backend. Adding a vendor needs no frontend rewrite. */
+export interface PbxVendorInfo {
+  id: string;
+  name: string;
+  status: 'supported' | 'planned';
+  capabilities: readonly PbxCapability[];
+}
+
+export type PbxSettingValue = string | number | boolean;
+export type PbxSettings = Readonly<Record<string, PbxSettingValue>>;
+
+export type PbxConnectionState =
+  'not_configured' | 'configured' | 'connected' | 'error' | 'disabled';
+
+export interface PbxSyncRun {
+  id: string;
+  connectorId: string;
+  trigger: 'manual' | 'scheduled';
+  status: 'running' | 'completed' | 'failed' | 'simulated';
+  from: string;
+  to: string;
+  startedAt: string;
+  finishedAt: string | null;
+  cdrRecords: number;
+  recordings: number;
+  queueStatDays: number;
+  message: string;
+  startedBy: string;
+}
+
+export interface PbxConnector {
+  id: string;
+  vendor: string;
+  name: string;
+  /** Vendor-specific, non-secret settings (host, port, client id…). */
+  settings: PbxSettings;
+  /** Whether a credential is stored. The credential itself is never returned. */
+  credentialSet: boolean;
+  credentialUpdatedAt: string | null;
+  queueIds: readonly string[];
+  /** First day (YYYY-MM-DD) from which calls and statistics are ingested. */
+  ingestionStartDate: string;
+  pollIntervalMinutes: number;
+  enabled: boolean;
+  state: PbxConnectionState;
+  stateMessage: string;
+  checkedAt: string | null;
+  lastSync: PbxSyncRun | null;
+  updatedAt: string;
+  simulated: boolean;
+}
+
+export interface PbxConnectorInput {
+  name: string;
+  settings: PbxSettings;
+  queueIds: readonly string[];
+  ingestionStartDate: string;
+  pollIntervalMinutes: number;
+  /** Write-only. Empty keeps the stored credential. */
+  secret: string;
+}
+
+export type PbxTestStepResult = 'passed' | 'failed' | 'skipped';
+
+export interface PbxTestResult {
+  ok: boolean;
+  simulated: boolean;
+  checkedAt: string;
+  steps: readonly {
+    step: 'settings' | 'credentials' | 'network' | 'queues';
+    result: PbxTestStepResult;
+    message: string;
+  }[];
+}

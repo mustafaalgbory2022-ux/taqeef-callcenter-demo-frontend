@@ -122,6 +122,13 @@ export const routes: RouteObject[] = [
         ),
       },
       {
+        path: 'admin/pbx',
+        element: page(
+          () => import('@/features/pbx-admin/pages/PbxAdminPage'),
+          (m) => m.PbxAdminPage,
+        ),
+      },
+      {
         path: 'admin/settings',
         element: page(
           () => import('@/features/settings/pages/SettingsPage'),

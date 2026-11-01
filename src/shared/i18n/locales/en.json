@@ -26,7 +26,8 @@
     "quality": "AI quality",
     "queues": "Queues",
     "ai": "AI administration",
-    "dictionary": "Iraqi Arabic dictionary"
+    "dictionary": "Iraqi Arabic dictionary",
+    "pbx": "PBX administration"
   },
   "common": {
     "outOfTen": "/ 10",
@@ -1152,6 +1153,140 @@
       "heard": "Transcript text",
       "proposed": "Correct form",
       "fourEyes": "You cannot approve your own proposal: a second reviewer decides."
+    }
+  },
+  "pbxAdmin": {
+    "title": "PBX administration",
+    "description": "Yeastar P550 connection, queues 6001 and 6002, ingestion start date and synchronization. Vendor adapters are replaceable for future PBX systems.",
+    "syntheticTitle": "No PBX is connected",
+    "syntheticBody": "This simulated backend never contacts a PBX. Connection tests check the settings only, and synchronization counts the synthetic records already in the demo. No credentials are provided: enter your own on the real system.",
+    "recent": "Recent PBX changes",
+    "yeastar": {
+      "host": "PBX host",
+      "hostHint": "Host name or IP address only, without http:// or a path.",
+      "port": "API port",
+      "portHint": "As configured on the PBX.",
+      "clientId": "API client ID",
+      "clientIdHint": "Created on the PBX for this application.",
+      "useTls": "Use HTTPS (TLS)",
+      "verifyCertificate": "Verify the PBX certificate",
+      "secret": "API client secret",
+      "secretHint": "Write-only: stored by the backend and never shown again."
+    },
+    "errors": {
+      "required": "This field is required.",
+      "host": "Enter a host name or IPv4 address without http:// or a path.",
+      "port": "Enter a port from 1 to 65535.",
+      "clientId": "Enter the API client ID (4–64 letters, digits, dots, hyphens or underscores).",
+      "verifyWithoutTls": "Certificate verification requires HTTPS.",
+      "name": "Enter a name of up to 60 characters.",
+      "queues": "Select at least one queue to ingest.",
+      "startDate": "Choose a date between 2020-01-01 and today.",
+      "poll": "Enter a whole number of minutes from 1 to 60.",
+      "secret": "The secret must be 8–256 characters.",
+      "secretRequired": "Enter the API client secret."
+    },
+    "form": {
+      "title": "Connection settings",
+      "caption": "Saved on the backend. Changes are audited.",
+      "saved": "PBX settings saved.",
+      "name": "Connector name",
+      "vendor": "PBX vendor",
+      "vendorHint": "Set by the installed vendor adapter.",
+      "secretKept": "Stored — leave empty to keep",
+      "credentialStored": "Credential stored",
+      "credentialMissing": "No credential stored",
+      "secretNote": "The secret is never displayed or logged.",
+      "queues": "Queues to ingest",
+      "startDate": "Ingestion start date",
+      "startDateHint": "Calls and statistics before this date are not ingested.",
+      "poll": "Polling interval (minutes)",
+      "save": "Save settings",
+      "confirmTitle": "Confirm ingestion changes",
+      "confirmAck": "I understand how this changes the ingested data.",
+      "backfill": "The start date moves earlier ({from} → {to}). The backend will backfill calls and statistics for the added period.",
+      "later": "The start date moves later ({from} → {to}). Data already ingested is kept; nothing new is ingested before {to}.",
+      "removedQueues": "No new data will be ingested for: {list}. Existing data and history are kept."
+    },
+    "status": {
+      "title": "Connection status",
+      "test": "Test connection",
+      "testPassed": "Connection test passed",
+      "testFailed": "Connection test failed",
+      "state": "State",
+      "checked": "Last checked",
+      "ingestion": "Ingestion",
+      "lastSync": "Last synchronization"
+    },
+    "states": {
+      "not_configured": "Not configured",
+      "configured": "Configured",
+      "connected": "Connected",
+      "error": "Error",
+      "disabled": "Ingestion off"
+    },
+    "steps": {
+      "passed": "Passed",
+      "failed": "Failed",
+      "skipped": "Skipped",
+      "names": {
+        "settings": "Settings",
+        "credentials": "Credential",
+        "network": "Network connection",
+        "queues": "Queues"
+      }
+    },
+    "ingestion": {
+      "title": "Ingestion and synchronization",
+      "caption": "Manual synchronization only; automatic polling runs on the backend when ingestion is on.",
+      "on": "Ingestion on",
+      "off": "Ingestion off",
+      "enable": "Enable ingestion",
+      "disable": "Disable ingestion",
+      "needsConfig": "Complete the connection settings and credential first.",
+      "sync": "Synchronize now",
+      "synced": "Synchronization recorded: {n} call records (simulated).",
+      "rangeErrors": {
+        "invalid": "Choose a valid date range.",
+        "beforeStart": "The range cannot start before {start}.",
+        "future": "The range cannot end in the future.",
+        "tooLong": "Synchronize at most {max} days at a time."
+      },
+      "empty": "No synchronization has run yet.",
+      "history": "Synchronization history",
+      "range": "Range",
+      "status": "Status",
+      "cdr": "Call records",
+      "recordings": "Recordings",
+      "statDays": "Queue statistic days",
+      "started": "Started",
+      "enableTitle": "Enable PBX ingestion?",
+      "disableTitle": "Disable PBX ingestion?",
+      "enableBody": "The backend starts polling the PBX at the configured interval from the ingestion start date.",
+      "disableBody": "No new calls, recordings or statistics will be ingested until it is enabled again. Existing data is kept.",
+      "enabledToast": "Ingestion enabled.",
+      "disabledToast": "Ingestion disabled."
+    },
+    "syncStatus": {
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "simulated": "Simulated"
+    },
+    "vendors": {
+      "title": "Vendor adapters",
+      "caption": "PBX systems the backend can connect to.",
+      "supported": "Supported",
+      "planned": "Planned",
+      "noForm": "No settings form yet",
+      "note": "Each vendor has its own backend adapter and settings form, so other PBX systems can be added without changing the rest of the application.",
+      "noFormTitle": "No settings form is installed for {vendor}."
+    },
+    "capabilities": {
+      "cdr": "Call records",
+      "recordings": "Recordings",
+      "queue_statistics": "Queue statistics",
+      "live_events": "Live events"
     }
   }
 }

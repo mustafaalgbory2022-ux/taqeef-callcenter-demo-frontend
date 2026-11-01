@@ -4,6 +4,7 @@ import { clearSavedState, loadState, saveState } from './db';
 import { agentRoutes } from './handlers/agents';
 import { aiRoutes } from './handlers/ai';
 import { dictionaryRoutes } from './handlers/dictionary';
+import { pbxRoutes } from './handlers/pbx';
 import { callRoutes } from './handlers/calls';
 import { evaluationRoutes } from './handlers/evaluations';
 import { scorecardRoutes } from './handlers/scorecards';
@@ -118,6 +119,7 @@ export function createMockTransport({ latencyMs = 160 }: MockTransportOptions = 
     ...auditRoutes(state),
     ...aiRoutes(state, persist),
     ...dictionaryRoutes(state, persist),
+    ...pbxRoutes(state, generated, persist),
   ];
 
   return async (req) => {

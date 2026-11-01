@@ -1,5 +1,6 @@
 import type { Decoded } from '../decode';
 import type { WireAiConfig, WireAiJob, WireAiModel } from './fixtures/ai';
+import type { WirePbxConnector, WirePbxSync, WirePbxVendor } from './fixtures/pbx';
 import type {
   WireCorrection,
   WireDictionaryEntry,
@@ -61,6 +62,11 @@ export interface MockState {
     entries: WireDictionaryEntry[];
     versions: Record<string, WireDictionaryVersion[]>;
     corrections: WireCorrection[];
+  };
+  pbx: {
+    vendors: WirePbxVendor[];
+    connectors: WirePbxConnector[];
+    syncs: Record<string, WirePbxSync[]>;
   };
   seq: number;
 }
