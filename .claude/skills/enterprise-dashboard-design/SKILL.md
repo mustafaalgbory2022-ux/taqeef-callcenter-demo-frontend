@@ -41,12 +41,20 @@ Full rules: `docs/requirements/agents.md`.
 
 - Overall = pooled over evaluated calls (Σ scores / n calls), never the mean of agent means.
   Use the current (non-superseded) evaluation per call. Always show n.
-- Below `minIndicativeSample`, show the "Sample only — not a performance ranking" notice; no
-  leaderboards, rank numbers or score-sorted agent lists.
+- Always show the "Sample only — not a performance ranking" notice on per-agent results
+  until an approved reporting policy exists (no automatic threshold). No leaderboards, rank
+  numbers or score-sorted agent lists.
 - Agent filter: searchable select, state in URL, consistent across screens; design and test for
   8 agents.
 - PBX metrics (missed / abandoned / SLA) are a separate section; "Not available" until PBX data
-  exists. Never estimate them.
+  exists. Never estimate them. SLA % = (Total incoming − Missed) / Total incoming × 100;
+  abandoned is shown separately; total 0 → "Not available".
+
+## Administration screens
+
+Rules: `docs/requirements/gui-administration.md`. Each management form has field validation,
+permission-aware controls, success/error feedback, confirmation for destructive actions and
+a visible change history.
 
 ## Charts
 

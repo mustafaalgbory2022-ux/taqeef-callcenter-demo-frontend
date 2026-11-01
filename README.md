@@ -11,5 +11,7 @@ npm run test:e2e     # Playwright + axe (EN/AR × light/dark × desktop/mobile)
 
 Configuration: copy `.env.example` to `.env.local`. `VITE_API_MODE=mock|fastapi`.
 
+Requirements: [GUI administration](docs/requirements/gui-administration.md) · [agents](docs/requirements/agents.md)
+
 Docs: [architecture](docs/architecture.md) · [FastAPI adapter](docs/fastapi-adapter.md) ·
 [integration](docs/integration.md) · project rules in [CLAUDE.md](CLAUDE.md).

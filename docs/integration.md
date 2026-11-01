@@ -26,11 +26,14 @@ react-i18next, msw, @fontsource/ibm-plex-sans-arabic.
 11. Agent data: does the backend already store agents/queues? Field names for Yeastar
     extension vs agent number; can an agent have several extensions?
 12. How calls are linked to agents (extension in recording metadata, CDR join, manual).
-13. Yeastar PBX metadata (CDR/queue stats) availability, fields for missed / abandoned / SLA,
-    and the SLA definition (e.g. answered within N seconds).
+13. Yeastar PBX metadata (CDR/queue stats) availability and the fields for total incoming,
+    missed and abandoned. SLA formula is confirmed:
+    (Total incoming − Missed) / Total incoming × 100.
 14. Who may add/disable agents in the UI; is agent management done in the backend instead?
-15. Minimum evaluated calls before per-agent results are treated as indicative
-    (provisional default 10).
+15. Reporting policy for when per-agent results may be treated as reliable (sample-size
+    warnings stay on until this is approved).
+16. Does the backend expose (or plan) settings, permissions/current-user and audit-log APIs
+    for GUI administration? Same-origin `/api` in production?
 
 ## Handoff plan
 

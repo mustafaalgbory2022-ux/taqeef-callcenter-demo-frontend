@@ -43,9 +43,10 @@ number. Capacity required for at least seven agents. Demo data: five synthetic r
 
 - With the demo set (5 calls across 4 agents), every per-agent view shows a persistent
   **"Sample only — n = X calls. Not a performance ranking."** notice.
-- The minimum sample size for treating results as indicative is configurable
-  (`minIndicativeSample`, provisional default 10 evaluated calls per agent); below it, the notice
-  appears automatically, so it disappears only once there is enough real data.
+- **Sample-size warnings stay on for all per-agent results** until an approved reporting
+  policy is set. No invented minimum sample size switches them off automatically. When a
+  policy is approved, it will be implemented as a server-side reporting setting managed in the
+  GUI (see `gui-administration.md`).
 - No leaderboards, rank numbers, "best/worst agent" labels, or default sorting by score.
   Agent lists sort by name or extension. Comparing agents side by side is allowed only with
   n shown for each.
@@ -58,8 +59,9 @@ number. Capacity required for at least seven agents. Demo data: five synthetic r
   their historical calls and evaluations; an "Include inactive agents" toggle shows them.
   Agents are never hard-deleted from the UI.
 - An agent can belong to several queues.
-- A stable internal `id` is separate from the extension number, so a changed extension does not break
-  history.
+- Four agents initially, all configurable; the design must support at least seven.
+- Each agent has a **stable internal `id`** and a **configurable Yeastar extension**. Changing
+  the extension does not break history.
 - Synthetic identifiers until real ones are supplied: names "Agent A–D" / "الموظف أ–د",
   extensions `SYN-101`…`SYN-104`, all flagged `synthetic: true` and labelled in the UI.
   The test suite also uses an 8-agent fixture to verify the ≥ 7 capacity.
@@ -87,6 +89,11 @@ number. Capacity required for at least seven agents. Demo data: five synthetic r
 - Until PBX metadata exists the section shows "Not available — awaiting PBX data"
   with no numbers or placeholder values. Missed, abandoned and SLA figures are never estimated from
   recordings.
+- **Official SLA formula:** `SLA % = (Total incoming − Missed) / Total incoming × 100`.
+  - Abandoned calls are a **separate figure** and are not subtracted in this formula.
+  - Missed and abandoned are always shown as separate figures, never combined.
+  - Total incoming = 0 → SLA shows "Not available", not 0% or 100%.
+  - Display one decimal place, with the counts used (total incoming, missed) beside it.
 
 ## Proposed contract additions (draft, not yet in code)
 
@@ -100,6 +107,8 @@ See `docs/fastapi-adapter.md` → _Agents (planned)_. Summary:
   scale); a server summary endpoint can replace it without UI changes if the backend provides one.
 
 ## Phase placement
+
+Demo scope and future administration areas: see `docs/requirements/gui-administration.md`.
 
 | Phase | Agent work                                                                                                                      |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------- |
