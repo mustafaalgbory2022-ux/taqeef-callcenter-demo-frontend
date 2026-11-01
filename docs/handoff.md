@@ -10,13 +10,13 @@ into `main`.
 | ----------------------- | --------------------------------------------------------------------------- |
 | Repository              | `mustafaalgbory2022-ux/taqeef-callcenter-demo-frontend`                     |
 | Branch                  | `claude/affectionate-ritchie-cr40s7`                                        |
-| Implementation commit   | `__IMPLEMENTATION_COMMIT__`                                                 |
+| Implementation commit   | `705799c16f8e29013cf84a6bb10cf54f0880104e`                                  |
 | Handoff document commit | the commit that adds this file revision (tip of the branch)                 |
 | Previous milestone      | `9ad1467` (10 modules); this revision adds the approved scoring corrections |
 
 ```bash
 git fetch origin claude/affectionate-ritchie-cr40s7
-git checkout __IMPLEMENTATION_COMMIT__   # or the branch tip for these docs
+git checkout 705799c16f8e29013cf84a6bb10cf54f0880104e   # or the branch tip for these docs
 ```
 
 ## 2. File structure
