@@ -43,6 +43,7 @@ export const navigation: readonly NavGroup[] = [
       { to: '/admin/dictionary', label: 'nav.dictionary', icon: 'book' },
       { to: '/admin/pbx', label: 'nav.pbx', icon: 'plug' },
       { to: '/admin/notifications', label: 'nav.notifications', icon: 'mail' },
+      { to: '/admin/reports', label: 'nav.reportSettings', icon: 'clipboard' },
       { to: '/admin/settings', label: 'nav.settings', icon: 'settings' },
       { to: '/admin/planned', label: 'nav.planned', icon: 'grid' },
     ],

@@ -829,3 +829,41 @@ export interface DeliveryRecord {
   detail: string;
   relatedId: string | null;
 }
+
+/* Report configuration --------------------------------------------------------------------- */
+
+export interface ReportSettingsInput {
+  /** Approved policy: 5 answered calls per agent, each at least 60 seconds. */
+  callsPerAgent: number;
+  minDurationSeconds: number;
+  defaultQueueIds: readonly string[];
+  agentSelection: 'all_active' | 'selected';
+  defaultAgentIds: readonly string[];
+  delivery: 'download_only' | 'email_on_generate';
+  /** Requests for automatic scheduling are rejected until it is authorized. */
+  automaticScheduling: boolean;
+  changeNote: string;
+}
+
+export interface ReportSettings extends Omit<ReportSettingsInput, 'changeNote'> {
+  version: number;
+  answeredOnly: true;
+  schedulingAuthorized: boolean;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface ReportRunRequest {
+  period: 'weekly' | 'custom';
+  range: DateRange;
+  agentIds: readonly string[];
+  queueIds: readonly string[];
+  deliver: boolean;
+}
+
+export interface ReportRun {
+  report: ReportRecord;
+  sample: AudioSample;
+  delivery: DeliveryRecord | null;
+  settingsVersion: number;
+}

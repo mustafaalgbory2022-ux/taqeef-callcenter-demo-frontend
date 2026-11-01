@@ -42,6 +42,8 @@ export const endpoints = {
   emailTemplate: (id: string) => `/notifications/templates/${seg(id)}`,
   reportEmailOptions: '/notifications/report-email',
   deliveries: '/notifications/deliveries',
+  reportSettings: '/reports/settings',
+  reportGenerate: '/reports/generate',
   agents: '/agents',
   agent: (id: string) => `/agents/${seg(id)}`,
   agentHistory: (id: string) => `/agents/${seg(id)}/history`,

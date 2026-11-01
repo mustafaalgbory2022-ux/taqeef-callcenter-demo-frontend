@@ -14,17 +14,24 @@ import styles from './Reports.module.css';
 export const SAMPLE_COUNT = 5;
 export const SAMPLE_MIN_MS = 60_000;
 
-/** Five random answered recordings (≥ 60 s) per selected agent; the backend draws the sample. */
+/**
+ * Random answered recordings per selected agent (approved default: five, each ≥ 60 s, as set in
+ * Report configuration); the backend draws the sample.
+ */
 export function AudioSamplePanel({
   agents,
   range,
   sample,
   onSample,
+  count = SAMPLE_COUNT,
+  minMs = SAMPLE_MIN_MS,
 }: {
   agents: readonly Agent[];
   range: DateRange;
   sample: AudioSample | null;
   onSample: (s: AudioSample) => void;
+  count?: number | undefined;
+  minMs?: number | undefined;
 }) {
   const { t, fmt } = useI18n();
   const toast = useToast();
@@ -37,8 +44,8 @@ export function AudioSamplePanel({
         await draw.mutate({
           agentIds: agents.map((a) => a.id),
           range,
-          count: SAMPLE_COUNT,
-          minDurationMs: SAMPLE_MIN_MS,
+          count,
+          minDurationMs: minMs,
         }),
       );
     } catch (err) {
@@ -49,7 +56,7 @@ export function AudioSamplePanel({
   return (
     <Card
       title={t('reports.audio.title')}
-      caption={t('reports.audio.caption', { n: SAMPLE_COUNT, s: SAMPLE_MIN_MS / 1000 })}
+      caption={t('reports.audio.caption', { n: count, s: minMs / 1000 })}
       actions={
         <Button
           icon="refresh"

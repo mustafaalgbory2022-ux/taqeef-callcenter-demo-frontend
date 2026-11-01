@@ -30,6 +30,7 @@ import { createAuditApi, type AuditApi } from './adapters/audit';
 import { createDictionaryApi, type DictionaryApi } from './adapters/dictionary';
 import { createNotificationsApi, type NotificationsApi } from './adapters/notifications';
 import { createPbxAdminApi, type PbxAdminApi } from './adapters/pbx';
+import { createReportSettingsApi, type ReportSettingsApi } from './adapters/reportSettings';
 import { createQueueAdminApi, type QueueAdminApi } from './adapters/queues';
 import { ApiError } from './errors';
 import { createSend, listOf as listPair } from './send';
@@ -127,6 +128,7 @@ export interface ApiClient {
   readonly dictionary: DictionaryApi;
   readonly pbx: PbxAdminApi;
   readonly notifications: NotificationsApi;
+  readonly reportSettings: ReportSettingsApi;
 }
 
 export function createApiClient(transport: Transport, mode: ApiMode): ApiClient {
@@ -147,6 +149,7 @@ export function createApiClient(transport: Transport, mode: ApiMode): ApiClient 
     dictionary: createDictionaryApi(send),
     pbx: createPbxAdminApi(send),
     notifications: createNotificationsApi(send),
+    reportSettings: createReportSettingsApi(send),
     async getSession() {
       try {
         return await send({ method: 'GET', path: endpoints.session }, wireSession, sessionFromWire);

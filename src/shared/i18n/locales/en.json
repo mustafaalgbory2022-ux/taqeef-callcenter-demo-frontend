@@ -28,7 +28,8 @@
     "ai": "AI administration",
     "dictionary": "Iraqi Arabic dictionary",
     "pbx": "PBX administration",
-    "notifications": "Notifications and email"
+    "notifications": "Notifications and email",
+    "reportSettings": "Report configuration"
   },
   "common": {
     "outOfTen": "/ 10",
@@ -1450,6 +1451,73 @@
     "audit": {
       "sender": "Sender changes",
       "rules": "Rule changes"
+    }
+  },
+  "reportSettings": {
+    "title": "Report configuration",
+    "description": "Manual weekly report generation, the random recording sample, default agents and queues, and delivery options.",
+    "syntheticTitle": "Simulated report generation",
+    "syntheticBody": "Reports are built from synthetic data. Emailing is recorded as simulated; nothing is sent. Reports are generated only when someone asks for one.",
+    "errors": {
+      "callsPerAgent": "Enter a whole number from 1 to 20.",
+      "minDuration": "Enter a whole number of seconds from 30 to 600.",
+      "queues": "Select at least one queue.",
+      "agents": "Select at least one agent.",
+      "changeNote": "Describe the change (at least 3 characters)."
+    },
+    "form": {
+      "title": "Sampling and defaults",
+      "caption": "Current version v{v}. Each save creates a new version.",
+      "saved": "Report settings saved as v{v}.",
+      "callsPerAgent": "Recordings per agent",
+      "minDuration": "Minimum recording length (seconds)",
+      "answeredOnly": "Only answered calls with a recording are sampled.",
+      "policyWarning": "This differs from the approved policy ({callsPerAgent} answered calls per agent, at least {minDurationSeconds} seconds). The change is recorded in the audit history.",
+      "queues": "Queues to include",
+      "agents": "Agents",
+      "agentModes": {
+        "all_active": "All active agents",
+        "selected": "Selected agents only"
+      },
+      "delivery": "Delivery",
+      "deliveryHint": "Email uses the management report email options in Notifications."
+    },
+    "delivery": {
+      "download_only": "Save and download only",
+      "email_on_generate": "Save and email on generation"
+    },
+    "scheduling": {
+      "title": "Automatic scheduling",
+      "caption": "Reports are never generated or sent automatically without authorization.",
+      "notAuthorized": "Not authorized",
+      "authorized": "Authorized",
+      "toggle": "Generate and send reports automatically",
+      "note": "Automatic scheduling has not been authorized. Generate reports manually above; the backend rejects any scheduling request."
+    },
+    "run": {
+      "title": "Generate weekly report",
+      "caption": "Includes a new random sample of {n} answered recordings per agent, each at least {s} seconds.",
+      "week": "Week",
+      "weekHint": "Saturday to Friday.",
+      "agents": "Agents to include",
+      "deliver": "Email the report after generating it (simulated)",
+      "generate": "Generate report",
+      "done": "{title} generated.",
+      "openReports": "Open report history",
+      "settingsVersion": "settings v{v}",
+      "delivered": "Email recorded as simulated",
+      "notDelivered": "Not emailed. You can email it later from Reports.",
+      "errors": {
+        "range": "Choose a valid date range.",
+        "future": "The range cannot end in the future.",
+        "tooLong": "A report covers at most {max} days.",
+        "agents": "Select at least one agent.",
+        "queues": "Select at least one queue."
+      }
+    },
+    "audit": {
+      "runs": "Generated reports",
+      "settings": "Settings changes"
     }
   }
 }

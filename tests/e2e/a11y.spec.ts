@@ -20,6 +20,7 @@ const PAGES = [
   '/admin/dictionary',
   '/admin/pbx',
   '/admin/notifications',
+  '/admin/reports',
 ];
 
 for (const lang of ['en', 'ar'] as const) {

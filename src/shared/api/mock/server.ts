@@ -6,6 +6,7 @@ import { aiRoutes } from './handlers/ai';
 import { dictionaryRoutes } from './handlers/dictionary';
 import { notificationRoutes } from './handlers/notifications';
 import { pbxRoutes } from './handlers/pbx';
+import { reportSettingsRoutes } from './handlers/reportSettings';
 import { callRoutes } from './handlers/calls';
 import { evaluationRoutes } from './handlers/evaluations';
 import { scorecardRoutes } from './handlers/scorecards';
@@ -122,6 +123,7 @@ export function createMockTransport({ latencyMs = 160 }: MockTransportOptions = 
     ...dictionaryRoutes(state, persist),
     ...pbxRoutes(state, generated, persist),
     ...notificationRoutes(state, persist),
+    ...reportSettingsRoutes(state, persist),
   ];
 
   return async (req) => {

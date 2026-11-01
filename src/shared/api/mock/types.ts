@@ -1,4 +1,5 @@
 import type { Decoded } from '../decode';
+import type { WireReportSettings } from './fixtures/reports';
 import type { WireAiConfig, WireAiJob, WireAiModel } from './fixtures/ai';
 import type { WirePbxConnector, WirePbxSync, WirePbxVendor } from './fixtures/pbx';
 import type {
@@ -82,5 +83,6 @@ export interface MockState {
     reportEmail: WireReportEmail;
     deliveries: WireDelivery[];
   };
+  reportSettings: WireReportSettings;
   seq: number;
 }

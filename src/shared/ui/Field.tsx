@@ -61,11 +61,13 @@ export function Checkbox({
   onChange,
   children,
   describedBy,
+  disabled,
 }: {
   checked: boolean;
   onChange: (checked: boolean) => void;
   children: ReactNode;
   describedBy?: string | undefined;
+  disabled?: boolean | undefined;
 }) {
   const id = useId();
   return (
@@ -76,6 +78,7 @@ export function Checkbox({
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
         aria-describedby={describedBy}
+        disabled={disabled}
       />
       <label htmlFor={id}>{children}</label>
     </div>

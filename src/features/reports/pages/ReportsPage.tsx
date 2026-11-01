@@ -10,7 +10,7 @@ import { usePermission } from '@/shared/hooks/usePermission';
 import { describeError } from '@/shared/i18n/errorMessage';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import type { AudioSample } from '@/shared/types/domain';
-import { Button } from '@/shared/ui/Button';
+import { Button, LinkButton } from '@/shared/ui/Button';
 import { Card } from '@/shared/ui/Card';
 import { Notice } from '@/shared/ui/Notice';
 import { PageHeader } from '@/shared/ui/PageHeader';
@@ -23,7 +23,7 @@ import { AudioSamplePanel } from '../components/AudioSamplePanel';
 import { ReportForm, type ReportParams } from '../components/ReportForm';
 import { ReportHistory } from '../components/ReportHistory';
 import { AgentReportTable, QueueReportTable } from '../components/ReportTables';
-import { useSaveReport } from '../hooks/useReports';
+import { useReportSettings, useSaveReport } from '../hooks/useReports';
 import { buildAgentRows, buildQueueRows, buildWorkbook, resolveRange } from '../model/report';
 import styles from '../components/Reports.module.css';
 
@@ -46,6 +46,7 @@ export function ReportsPage() {
   const range = resolveRange(params.period, params.anchor, params.custom);
   const valid = isValidRange(range);
   const save = useSaveReport();
+  const settings = useReportSettings().data;
 
   const agentsQ = useAgents();
   const query = combineQueries([
@@ -161,6 +162,13 @@ export function ReportsPage() {
         eyebrow={t('nav.operations')}
         title={t('reports.pageTitle')}
         description={t('reports.description')}
+        actions={
+          canManage && (
+            <LinkButton to="/admin/reports" icon="settings">
+              {t('nav.reportSettings')}
+            </LinkButton>
+          )
+        }
       />
       <QueryView query={agentsQ}>
         {(agents) => (
@@ -210,6 +218,8 @@ export function ReportsPage() {
                   range={range}
                   sample={sample}
                   onSample={setSample}
+                  count={settings?.callsPerAgent}
+                  minMs={settings ? settings.minDurationSeconds * 1000 : undefined}
                 />
                 <Card title={t('reports.email.title')} caption={t('reports.email.caption')}>
                   <ul className={styles.list}>

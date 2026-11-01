@@ -312,3 +312,64 @@ describe('simulated notifications and email', () => {
     });
   });
 });
+
+describe('simulated report configuration', () => {
+  it('versions settings, flags policy changes and refuses automatic scheduling', async () => {
+    const s = await api.reportSettings.get();
+    expect(s).toMatchObject({
+      callsPerAgent: 5,
+      minDurationSeconds: 60,
+      answeredOnly: true,
+      schedulingAuthorized: false,
+    });
+    const input = {
+      callsPerAgent: 6,
+      minDurationSeconds: 60,
+      defaultQueueIds: ['q-6001'],
+      agentSelection: 'all_active' as const,
+      defaultAgentIds: [],
+      delivery: 'email_on_generate' as const,
+      automaticScheduling: false,
+      changeNote: 'Pilot',
+    };
+    await expect(
+      api.reportSettings.save({ ...input, automaticScheduling: true }),
+    ).rejects.toMatchObject({ code: 'forbidden' });
+    const v2 = await api.reportSettings.save(input);
+    expect(v2.version).toBe(2);
+    const [entry] = await api.audit.list({ resource: 'report_settings' });
+    expect(entry?.summary).toContain('differs from the approved');
+  });
+
+  it('generates a weekly report with the configured sample and optional simulated email', async () => {
+    await expect(
+      api.reportSettings.generate({
+        period: 'weekly',
+        range: { from: '2026-10-25', to: '2026-10-31' },
+        agentIds: ['agt-001'],
+        queueIds: ['q-6001'],
+        deliver: false,
+      }),
+    ).rejects.toMatchObject({ code: 'validation_error' }); // not Saturday–Friday
+    const run = await api.reportSettings.generate({
+      period: 'weekly',
+      range: { from: '2026-10-17', to: '2026-10-23' },
+      agentIds: ['agt-001', 'agt-002'],
+      queueIds: ['q-6001', 'q-6002'],
+      deliver: true,
+    });
+    expect(run.report).toMatchObject({
+      period: 'weekly',
+      emailStatus: 'simulated_sent',
+      simulated: true,
+    });
+    expect(run.sample.agents).toHaveLength(2);
+    expect(
+      run.sample.agents.every(
+        (a) => a.requested === 5 && a.calls.every((c) => (c.durationMs ?? 0) >= 60_000),
+      ),
+    ).toBe(true);
+    expect(run.delivery?.status).toBe('simulated');
+    expect((await api.listReports())[0]?.id).toBe(run.report.id);
+  });
+});

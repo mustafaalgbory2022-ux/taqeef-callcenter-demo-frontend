@@ -10,6 +10,42 @@ import { callDate, DEFAULT_REVIEW, inRange } from './callQueries';
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 type Classified = WireCall & { classification: NonNullable<WireCall['classification']> };
 
+/**
+ * Random sample of answered (recorded and processed) calls per agent. Random per request; the
+ * seed is returned so a sample can be reproduced and audited.
+ */
+export function drawSample(
+  state: MockState,
+  agentIds: readonly string[],
+  from: string | undefined,
+  to: string | undefined,
+  count: number,
+  minMs: number,
+) {
+  const seed = Math.random().toString(36).slice(2, 10);
+  const rand = prng(seed);
+  return {
+    seed,
+    simulated: true,
+    agents: agentIds.map((agentId) => {
+      const eligible = state.calls.filter(
+        (c) =>
+          c.agent_id === agentId &&
+          c.status === 'scored' &&
+          (c.duration_ms ?? 0) >= minMs &&
+          inRange(callDate(c), from, to),
+      );
+      const shuffled = [...eligible].sort(() => rand() - 0.5).slice(0, count);
+      return {
+        agent_id: agentId,
+        requested: count,
+        eligible: eligible.length,
+        calls: shuffled.map((c) => ({ ...c, review: state.reviews[c.id] ?? DEFAULT_REVIEW })),
+      };
+    }),
+  };
+}
+
 /** SIMULATED PBX, live, insight and reporting endpoints (real backend: Yeastar + jobs). */
 export function operationsRoutes(
   state: MockState,
@@ -77,29 +113,7 @@ export function operationsRoutes(
           return invalid('agent_ids', 'Select at least one agent.');
         const count = Math.min(20, Math.max(1, Number(b.count) || 5));
         const minMs = Math.max(0, Number(b.min_duration_ms) || 60_000);
-        // Random per request; the seed is returned so a sample can be reproduced and audited.
-        const seed = Math.random().toString(36).slice(2, 10);
-        const rand = prng(seed);
-        return ok({
-          seed,
-          simulated: true,
-          agents: b.agent_ids.map((agentId) => {
-            const eligible = state.calls.filter(
-              (c) =>
-                c.agent_id === agentId &&
-                c.status === 'scored' &&
-                (c.duration_ms ?? 0) >= minMs &&
-                inRange(callDate(c), b.from, b.to),
-            );
-            const shuffled = [...eligible].sort(() => rand() - 0.5).slice(0, count);
-            return {
-              agent_id: agentId,
-              requested: count,
-              eligible: eligible.length,
-              calls: shuffled.map((c) => ({ ...c, review: state.reviews[c.id] ?? DEFAULT_REVIEW })),
-            };
-          }),
-        });
+        return ok(drawSample(state, b.agent_ids, b.from, b.to, count, minMs));
       },
     },
     { method: 'GET', pattern: '/reports', handler: () => ok([...state.reports].reverse()) },
