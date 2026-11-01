@@ -17,6 +17,7 @@ const PAGES = [
   '/admin/settings',
   '/admin/queues',
   '/admin/ai',
+  '/admin/dictionary',
 ];
 
 for (const lang of ['en', 'ar'] as const) {

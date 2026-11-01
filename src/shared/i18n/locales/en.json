@@ -25,7 +25,8 @@
     "reports": "Reports",
     "quality": "AI quality",
     "queues": "Queues",
-    "ai": "AI administration"
+    "ai": "AI administration",
+    "dictionary": "Iraqi Arabic dictionary"
   },
   "common": {
     "outOfTen": "/ 10",
@@ -1036,6 +1037,121 @@
       "current": "Current",
       "auditTitle": "Configuration changes",
       "jobAuditTitle": "Queue actions"
+    }
+  },
+  "dictionary": {
+    "title": "Iraqi Arabic dictionary",
+    "description": "Iraqi dialect expressions, spelling variants and product terminology used to improve transcripts and analysis. Every change is versioned.",
+    "add": "Add entry",
+    "syntheticTitle": "Synthetic dictionary",
+    "syntheticBody": "Entries, product names and corrections are synthetic examples. Changes are stored in this browser only; the local backend applies the dictionary during transcription.",
+    "syntheticNote": "Simulated: saved to the synthetic demo dataset in this browser.",
+    "listTitle": "Entries",
+    "listCaption": "{n} entries shown",
+    "recent": "Recent dictionary changes",
+    "filters": {
+      "search": "Search terms, variants or meanings",
+      "allKinds": "All types",
+      "allStatuses": "All statuses"
+    },
+    "fields": {
+      "kind": "Type",
+      "term": "Term",
+      "standard": "Standard form",
+      "variants": "Variants",
+      "meaningEn": "Meaning (English)",
+      "notes": "Notes",
+      "changeNote": "Change note",
+      "status": "Status",
+      "reason": "Reason"
+    },
+    "kinds": {
+      "dialect_expression": "Dialect expression",
+      "spelling_variant": "Spelling variant",
+      "product_term": "Product term"
+    },
+    "status": {
+      "active": "Active",
+      "disabled": "Disabled",
+      "disable": "Disable",
+      "enable": "Enable",
+      "disableTitle": "Disable “{term}”?",
+      "enableTitle": "Enable “{term}”?",
+      "disableBody": "The entry is no longer applied to new transcripts. It stays in the dictionary with its full version history.",
+      "enableBody": "The entry is applied to new transcripts again.",
+      "disabledToast": "“{term}” was disabled.",
+      "enabledToast": "“{term}” was enabled."
+    },
+    "form": {
+      "createTitle": "Add dictionary entry",
+      "editTitle": "Edit “{term}”",
+      "saveVersion": "Save as v{v}",
+      "created": "“{term}” was added (v{v}).",
+      "updated": "“{term}” was saved as v{v}.",
+      "termHint": "As spoken or commonly written. Arabic script, except product terms.",
+      "standardHint": "Form used in normalized transcripts.",
+      "variantsHint": "Other spellings or common transcription errors, separated by commas."
+    },
+    "versions": {
+      "title": "Versions of “{term}”",
+      "immutable": "Versions are immutable and are never removed.",
+      "label": "Entry versions",
+      "open": "Versions"
+    },
+    "table": {
+      "label": "Dictionary entries",
+      "empty": "No entries match these filters.",
+      "version": "Version"
+    },
+    "errors": {
+      "required": "This field is required.",
+      "tooLong": "This value is too long.",
+      "arabicRequired": "Use Arabic script for dialect expressions and spelling variants.",
+      "duplicate": "An entry with this term already exists.",
+      "variantSameAsTerm": "A variant cannot repeat the term.",
+      "variantConflict": "This spelling is already mapped to another entry.",
+      "tooManyVariants": "Use at most 20 variants."
+    },
+    "corrections": {
+      "title": "Supervised corrections",
+      "caption": "Transcript corrections proposed by reviewers. A second person approves or rejects each one.",
+      "propose": "Propose correction",
+      "filter": "Show",
+      "all": "All corrections",
+      "empty": "No corrections to show.",
+      "table": "Transcript corrections",
+      "correction": "Correction",
+      "call": "Call",
+      "proposedBy": "Proposed by",
+      "state": "Review",
+      "review": "Review",
+      "status": {
+        "pending": "Awaiting review",
+        "approved": "Approved",
+        "rejected": "Rejected"
+      },
+      "block": {
+        "own": "Awaiting another reviewer (own proposal)",
+        "permission": "Review permission required"
+      },
+      "rejectNote": "Explain why the correction is rejected.",
+      "approvedToast": "Correction approved.",
+      "rejectedToast": "Correction rejected.",
+      "reviewTitle": "Review correction",
+      "approve": "Approve",
+      "reject": "Reject",
+      "decision": "Decision",
+      "addToDictionary": "Add the transcript spelling to the dictionary as a variant",
+      "note": "Review note",
+      "proposedToast": "Correction proposed. Another reviewer must approve it.",
+      "proposeTitle": "Propose a transcript correction",
+      "submit": "Submit for review",
+      "callHint": "For example DEMO-002.",
+      "segment": "Transcript segment",
+      "segmentHint": "Optional, for example s2.",
+      "heard": "Transcript text",
+      "proposed": "Correct form",
+      "fourEyes": "You cannot approve your own proposal: a second reviewer decides."
     }
   }
 }

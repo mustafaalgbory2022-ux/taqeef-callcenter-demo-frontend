@@ -3,6 +3,7 @@ import type { ApiResponse, Transport } from '../transport';
 import { clearSavedState, loadState, saveState } from './db';
 import { agentRoutes } from './handlers/agents';
 import { aiRoutes } from './handlers/ai';
+import { dictionaryRoutes } from './handlers/dictionary';
 import { callRoutes } from './handlers/calls';
 import { evaluationRoutes } from './handlers/evaluations';
 import { scorecardRoutes } from './handlers/scorecards';
@@ -116,6 +117,7 @@ export function createMockTransport({ latencyMs = 160 }: MockTransportOptions = 
     ...queueRoutes(state, persist),
     ...auditRoutes(state),
     ...aiRoutes(state, persist),
+    ...dictionaryRoutes(state, persist),
   ];
 
   return async (req) => {

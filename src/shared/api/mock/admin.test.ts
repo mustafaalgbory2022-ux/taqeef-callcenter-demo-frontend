@@ -97,3 +97,77 @@ describe('simulated AI administration', () => {
     expect(actions).toEqual(['paused', 'retried']);
   });
 });
+
+describe('simulated Iraqi Arabic dictionary', () => {
+  it('searches by normalized form and versions every change', async () => {
+    expect((await api.dictionary.listEntries({ search: 'هسة' })).map((e) => e.id)).toEqual([
+      'dict-2',
+    ]);
+    await expect(
+      api.dictionary.createEntry({
+        kind: 'dialect_expression',
+        term: 'هسة',
+        variants: [],
+        standard: 'الآن',
+        meaningEn: '',
+        notes: '',
+        changeNote: 'dup',
+      }),
+    ).rejects.toMatchObject({ code: 'validation_error' });
+    const [entry] = await api.dictionary.listEntries({ search: 'شلونك' });
+    if (!entry) throw new Error('missing');
+    const updated = await api.dictionary.updateEntry(entry.id, {
+      ...entry,
+      variants: [...entry.variants, 'شلونچ'],
+      changeNote: 'Add variant',
+    });
+    expect(updated.version).toBe(2);
+    await api.dictionary.setEntryStatus(entry.id, 'disabled', 'Under review');
+    const versions = await api.dictionary.listVersions(entry.id);
+    expect(versions.map((v) => [v.version, v.action])).toEqual([
+      [3, 'disabled'],
+      [2, 'updated'],
+      [1, 'created'],
+    ]);
+    expect(versions[2]?.variants).not.toContain('شلونچ'); // older versions unchanged
+  });
+
+  it('applies the four-eyes rule and adds approved spellings as variants', async () => {
+    const own = await api.dictionary.proposeCorrection({
+      callId: 'DEMO-001',
+      segmentId: 's1',
+      heard: 'شلونكك',
+      proposed: 'شلونك',
+      kind: 'dialect_expression',
+    });
+    await expect(
+      api.dictionary.reviewCorrection(own.id, {
+        decision: 'approve',
+        note: '',
+        addToDictionary: true,
+      }),
+    ).rejects.toMatchObject({ code: 'forbidden' });
+    await expect(
+      api.dictionary.reviewCorrection('corr-2', {
+        decision: 'reject',
+        note: '',
+        addToDictionary: false,
+      }),
+    ).rejects.toMatchObject({ code: 'validation_error' });
+    const approved = await api.dictionary.reviewCorrection('corr-1', {
+      decision: 'approve',
+      note: 'ok',
+      addToDictionary: true,
+    });
+    expect(approved).toMatchObject({ status: 'approved', entryId: 'dict-8' });
+    const [router] = await api.dictionary.listEntries({ search: 'راوتر' });
+    expect(router?.variants).toContain('رواتر');
+    await expect(
+      api.dictionary.reviewCorrection('corr-1', {
+        decision: 'reject',
+        note: 'again',
+        addToDictionary: false,
+      }),
+    ).rejects.toMatchObject({ code: 'conflict' });
+  });
+});

@@ -1,5 +1,10 @@
 import type { Decoded } from '../decode';
 import type { WireAiConfig, WireAiJob, WireAiModel } from './fixtures/ai';
+import type {
+  WireCorrection,
+  WireDictionaryEntry,
+  WireDictionaryVersion,
+} from './fixtures/dictionary';
 import type { wireAdminAudit } from '../wire/admin';
 import type { wireAgent, wireAuditEntry, wireQueue } from '../wire/agents';
 import type { wireCall, wireTranscript } from '../wire/calls';
@@ -51,6 +56,11 @@ export interface MockState {
     paused: boolean;
     /** Epoch ms when each service last switched model (drives the simulated "loading" state). */
     loadedAt: { transcription: number; evaluation: number };
+  };
+  dictionary: {
+    entries: WireDictionaryEntry[];
+    versions: Record<string, WireDictionaryVersion[]>;
+    corrections: WireCorrection[];
   };
   seq: number;
 }

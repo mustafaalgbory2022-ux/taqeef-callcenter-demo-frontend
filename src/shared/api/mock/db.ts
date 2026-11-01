@@ -1,6 +1,7 @@
 import { seedAdminAudit } from './audit';
 import { agents, initialAudit, queues } from './fixtures/agents';
 import { aiModels, initialAiConfig, seedAiJobs } from './fixtures/ai';
+import { corrections, dictionaryEntries, initialVersions } from './fixtures/dictionary';
 import { callFixtures } from './fixtures/calls';
 import { scorecardVersions } from './fixtures/scorecards';
 import { simulateEvaluation } from './scoring';
@@ -37,6 +38,11 @@ export function createSeedState(): MockState {
       jobs: seedAiJobs(Date.now()),
       paused: false,
       loadedAt: { transcription: 0, evaluation: 0 },
+    },
+    dictionary: {
+      entries: structuredClone(dictionaryEntries),
+      versions: Object.fromEntries(dictionaryEntries.map((e) => [e.id, initialVersions(e)])),
+      corrections: structuredClone(corrections),
     },
     seq: 100,
   };

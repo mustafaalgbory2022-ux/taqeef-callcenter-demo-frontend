@@ -115,6 +115,13 @@ export const routes: RouteObject[] = [
         ),
       },
       {
+        path: 'admin/dictionary',
+        element: page(
+          () => import('@/features/dictionary/pages/DictionaryPage'),
+          (m) => m.DictionaryPage,
+        ),
+      },
+      {
         path: 'admin/settings',
         element: page(
           () => import('@/features/settings/pages/SettingsPage'),

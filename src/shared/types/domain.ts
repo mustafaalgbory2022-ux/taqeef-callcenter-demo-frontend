@@ -559,3 +559,93 @@ export interface AiJobQueue {
   simulated: boolean;
   jobs: readonly AiJob[];
 }
+
+/* Iraqi Arabic dictionary ------------------------------------------------------------------ */
+
+export type DictionaryKind = 'dialect_expression' | 'spelling_variant' | 'product_term';
+export type DictionaryStatus = 'active' | 'disabled';
+
+export interface DictionaryEntry {
+  id: string;
+  kind: DictionaryKind;
+  /** The form as spoken/heard (Iraqi dialect, colloquial spelling or product name). */
+  term: string;
+  /** Alternative spellings and common transcription errors that map to this entry. */
+  variants: readonly string[];
+  /** Standard form used in normalized transcripts and analysis. */
+  standard: string;
+  meaningEn: string;
+  notes: string;
+  status: DictionaryStatus;
+  version: number;
+  updatedAt: string;
+  updatedBy: string;
+  synthetic: boolean;
+}
+
+export interface DictionaryEntryInput {
+  kind: DictionaryKind;
+  term: string;
+  variants: readonly string[];
+  standard: string;
+  meaningEn: string;
+  notes: string;
+  changeNote: string;
+}
+
+/** Immutable snapshot of one entry version. */
+export interface DictionaryEntryVersion {
+  entryId: string;
+  version: number;
+  action: 'created' | 'updated' | 'disabled' | 'enabled';
+  kind: DictionaryKind;
+  term: string;
+  variants: readonly string[];
+  standard: string;
+  meaningEn: string;
+  notes: string;
+  status: DictionaryStatus;
+  changeNote: string;
+  changedAt: string;
+  changedBy: string;
+}
+
+export interface DictionaryQuery {
+  search?: string | undefined;
+  kind?: DictionaryKind | undefined;
+  status?: DictionaryStatus | undefined;
+}
+
+export type CorrectionStatus = 'pending' | 'approved' | 'rejected';
+
+/** A supervised transcript correction: proposed by one person, reviewed by another. */
+export interface DictionaryCorrection {
+  id: string;
+  callId: string;
+  segmentId: string | null;
+  heard: string;
+  proposed: string;
+  kind: DictionaryKind;
+  proposedBy: string;
+  proposedAt: string;
+  status: CorrectionStatus;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  reviewNote: string;
+  entryId: string | null;
+  synthetic: boolean;
+}
+
+export interface CorrectionProposal {
+  callId: string;
+  segmentId: string;
+  heard: string;
+  proposed: string;
+  kind: DictionaryKind;
+}
+
+export interface CorrectionReview {
+  decision: 'approve' | 'reject';
+  note: string;
+  addToDictionary: boolean;
+}

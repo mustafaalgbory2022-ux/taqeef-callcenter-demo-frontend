@@ -27,6 +27,7 @@ import type { ApiMode } from './config';
 import { endpoints } from './endpoints';
 import { createAiAdminApi, type AiAdminApi } from './adapters/ai';
 import { createAuditApi, type AuditApi } from './adapters/audit';
+import { createDictionaryApi, type DictionaryApi } from './adapters/dictionary';
 import { createQueueAdminApi, type QueueAdminApi } from './adapters/queues';
 import { ApiError } from './errors';
 import { createSend, listOf as listPair } from './send';
@@ -121,6 +122,7 @@ export interface ApiClient {
   readonly audit: AuditApi;
   readonly queueAdmin: QueueAdminApi;
   readonly ai: AiAdminApi;
+  readonly dictionary: DictionaryApi;
 }
 
 export function createApiClient(transport: Transport, mode: ApiMode): ApiClient {
@@ -138,6 +140,7 @@ export function createApiClient(transport: Transport, mode: ApiMode): ApiClient 
     audit: createAuditApi(send),
     queueAdmin: createQueueAdminApi(send),
     ai: createAiAdminApi(send),
+    dictionary: createDictionaryApi(send),
     async getSession() {
       try {
         return await send({ method: 'GET', path: endpoints.session }, wireSession, sessionFromWire);
