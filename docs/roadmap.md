@@ -17,7 +17,7 @@ labelled in the UI; real operations are performed by the backend (see each modul
 | 5   | AI quality             | Evaluations, evidence, scorecards, re-score, history | Reuse; extend in Phase B                                                                     | A/B               |
 | 6   | Customer insights      | —                                                    | Call reasons, complaints, service requests, classifications                                  | A                 |
 | 7   | Reports                | —                                                    | Weekly/monthly/yearly, queue + agent reports, Excel export, audio sampling, management email | A (+B scheduling) |
-| 8   | Agent & queue admin    | Agent admin                                          | Queue administration                                                                         | B                 |
+| 8   | Agent & queue admin    | Agent admin                                          | Queue administration ✅                                                                      | B                 |
 | 9   | AI administration      | Planned page                                         | Models, jobs, prompts, dictionaries, Iraqi dialect corrections                               | B                 |
 | 10  | PBX administration     | Planned page                                         | Yeastar connection, ingestion start date, sync, vendor adapters                              | B                 |
 | 11  | Notifications          | Planned page                                         | Quality alerts, schedules, Microsoft 365 sender, templates                                   | B                 |
@@ -28,12 +28,12 @@ labelled in the UI; real operations are performed by the backend (see each modul
 
 ## Progress
 
-| Phase                         | Scope                                                              | Status         |
-| ----------------------------- | ------------------------------------------------------------------ | -------------- |
-| A — Operations                | Executive dashboard, live center, agents, calls, insights, reports | 🟡 in progress |
-| B — AI & integrations         | AI admin, dictionary, PBX admin, notifications, report scheduling  | ⬜             |
-| C — Security & infrastructure | Users, roles, MFA, backups, monitoring, audit                      | ⬜             |
-| D — QA & handoff              | Accessibility, contracts, docs, tests                              | ⬜             |
+| Phase                         | Scope                                                              | Status |
+| ----------------------------- | ------------------------------------------------------------------ | ------ |
+| A — Operations                | Executive dashboard, live center, agents, calls, insights, reports | ✅     |
+| B — AI & integrations         | AI admin, dictionary, PBX admin, notifications, report scheduling  | ✅     |
+| C — Security & infrastructure | Users, roles, MFA, backups, monitoring, audit                      | ⬜     |
+| D — QA & handoff              | Accessibility, contracts, docs, tests                              | ⬜     |
 
 ## Phase A checkpoint
 
@@ -49,3 +49,35 @@ labelled in the UI; real operations are performed by the backend (see each modul
   audited random audio sample (5 × ≥ 60 s per agent), report history, simulated management email.
 - Data: ~280 deterministic synthetic PBX-ingested calls (Aug–Oct 2026), synthetic Yeastar daily statistics.
 - Tests: 76 unit, 142 Playwright (desktop + mobile, axe on 12 pages × EN/AR × light/dark).
+
+## Phase B checkpoint
+
+All Phase B screens are GUI-managed API resources (`src/shared/api/adapters/*`), validated on
+the client and by the simulated backend (422 mapped to fields), permission-gated, confirmed when
+destructive (server 409 without `confirm`), and audited in the append-only log
+(`GET /admin/audit`, `AuditTrail`). Everything is labelled simulated/synthetic.
+
+- ✅ Queue administration (`/admin/queues`): add, edit, disable (never delete); renumbering,
+  disabling and removing agents need confirmation; agent assignments; per-queue history. New
+  queues get no invented PBX statistics.
+- ✅ AI administration (`/admin/ai`): local model catalogue (unavailable/incompatible models
+  rejected), language and speaker separation, dictionary use, processing limits, job queue
+  (pause/resume, retry within the limit, cancel), evaluation rules with latest/pinned scorecard
+  binding, prompt templates with placeholder validation, immutable configuration versions,
+  simulated service status.
+- ✅ Iraqi Arabic dictionary (`/admin/dictionary`): dialect expressions, spelling variants and
+  product terms; normalized Arabic search; add, edit, disable; immutable per-entry versions;
+  supervised corrections with a four-eyes review (approved spellings become variants).
+- ✅ PBX administration (`/admin/pbx`): Yeastar P550 connector from a replaceable vendor
+  form-adapter registry, write-only secret, queues 6001/6002, ingestion start date and
+  polling interval (confirmation for changes), simulated connection test, ingestion on/off,
+  manual synchronization with history. Starts unconfigured — nothing invented.
+- ✅ Notifications and email (`/admin/notifications`): dedicated Microsoft 365 sender
+  (write-only secret, simulated test and test email), low-quality notification rules,
+  management report email options, versioned templates with preview, delivery history
+  (emailing a saved report records a simulated delivery).
+- ✅ Report configuration (`/admin/reports`): versioned sampling policy (approved 5 × ≥ 60 s;
+  departures warned and audited), default queues/agents, delivery option, manual weekly or
+  custom-range generation; automatic scheduling locked (server 403).
+- Tests: 111 unit; Playwright adds one spec per module and axe on the six new pages
+  (EN/AR × light/dark, desktop + mobile).

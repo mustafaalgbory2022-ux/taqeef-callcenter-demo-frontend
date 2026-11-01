@@ -566,20 +566,8 @@
       "noticeBody": "Each area will include validation, permissions, feedback and audit history.",
       "badge": "Planned",
       "cardTitle": "Production administration",
-      "cardCaption": "PBX, AI, reports, users and security, storage, system health and branding",
+      "cardCaption": "Users and security, storage, system health and branding (Phase C)",
       "open": "View planned areas",
-      "pbx": {
-        "title": "PBX connections and call ingestion",
-        "scope": "Yeastar connection setup and testing, ingestion schedule and status, retry of failed ingestion, CDR import for missed, abandoned and SLA metrics."
-      },
-      "ai": {
-        "title": "AI models and processing",
-        "scope": "Model selection, versioned prompts, Iraqi dialect dictionary and processing controls (pause, resume, priority, re-run)."
-      },
-      "reports": {
-        "title": "Reports, exports and notifications",
-        "scope": "Scheduled and on-demand reports, CSV/XLSX/PDF exports, email notification rules with a test send."
-      },
       "security": {
         "title": "Users, roles, MFA and security",
         "scope": "Users and roles, permissions, MFA enrolment and reset, session policies and the security audit log."

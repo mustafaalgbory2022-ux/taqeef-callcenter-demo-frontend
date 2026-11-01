@@ -2,7 +2,8 @@ import type { MessageKey } from '@/shared/i18n/translate';
 
 /**
  * Production administration areas recorded in docs/requirements/gui-administration.md.
- * Shown in the GUI as planned (not built in the demo) so the full scope is visible.
+ * Shown in the GUI as planned (not built yet) so the full scope is visible. ADM-03 (PBX),
+ * ADM-04 (AI, dictionary) and ADM-07 (reports, notifications) were built in Phase B.
  */
 export interface AdminArea {
   id: string;
@@ -11,13 +12,6 @@ export interface AdminArea {
 }
 
 export const plannedAreas: readonly AdminArea[] = [
-  { id: 'ADM-03', title: 'settings.planned.pbx.title', scope: 'settings.planned.pbx.scope' },
-  { id: 'ADM-04', title: 'settings.planned.ai.title', scope: 'settings.planned.ai.scope' },
-  {
-    id: 'ADM-07',
-    title: 'settings.planned.reports.title',
-    scope: 'settings.planned.reports.scope',
-  },
   {
     id: 'ADM-08',
     title: 'settings.planned.security.title',
