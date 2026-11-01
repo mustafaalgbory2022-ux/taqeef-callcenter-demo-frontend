@@ -1,3 +1,4 @@
+import { SEEDED_QUEUE_IDS } from '../fixtures/agents';
 import { latestScorecard } from '../processing';
 import { simulateEvaluation } from '../scoring';
 import type { MockState } from '../types';
@@ -15,7 +16,7 @@ export interface GeneratedData {
  */
 export function addGeneratedData(state: MockState): GeneratedData {
   const pbx = generatePbx(
-    state.queues,
+    state.queues.filter((q) => SEEDED_QUEUE_IDS.has(q.id)),
     state.agents.filter((a) => a.id.match(/^agt-00[1-4]$/)),
   );
   const { calls, judgments } = generateCalls(

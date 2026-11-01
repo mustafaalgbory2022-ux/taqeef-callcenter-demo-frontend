@@ -38,6 +38,7 @@ export const navigation: readonly NavGroup[] = [
     label: 'nav.administration',
     items: [
       { to: '/admin/agents', label: 'nav.agents', icon: 'users' },
+      { to: '/admin/queues', label: 'nav.queues', icon: 'layers' },
       { to: '/admin/settings', label: 'nav.settings', icon: 'settings' },
       { to: '/admin/planned', label: 'nav.planned', icon: 'grid' },
     ],

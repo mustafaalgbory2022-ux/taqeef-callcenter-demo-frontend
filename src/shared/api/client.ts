@@ -24,10 +24,12 @@ import type {
   Transcript,
 } from '@/shared/types/domain';
 import type { ApiMode } from './config';
-import { arrayOf, DecodeError, type Decoder } from './decode';
 import { endpoints } from './endpoints';
-import { ApiError, toApiError } from './errors';
-import type { ApiRequest, Transport } from './transport';
+import { createAuditApi, type AuditApi } from './adapters/audit';
+import { createQueueAdminApi, type QueueAdminApi } from './adapters/queues';
+import { ApiError } from './errors';
+import { createSend, listOf as listPair } from './send';
+import type { Transport } from './transport';
 import {
   agentFromWire,
   agentInputToWire,
@@ -114,30 +116,14 @@ export interface ApiClient {
   getCurrentScorecard(): Promise<ScorecardVersion>;
   listScorecardVersions(): Promise<ScorecardVersion[]>;
   saveScorecardVersion(draft: ScorecardDraft): Promise<ScorecardVersion>;
+  /** Administration adapters (Phase B) — each replaceable on its own. */
+  readonly audit: AuditApi;
+  readonly queueAdmin: QueueAdminApi;
 }
 
 export function createApiClient(transport: Transport, mode: ApiMode): ApiClient {
-  async function send<W, T>(req: ApiRequest, decoder: Decoder<W>, map: (w: W) => T): Promise<T> {
-    const res = await transport(req);
-    if (res.status >= 400) throw toApiError(res.status, res.body);
-    try {
-      return map(decoder(res.body));
-    } catch (err) {
-      if (err instanceof DecodeError) {
-        throw new ApiError(
-          'contract_mismatch',
-          res.status,
-          `${req.method} ${req.path}: ${err.message}`,
-        );
-      }
-      throw err;
-    }
-  }
-
-  const list = <W, T>(decoder: Decoder<W>, map: (w: W) => T) => ({
-    decoder: arrayOf(decoder),
-    map: (ws: W[]) => ws.map(map),
-  });
+  const send = createSend(transport);
+  const list = listPair;
 
   const agents = list(wireAgent, agentFromWire);
   const evaluations = list(wireEvaluation, evaluationFromWire);
@@ -147,6 +133,8 @@ export function createApiClient(transport: Transport, mode: ApiMode): ApiClient 
 
   return {
     mode,
+    audit: createAuditApi(send),
+    queueAdmin: createQueueAdminApi(send),
     async getSession() {
       try {
         return await send({ method: 'GET', path: endpoints.session }, wireSession, sessionFromWire);

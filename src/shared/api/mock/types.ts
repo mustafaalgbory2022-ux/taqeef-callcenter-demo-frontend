@@ -1,4 +1,5 @@
 import type { Decoded } from '../decode';
+import type { wireAdminAudit } from '../wire/admin';
 import type { wireAgent, wireAuditEntry, wireQueue } from '../wire/agents';
 import type { wireCall, wireTranscript } from '../wire/calls';
 import type { WireEvaluation } from '../wire/evaluations';
@@ -13,6 +14,7 @@ export type WireTranscript = Decoded<typeof wireTranscript>;
 export type WireSegment = WireTranscript['segments'][number];
 export type WireScorecard = Decoded<typeof wireScorecardVersion>;
 export type WireReport = Decoded<typeof wireReport>;
+export type WireAdminAudit = Decoded<typeof wireAdminAudit>;
 export type { WireEvaluation };
 
 /** Simulated model output for one criterion of one call (synthetic). */
@@ -39,5 +41,7 @@ export interface MockState {
   reports: WireReport[];
   /** Upload time (epoch ms) per uploaded call, used to simulate processing stages. */
   uploads: Record<string, number>;
+  /** Append-only administration audit log (newest first). */
+  adminAudit: WireAdminAudit[];
   seq: number;
 }

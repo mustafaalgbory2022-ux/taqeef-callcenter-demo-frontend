@@ -29,6 +29,11 @@ const PATHS = {
   minus: 'M3 8h10',
   arrowUp: 'M8 13V3M4 7l4-4 4 4',
   arrowDown: 'M8 3v10M4 9l4 4 4-4',
+  layers: 'M8 2 14.5 5.5 8 9 1.5 5.5ZM1.5 8.5 8 12l6.5-3.5M1.5 11.5 8 15l6.5-3.5',
+  cpu: 'M4.5 4.5h7v7h-7zM6.5 6.5h3v3h-3zM6 1.5v3M10 1.5v3M6 11.5v3M10 11.5v3M1.5 6h3M1.5 10h3M11.5 6h3M11.5 10h3',
+  book: 'M2.5 3a1 1 0 0 1 1-1H8v12H3.5a1 1 0 0 1-1-1ZM8 2h4.5a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H8',
+  plug: 'M5.5 1.5v3M10.5 1.5v3M3.5 4.5h9V7a4.5 4.5 0 0 1-9 0ZM8 11.5v3',
+  mail: 'M1.5 3.5h13v9h-13zM1.5 4l6.5 5 6.5-5',
 } as const;
 
 export type IconName = keyof typeof PATHS;

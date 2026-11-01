@@ -18,7 +18,13 @@ export type Permission =
   | 'calls.review'
   | 'reports.export'
   | 'reports.manage'
-  | 'settings.manage';
+  | 'settings.manage'
+  | 'queues.manage'
+  | 'ai.manage'
+  | 'dictionary.manage'
+  | 'dictionary.review'
+  | 'pbx.manage'
+  | 'notifications.manage';
 
 export interface Session {
   mode: 'mock' | 'live';
@@ -27,11 +33,25 @@ export interface Session {
   expiresAt: string | null;
 }
 
+export type QueueStatus = 'active' | 'disabled';
+
 export interface Queue {
   id: string;
   /** Yeastar queue number, e.g. "6001" (Sales) or "6002" (After-Sales). */
   number: string;
   name: LocalizedText;
+  /** Disabled queues are kept with their full history; they are never deleted. */
+  status?: QueueStatus;
+  description?: string;
+  synthetic?: boolean;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface QueueInput {
+  number: string;
+  name: LocalizedText;
+  description: string;
 }
 
 export type AgentStatus = 'active' | 'inactive';
@@ -396,4 +416,57 @@ export interface Branding {
   logoLightUrl: string | null;
   logoDarkUrl: string | null;
   tokens: { light: BrandTokens; dark: BrandTokens };
+}
+
+/* ------------------------------------------------------------------------------------------ */
+/* Administration (Phase B). Settings are server-side API resources; every change is audited. */
+/* ------------------------------------------------------------------------------------------ */
+
+export type AdminResource =
+  | 'queue'
+  | 'ai_config'
+  | 'ai_jobs'
+  | 'dictionary_entry'
+  | 'dictionary_correction'
+  | 'pbx_connector'
+  | 'email_sender'
+  | 'notification_rule'
+  | 'email_template'
+  | 'report_email'
+  | 'report_settings'
+  | 'report_run';
+
+export const ADMIN_AUDIT_ACTIONS = [
+  'created',
+  'updated',
+  'disabled',
+  'enabled',
+  'version_saved',
+  'tested',
+  'sync_started',
+  'paused',
+  'resumed',
+  'retried',
+  'cancelled',
+  'proposed',
+  'approved',
+  'rejected',
+  'generated',
+  'delivered',
+  'assigned',
+  'credential_replaced',
+] as const;
+export type AdminAuditAction = (typeof ADMIN_AUDIT_ACTIONS)[number];
+
+/** Append-only audit record (GUI-X4): who, what, when, before/after. Never edited. */
+export interface AdminAuditEntry {
+  id: string;
+  resource: AdminResource;
+  resourceId: string | null;
+  action: AdminAuditAction;
+  actor: string;
+  at: string;
+  summary: string;
+  changes: readonly AuditChange[];
+  simulated: boolean;
 }

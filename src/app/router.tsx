@@ -101,6 +101,13 @@ export const routes: RouteObject[] = [
         ),
       },
       {
+        path: 'admin/queues',
+        element: page(
+          () => import('@/features/queues/pages/QueuesAdminPage'),
+          (m) => m.QueuesAdminPage,
+        ),
+      },
+      {
         path: 'admin/settings',
         element: page(
           () => import('@/features/settings/pages/SettingsPage'),

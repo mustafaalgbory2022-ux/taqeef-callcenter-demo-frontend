@@ -6,6 +6,7 @@ import { callRoutes } from './handlers/calls';
 import { evaluationRoutes } from './handlers/evaluations';
 import { scorecardRoutes } from './handlers/scorecards';
 import { operationsRoutes } from './handlers/operations';
+import { auditRoutes, queueRoutes } from './handlers/queues';
 import { addGeneratedData } from './generate';
 import { fail, findRoute, ok, type Route } from './router';
 
@@ -25,6 +26,12 @@ const syntheticSession = {
     'reports.export',
     'reports.manage',
     'settings.manage',
+    'queues.manage',
+    'ai.manage',
+    'dictionary.manage',
+    'dictionary.review',
+    'pbx.manage',
+    'notifications.manage',
   ],
   expires_at: null,
 };
@@ -105,6 +112,8 @@ export function createMockTransport({ latencyMs = 160 }: MockTransportOptions = 
     ...evaluationRoutes(state, persist),
     ...scorecardRoutes(state, persist),
     ...operationsRoutes(state, generated, persist),
+    ...queueRoutes(state, persist),
+    ...auditRoutes(state),
   ];
 
   return async (req) => {

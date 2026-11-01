@@ -76,3 +76,8 @@ export function object<S extends Shape>(shape: S): Decoder<{ [K in keyof S]: Dec
     return out as { [K in keyof S]: Decoded<S[K]> };
   };
 }
+
+/** Field that older/newer backends may omit: decoded when present, otherwise the fallback. */
+export function withDefault<T>(decoder: Decoder<T>, fallback: T): Decoder<T> {
+  return (v, path = '') => (v === null || v === undefined ? fallback : decoder(v, path));
+}

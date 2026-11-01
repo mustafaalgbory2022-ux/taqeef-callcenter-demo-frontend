@@ -1,10 +1,32 @@
 import type { WireAgent, WireAudit, WireQueue } from '../types';
 
 /** SYNTHETIC agents and queues. Extensions use the SYN- prefix so they cannot be mistaken for real Yeastar numbers. */
+const queueSeed = '2026-08-01T09:00:00+03:00';
 export const queues: WireQueue[] = [
-  { id: 'q-6001', number: '6001', name: { en: 'Sales', ar: 'المبيعات' } },
-  { id: 'q-6002', number: '6002', name: { en: 'After-Sales', ar: 'ما بعد البيع' } },
+  {
+    id: 'q-6001',
+    number: '6001',
+    name: { en: 'Sales', ar: 'المبيعات' },
+    status: 'active',
+    description: 'Synthetic Yeastar queue for sales enquiries.',
+    synthetic: true,
+    created_at: queueSeed,
+    updated_at: queueSeed,
+  },
+  {
+    id: 'q-6002',
+    number: '6002',
+    name: { en: 'After-Sales', ar: 'ما بعد البيع' },
+    status: 'active',
+    description: 'Synthetic Yeastar queue for after-sales support.',
+    synthetic: true,
+    created_at: queueSeed,
+    updated_at: queueSeed,
+  },
 ];
+
+/** Queues that have synthetic PBX statistics. Queues added later have none until ingested. */
+export const SEEDED_QUEUE_IDS: ReadonlySet<string> = new Set(['q-6001', 'q-6002']);
 
 const created = '2026-09-15T09:00:00+03:00';
 

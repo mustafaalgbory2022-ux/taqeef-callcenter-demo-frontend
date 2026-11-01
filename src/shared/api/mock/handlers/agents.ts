@@ -36,6 +36,11 @@ function validate(state: MockState, patch: Patch, selfId: string | null, isCreat
     if (!Array.isArray(patch.queue_ids) || !patch.queue_ids.every((q) => known.has(q))) {
       return invalid('queue_ids', 'Unknown queue.');
     }
+    const existing = state.agents.find((a) => a.id === selfId)?.queue_ids ?? [];
+    const disabled = new Set(state.queues.filter((q) => q.status === 'disabled').map((q) => q.id));
+    if (patch.queue_ids.some((q) => disabled.has(q) && !existing.includes(q))) {
+      return invalid('queue_ids', 'Agents cannot be added to a disabled queue.');
+    }
   }
   return null;
 }

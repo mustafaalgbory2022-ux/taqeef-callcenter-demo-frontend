@@ -129,15 +129,19 @@ export function AgentFormDialog({ agent, agents, onClose }: AgentFormDialogProps
         <fieldset className={styles.queues}>
           <legend>{t('agents.fields.queues')}</legend>
           {queues.status === 'success' &&
-            queues.data.map((q) => (
-              <Checkbox
-                key={q.id}
-                checked={values.queueIds.includes(q.id)}
-                onChange={(on) => toggleQueue(q.id, on)}
-              >
-                {pick(q.name)}
-              </Checkbox>
-            ))}
+            queues.data
+              // Disabled queues accept no new agents; existing assignments can still be removed.
+              .filter((q) => q.status !== 'disabled' || agent?.queueIds.includes(q.id))
+              .map((q) => (
+                <Checkbox
+                  key={q.id}
+                  checked={values.queueIds.includes(q.id)}
+                  onChange={(on) => toggleQueue(q.id, on)}
+                >
+                  {pick(q.name)}
+                  {q.status === 'disabled' && ` (${t('queueAdmin.status.disabled')})`}
+                </Checkbox>
+              ))}
           {errors.queueIds && <Notice tone="danger" title={errors.queueIds} />}
         </fieldset>
       </form>

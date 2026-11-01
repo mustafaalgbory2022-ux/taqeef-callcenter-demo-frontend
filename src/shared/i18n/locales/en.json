@@ -23,7 +23,8 @@
     "agentPerformance": "Agent performance",
     "insights": "Customer insights",
     "reports": "Reports",
-    "quality": "AI quality"
+    "quality": "AI quality",
+    "queues": "Queues"
   },
   "common": {
     "outOfTen": "/ 10",
@@ -756,6 +757,100 @@
       "generated": "Generated",
       "slaFormula": "SLA formula",
       "dataSource": "Data source"
+    }
+  },
+  "admin": {
+    "audit": {
+      "label": "Change history",
+      "empty": "No changes recorded yet.",
+      "caption": "Append-only: entries cannot be edited or removed.",
+      "actions": {
+        "created": "Created",
+        "updated": "Updated",
+        "disabled": "Disabled",
+        "enabled": "Enabled",
+        "version_saved": "Version saved",
+        "tested": "Tested",
+        "sync_started": "Synchronization run",
+        "paused": "Paused",
+        "resumed": "Resumed",
+        "retried": "Retried",
+        "cancelled": "Cancelled",
+        "proposed": "Proposed",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "generated": "Generated",
+        "delivered": "Delivery recorded",
+        "assigned": "Assignments changed",
+        "credential_replaced": "Credential replaced"
+      }
+    }
+  },
+  "queueAdmin": {
+    "title": "Queue administration",
+    "description": "Add, edit and disable Yeastar queues and assign agents. Queues are never deleted, so reports and history stay intact.",
+    "add": "Add queue",
+    "syntheticTitle": "Synthetic queues",
+    "syntheticBody": "Queues 6001 (Sales) and 6002 (After-Sales) are synthetic examples. Changes are stored in this browser only. Queues added here have no PBX statistics until the backend ingests them.",
+    "syntheticNote": "Simulated: saved to the synthetic demo dataset in this browser.",
+    "listTitle": "Queues",
+    "listCaption": "{count} queues · {active} active",
+    "fields": {
+      "number": "Queue number",
+      "name": "Name",
+      "nameEn": "Name (English)",
+      "nameAr": "Name (Arabic)",
+      "description": "Description"
+    },
+    "table": {
+      "label": "Queues",
+      "agents": "Assigned agents"
+    },
+    "status": {
+      "active": "Active",
+      "disabled": "Disabled",
+      "disable": "Disable",
+      "enable": "Enable",
+      "disableTitle": "Disable queue {name}?",
+      "enableTitle": "Enable queue {name}?",
+      "disableBody": "{n} agents are assigned. Assignments, recordings, statistics and history are kept; no new agents can be assigned while the queue is disabled.",
+      "enableBody": "The queue becomes available for assignments and reports again.",
+      "disableAck": "I understand this queue will stop accepting new assignments.",
+      "disabledToast": "Queue {name} was disabled.",
+      "enabledToast": "Queue {name} was enabled."
+    },
+    "form": {
+      "createTitle": "Add queue",
+      "editTitle": "Edit queue",
+      "numberHint": "Yeastar queue number, 3–6 digits (e.g. 6001).",
+      "created": "Queue {number} was added.",
+      "updated": "Queue {number} was updated.",
+      "renumberTitle": "Changing the queue number",
+      "renumberBody": "Statistics and recordings are matched to PBX queue {from}. After the change, new PBX data is expected under {to}. Existing history is kept.",
+      "renumberAck": "I confirm the queue number change.",
+      "ackRequired": "Confirm the queue number change before saving."
+    },
+    "agents": {
+      "open": "Agents",
+      "title": "Agents in queue {number} · {name}",
+      "legend": "Assigned agents",
+      "diff": "{added} to add · {removed} to remove",
+      "saved": "Assignments for queue {number} were saved.",
+      "removeTitle": "Removing agents from this queue",
+      "removeBody": "{names} will no longer be assigned. Their past calls and statistics in this queue are kept.",
+      "removeAck": "I confirm removing these agents from the queue.",
+      "disabledQueue": "This queue is disabled: agents can be removed but not added."
+    },
+    "history": {
+      "title": "Change history · queue {number}",
+      "recent": "Recent queue changes"
+    },
+    "errors": {
+      "numberFormat": "Enter a queue number of 3–6 digits.",
+      "numberTaken": "Another queue already uses this number.",
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "Use at most 60 characters.",
+      "descriptionTooLong": "Use at most 200 characters."
     }
   }
 }

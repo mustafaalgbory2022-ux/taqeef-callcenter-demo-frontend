@@ -1,10 +1,11 @@
+import { seedAdminAudit } from './audit';
 import { agents, initialAudit, queues } from './fixtures/agents';
 import { callFixtures } from './fixtures/calls';
 import { scorecardVersions } from './fixtures/scorecards';
 import { simulateEvaluation } from './scoring';
 import type { MockState, WireScorecard } from './types';
 
-const STORAGE_KEY = 'taqeef.mock.db.v3';
+const STORAGE_KEY = 'taqeef.mock.db.v4';
 
 function versionOf(n: number): WireScorecard {
   const v = scorecardVersions.find((sc) => sc.version === n);
@@ -28,8 +29,10 @@ export function createSeedState(): MockState {
     uploads: {},
     reviews: {},
     reports: [],
+    adminAudit: [],
     seq: 100,
   };
+  state.adminAudit = seedAdminAudit(state);
 
   callFixtures.forEach((f, i) => {
     const recorded = Date.parse(f.call.recorded_at);
@@ -68,7 +71,8 @@ export function createSeedState(): MockState {
 export function loadState(): MockState {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as MockState;
+    // Fields added in later revisions fall back to the seed so older saved state still loads.
+    if (raw) return { ...createSeedState(), ...(JSON.parse(raw) as Partial<MockState>) };
   } catch {
     /* storage unavailable or corrupt: fall back to seed */
   }
