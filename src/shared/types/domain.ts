@@ -81,6 +81,11 @@ export interface Call {
   /** True when processing was simulated by the mock backend. */
   simulated: boolean;
   source: 'fixture' | 'upload';
+  /**
+   * 'dual' = agent and customer on separate channels (speaker attribution reliable);
+   * 'mixed' = single mixed channel: speakers stay unresolved unless evidence supports them.
+   */
+  channelLayout: 'dual' | 'mixed';
 }
 
 export interface CallUpload {
@@ -89,7 +94,8 @@ export interface CallUpload {
   agentId: string;
 }
 
-export type Speaker = 'agent' | 'customer';
+/** 'unresolved' until speaker attribution is supported by evidence (e.g. mixed channel). */
+export type Speaker = 'agent' | 'customer' | 'unresolved';
 
 export interface TranscriptSegment {
   id: string;
@@ -109,7 +115,20 @@ export interface Criterion {
   id: string;
   label: LocalizedText;
   description: LocalizedText;
-  weight: number;
+  /** Points available for this criterion (the approved default card totals 10). */
+  maxPoints: number;
+  /** Whether any whole number of points between 0 and maxPoints may be awarded. */
+  allowPartialCredit: boolean;
+}
+
+/**
+ * Prohibited expressions only affect scores when the active scorecard defines a penalty
+ * (points > 0) AND the expression is reliably attributed to the agent. Otherwise every hit
+ * is flagged for review.
+ */
+export interface ProhibitedPenaltyRule {
+  points: number;
+  criterionId: string | null;
 }
 
 export interface ProhibitedExpression {
@@ -124,8 +143,11 @@ export interface ScorecardVersion {
   name: LocalizedText;
   /** A call is low-scoring when its overall score is strictly below this value. */
   lowScoreThreshold: number;
+  /** Minimum assessable points for the evaluation to receive a score (approved: 6 of 10). */
+  minimumAssessablePoints: number;
   criteria: readonly Criterion[];
   prohibitedExpressions: readonly ProhibitedExpression[];
+  prohibitedPenalty: ProhibitedPenaltyRule;
   createdAt: string;
   createdBy: string;
   changeNote: string;
@@ -133,7 +155,13 @@ export interface ScorecardVersion {
 
 export type ScorecardDraft = Pick<
   ScorecardVersion,
-  'name' | 'lowScoreThreshold' | 'criteria' | 'prohibitedExpressions' | 'changeNote'
+  | 'name'
+  | 'lowScoreThreshold'
+  | 'minimumAssessablePoints'
+  | 'criteria'
+  | 'prohibitedExpressions'
+  | 'prohibitedPenalty'
+  | 'changeNote'
 >;
 
 export type CriterionResultKind = 'scored' | 'not_assessable' | 'insufficient_evidence';
@@ -148,8 +176,12 @@ export interface Evidence {
 export interface CriterionEvaluation {
   criterionId: string;
   result: CriterionResultKind;
-  /** Whole points 0–10 when `result === 'scored'`, otherwise null. */
-  score: number | null;
+  /** Actual points awarded (after any penalty) when `result === 'scored'`, otherwise null. */
+  awardedPoints: number | null;
+  /** Points available for the criterion in the evaluating scorecard version. */
+  possiblePoints: number;
+  /** Points deducted by an applied prohibited-expression penalty (0 if none). */
+  penaltyPoints: number;
   rationale: string;
   evidence: readonly Evidence[];
 }
@@ -160,6 +192,10 @@ export interface ProhibitedHit {
   segmentId: string;
   startMs: number;
   quote: string;
+  speaker: Speaker;
+  /** Penalty only under the active rule with reliable agent attribution; otherwise review. */
+  disposition: 'penalty_applied' | 'flagged_for_review';
+  penaltyPoints: number;
 }
 
 export interface Evaluation {
@@ -169,6 +205,19 @@ export interface Evaluation {
   scorecardId: string;
   scorecardVersion: number;
   status: 'completed' | 'failed';
+  /**
+   * 'insufficient_evidence' = fewer assessable points than the minimum: no score.
+   * null when the evaluation failed (a processing failure, not an evidence result).
+   */
+  outcome: 'scored' | 'insufficient_evidence' | null;
+  /** Points awarded across assessable criteria. */
+  awardedPoints: number;
+  /** Points of criteria that could be assessed (scored), i.e. the denominator. */
+  assessablePoints: number;
+  /** Total points on the scorecard version. */
+  possiblePoints: number;
+  minimumAssessablePoints: number;
+  /** awardedPoints / assessablePoints × 10 when scored; null for insufficient evidence. */
   overallScore: number | null;
   criteria: readonly CriterionEvaluation[];
   prohibitedHits: readonly ProhibitedHit[];

@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import type { Agent, Call, Evaluation, ScorecardVersion } from '@/shared/types/domain';
-import { SyntheticBadge } from '@/shared/ui/Badge';
+import { Badge, SyntheticBadge } from '@/shared/ui/Badge';
 import { ScoreFlag, ScoreValue } from '@/shared/ui/ScoreValue';
 import { tableStyles, TableRegion } from '@/shared/ui/Table';
 import { DEFAULT_LOW_SCORE_THRESHOLD } from '@/shared/utils/score';
@@ -76,6 +76,10 @@ export function CallsTable({ calls, agents, current, versions, label }: CallsTab
                       threshold={thresholdOf(evaluation)}
                     />
                   </>
+                ) : evaluation?.outcome === 'insufficient_evidence' ? (
+                  <Badge tone="warning" icon="alert">
+                    {t('calls.table.noScore')}
+                  </Badge>
                 ) : (
                   <span className={tableStyles.muted}>—</span>
                 )}

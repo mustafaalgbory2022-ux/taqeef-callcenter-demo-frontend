@@ -15,6 +15,7 @@ export const wireCall = object({
   synthetic: bool,
   simulated: bool,
   source: oneOf(['fixture', 'upload']),
+  channel_layout: oneOf(['dual', 'mixed']),
 });
 
 export function callFromWire(w: Decoded<typeof wireCall>): Call {
@@ -31,6 +32,7 @@ export function callFromWire(w: Decoded<typeof wireCall>): Call {
     synthetic: w.synthetic,
     simulated: w.simulated,
     source: w.source,
+    channelLayout: w.channel_layout,
   };
 }
 
@@ -41,7 +43,7 @@ export const wireTranscript = object({
       id: str,
       start_ms: num,
       end_ms: num,
-      speaker: oneOf(['agent', 'customer']),
+      speaker: oneOf(['agent', 'customer', 'unresolved']),
       language: oneOf(['ar', 'en']),
       text: str,
     }),

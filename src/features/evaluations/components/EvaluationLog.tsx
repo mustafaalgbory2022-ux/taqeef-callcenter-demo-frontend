@@ -2,10 +2,9 @@ import { Link } from 'react-router';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import type { Agent, Evaluation } from '@/shared/types/domain';
 import { Badge } from '@/shared/ui/Badge';
-import { ScoreValue } from '@/shared/ui/ScoreValue';
 import { tableStyles, TableRegion } from '@/shared/ui/Table';
 import { historyByCall } from '../model/current';
-import { Delta } from './ResultValue';
+import { Delta, OverallValue } from './ResultValue';
 
 /** Evaluation and re-scoring log with change versus the previous evaluation of the same call. */
 export function EvaluationLog({
@@ -61,7 +60,9 @@ export function EvaluationLog({
               <td>
                 <bdi>v{e.scorecardVersion}</bdi>
               </td>
-              <td>{e.overallScore === null ? '—' : <ScoreValue score={e.overallScore} />}</td>
+              <td>
+                <OverallValue evaluation={e} />
+              </td>
               <td>
                 {prev ? (
                   <Delta from={prev.overallScore} to={e.overallScore} />

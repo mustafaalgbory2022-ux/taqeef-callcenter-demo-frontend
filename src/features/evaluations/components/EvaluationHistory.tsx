@@ -24,7 +24,7 @@ export function EvaluationHistory({
 
   const label = (e: Evaluation) =>
     `${fmt.dateTime(e.createdAt)} · v${e.scorecardVersion} · ${t(`evaluations.trigger.${e.trigger}`)} · ${
-      e.overallScore === null ? '—' : fmt.score(e.overallScore)
+      e.overallScore === null ? t('evaluations.noScore') : fmt.score(e.overallScore)
     }`;
 
   if (history.length < 2) {

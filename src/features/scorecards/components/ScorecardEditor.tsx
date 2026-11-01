@@ -18,6 +18,7 @@ import {
   type DraftErrors,
 } from '../model/draft';
 import { CriteriaEditor } from './CriteriaEditor';
+import { PenaltyRuleEditor } from './PenaltyRuleEditor';
 import { ProhibitedEditor } from './ProhibitedEditor';
 import styles from './Editor.module.css';
 
@@ -111,6 +112,24 @@ export function ScorecardEditor({ current }: { current: ScorecardVersion }) {
               />
             )}
           </Field>
+          <Field
+            label={t('scorecards.general.minimumAssessable')}
+            hint={t('scorecards.general.minimumAssessableHint')}
+            required
+            error={errors.minimumAssessable ? t(errors.minimumAssessable) : undefined}
+          >
+            {(p) => (
+              <input
+                {...p}
+                type="number"
+                inputMode="numeric"
+                min={1}
+                step={1}
+                value={numberInputValue(draft.minimumAssessablePoints)}
+                onChange={(e) => set('minimumAssessablePoints', parseNumberInput(e.target.value))}
+              />
+            )}
+          </Field>
         </div>
       </section>
 
@@ -124,6 +143,12 @@ export function ScorecardEditor({ current }: { current: ScorecardVersion }) {
         items={draft.prohibitedExpressions}
         errors={errors.prohibitedRows}
         onChange={(p) => set('prohibitedExpressions', p)}
+      />
+      <PenaltyRuleEditor
+        rule={draft.prohibitedPenalty}
+        criteria={draft.criteria}
+        error={errors.penalty ? t(errors.penalty) : undefined}
+        onChange={(rule) => set('prohibitedPenalty', rule)}
       />
 
       <div className={styles.saveBar}>

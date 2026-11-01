@@ -117,3 +117,31 @@
   font-weight: var(--weight-semibold);
   white-space: nowrap;
 }
+
+.points {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-weight: var(--weight-semibold);
+  white-space: nowrap;
+}
+
+.penalty {
+  font-size: var(--text-xs);
+  font-weight: var(--weight-medium);
+  color: var(--color-danger);
+}
+
+.summary {
+  flex-basis: 100%;
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.hit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}

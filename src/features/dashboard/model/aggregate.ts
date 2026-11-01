@@ -1,8 +1,9 @@
 import type { Agent, Evaluation, LocalizedText, ScorecardVersion } from '@/shared/types/domain';
-import { DEFAULT_LOW_SCORE_THRESHOLD, isLowScore } from '@/shared/utils/score';
+import { DEFAULT_LOW_SCORE_THRESHOLD, isLowScore, normalizeToTen } from '@/shared/utils/score';
+import { isScored } from '@/features/evaluations/model';
 
 // Re-exported so dashboard consumers have one model entry point.
-export { currentEvaluations, isEligible } from '@/features/evaluations/model';
+export { currentEvaluations, isEligible, isScored } from '@/features/evaluations/model';
 
 export function versionLookup(versions: readonly ScorecardVersion[]) {
   const map = new Map(versions.map((v) => [`${v.scorecardId}@${v.version}`, v]));
@@ -13,29 +14,39 @@ export function versionLookup(versions: readonly ScorecardVersion[]) {
 export interface CriterionSummary {
   criterionId: string;
   label: LocalizedText;
-  /** Pooled mean over evaluated calls where this criterion was scored. */
-  average: number | null;
+  /** Actual points awarded / possible, pooled over scored evaluations where it was scored. */
+  awardedPoints: number;
+  possiblePoints: number;
+  /** awardedPoints / possiblePoints on the 0–10 display scale (normalized, not awarded). */
+  normalized: number | null;
   scoredCount: number;
   notAssessableCount: number;
   insufficientCount: number;
 }
 
 export interface PerformanceSummary {
-  evaluatedCalls: number;
-  /** Pooled: Σ call scores / number of evaluated calls. */
+  /** Calls whose current evaluation produced a score (the sample size n). */
+  scoredCalls: number;
+  /** Calls whose current evaluation is "Insufficient evidence — no score". */
+  insufficientCalls: number;
+  /** Pooled per call: Σ call scores / scored calls. Never a mean of agent averages. */
   averageScore: number | null;
-  /** Calls strictly below the threshold of the scorecard version that evaluated them. */
+  /** Scored calls strictly below the threshold of the version that evaluated them. */
   lowScoreCalls: number;
   /** Threshold used for meters/labels: the selected version's, else the newest version's. */
   threshold: number;
-  /** Version that `threshold` comes from. */
   thresholdVersion: number | null;
-  /** True when the counted evaluations used versions with different thresholds. */
+  /** True when the scored evaluations used versions with different thresholds. */
   mixedThresholds: boolean;
   scorecardVersions: number[];
   criteria: CriterionSummary[];
 }
 
+/**
+ * Summarise the CURRENT evaluation of each call. Insufficient-evidence evaluations are
+ * counted separately and excluded from every scored figure (averages, low-score counts,
+ * criterion points).
+ */
 export function summarize(
   current: readonly Evaluation[],
   versions: readonly ScorecardVersion[],
@@ -45,56 +56,52 @@ export function summarize(
   const sorted = [...versions].sort((a, b) => b.version - a.version);
   const reference =
     (selectedVersion !== null && sorted.find((v) => v.version === selectedVersion)) || sorted[0];
-  const threshold = reference?.lowScoreThreshold ?? DEFAULT_LOW_SCORE_THRESHOLD;
-  const usedThresholds = new Set(
-    current.map((e) => versionOf(e)?.lowScoreThreshold ?? DEFAULT_LOW_SCORE_THRESHOLD),
-  );
-
-  const scores = current.map((e) => e.overallScore ?? 0);
-  const lowScoreCalls = current.filter((e) =>
-    isLowScore(e.overallScore ?? 0, versionOf(e)?.lowScoreThreshold ?? DEFAULT_LOW_SCORE_THRESHOLD),
-  ).length;
+  const scored = current.filter(isScored);
+  const thresholdOf = (e: Evaluation) =>
+    versionOf(e)?.lowScoreThreshold ?? DEFAULT_LOW_SCORE_THRESHOLD;
 
   // Criteria ordered as in the newest version, then any retired criteria still in data.
-  const order = new Map<string, LocalizedText>();
-  for (const v of [...versions].sort((a, b) => b.version - a.version)) {
-    for (const c of v.criteria) if (!order.has(c.id)) order.set(c.id, c.label);
-  }
+  const labels = new Map<string, LocalizedText>();
+  for (const v of sorted)
+    for (const c of v.criteria) if (!labels.has(c.id)) labels.set(c.id, c.label);
 
-  const criteria: CriterionSummary[] = [...order.entries()].map(([criterionId, label]) => {
-    let sum = 0;
-    let scoredCount = 0;
-    let notAssessableCount = 0;
-    let insufficientCount = 0;
-    for (const e of current) {
-      const r = e.criteria.find((c) => c.criterionId === criterionId);
-      if (!r) continue;
-      if (r.result === 'scored' && r.score !== null) {
-        sum += r.score;
-        scoredCount += 1;
-      } else if (r.result === 'not_assessable') notAssessableCount += 1;
-      else insufficientCount += 1;
-    }
-    return {
+  const criteria: CriterionSummary[] = [...labels.entries()].map(([criterionId, label]) => {
+    const row: CriterionSummary = {
       criterionId,
       label,
-      average: scoredCount ? sum / scoredCount : null,
-      scoredCount,
-      notAssessableCount,
-      insufficientCount,
+      awardedPoints: 0,
+      possiblePoints: 0,
+      normalized: null,
+      scoredCount: 0,
+      notAssessableCount: 0,
+      insufficientCount: 0,
     };
+    for (const e of scored) {
+      const r = e.criteria.find((c) => c.criterionId === criterionId);
+      if (!r) continue;
+      if (r.result === 'scored' && r.awardedPoints !== null) {
+        row.awardedPoints += r.awardedPoints;
+        row.possiblePoints += r.possiblePoints;
+        row.scoredCount += 1;
+      } else if (r.result === 'not_assessable') row.notAssessableCount += 1;
+      else row.insufficientCount += 1;
+    }
+    row.normalized = normalizeToTen(row.awardedPoints, row.possiblePoints);
+    return row;
   });
 
+  const scores = scored.map((e) => e.overallScore ?? 0);
   return {
-    evaluatedCalls: current.length,
+    scoredCalls: scored.length,
+    insufficientCalls: current.length - scored.length,
     averageScore: scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null,
-    lowScoreCalls,
-    threshold,
+    lowScoreCalls: scored.filter((e) => isLowScore(e.overallScore ?? 0, thresholdOf(e))).length,
+    threshold: reference?.lowScoreThreshold ?? DEFAULT_LOW_SCORE_THRESHOLD,
     thresholdVersion: reference?.version ?? null,
-    mixedThresholds: usedThresholds.size > 1,
+    mixedThresholds: new Set(scored.map(thresholdOf)).size > 1,
     scorecardVersions: [...new Set(current.map((e) => e.scorecardVersion))].sort((a, b) => a - b),
     criteria: criteria.filter(
-      (c) => c.scoredCount + c.notAssessableCount + c.insufficientCount > 0 || current.length === 0,
+      (c) => c.scoredCount + c.notAssessableCount + c.insufficientCount > 0,
     ),
   };
 }

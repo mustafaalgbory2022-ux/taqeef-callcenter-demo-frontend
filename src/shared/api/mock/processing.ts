@@ -1,6 +1,6 @@
 import { nextId } from './db';
 import { uploadTranscriptTemplate } from './fixtures/calls';
-import { simulateEvaluation, syntheticJudgments } from './scoring';
+import { simulateEvaluation, syntheticUploadJudgments } from './scoring';
 import type { MockState, WireCall } from './types';
 
 /** Simulated pipeline timings (ms after upload). The real backend does this work. */
@@ -33,16 +33,12 @@ export function refreshUpload(state: MockState, call: WireCall, now = Date.now()
   }
   if (stage === 'scored') {
     const scorecard = latestScorecard(state);
-    const judgments = syntheticJudgments(
-      call.id,
-      scorecard.criteria.map((c) => c.id),
-    );
+    const judgments = syntheticUploadJudgments(scorecard);
     state.judgments[call.id] = judgments;
     state.evaluations.push(
       simulateEvaluation({
         id: nextId(state, 'ev'),
-        callId: call.id,
-        agentId: call.agent_id,
+        call,
         segments: uploadTranscriptTemplate,
         judgments,
         scorecard,

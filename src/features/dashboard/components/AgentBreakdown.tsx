@@ -39,11 +39,17 @@ export function AgentBreakdown({
                 <bdi>{agent.extension}</bdi>
               </td>
               <td>
-                <bdi>{fmt.integer(summary.evaluatedCalls)}</bdi>
+                <bdi>{fmt.integer(summary.scoredCalls)}</bdi>
+                {summary.insufficientCalls > 0 && (
+                  <span className={tableStyles.muted}>
+                    {' '}
+                    (+{fmt.integer(summary.insufficientCalls)} {t('evaluations.noScore')})
+                  </span>
+                )}
               </td>
               <td>
                 {summary.averageScore === null ? (
-                  <span className={tableStyles.muted}>{t('common.noScore')}</span>
+                  <span className={tableStyles.muted}>{t('dashboard.agents.noScore')}</span>
                 ) : (
                   <>
                     <ScoreValue score={summary.averageScore} />{' '}

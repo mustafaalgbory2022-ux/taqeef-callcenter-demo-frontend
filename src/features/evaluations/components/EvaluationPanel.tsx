@@ -14,6 +14,7 @@ import { versionOf } from '../model/versions';
 import { currentEvaluations, historyByCall } from '../model/current';
 import { useEvaluations, useRescore } from '../hooks/useEvaluationData';
 import { CriterionResults, ProhibitedHits } from './CriterionResults';
+import { NoScoreBadge, OverallValue } from './ResultValue';
 import styles from './Evaluation.module.css';
 
 export interface EvaluationPanelProps {
@@ -37,8 +38,11 @@ export function EvaluationPanel({ callId, canRescore, onEvidence }: EvaluationPa
         'success',
         t('evaluations.rescore.done', {
           version: result.scorecardVersion,
-          score: result.overallScore === null ? '—' : fmt.score(result.overallScore),
-          previous: previous === null ? '—' : fmt.score(previous),
+          score:
+            result.overallScore === null
+              ? t('evaluations.noScore')
+              : fmt.score(result.overallScore),
+          previous: previous === null ? t('evaluations.noScore') : fmt.score(previous),
         }),
       );
     } catch (err) {
@@ -92,23 +96,43 @@ export function EvaluationPanel({ callId, canRescore, onEvidence }: EvaluationPa
                 </div>
               )}
               <div className={styles.overall} data-testid="overall-score">
-                <span className={styles.overallValue}>
-                  {latest.overallScore === null ? (
-                    t('common.noScore')
-                  ) : (
-                    <ScoreValue score={latest.overallScore} />
-                  )}
-                </span>
-                {latest.overallScore !== null && (
-                  <ScoreFlag
-                    score={latest.overallScore}
-                    threshold={version?.lowScoreThreshold ?? 7}
-                  />
+                {latest.status === 'failed' ? (
+                  <OverallValue evaluation={latest} />
+                ) : latest.outcome === 'insufficient_evidence' || latest.overallScore === null ? (
+                  <>
+                    <NoScoreBadge />
+                    <span className={styles.summary}>
+                      {t('evaluations.insufficient.body', {
+                        assessable: fmt.integer(latest.assessablePoints),
+                        possible: fmt.integer(latest.possiblePoints),
+                        minimum: fmt.integer(latest.minimumAssessablePoints),
+                      })}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className={styles.overallValue}>
+                      <ScoreValue score={latest.overallScore} />
+                    </span>
+                    <ScoreFlag
+                      score={latest.overallScore}
+                      threshold={version?.lowScoreThreshold ?? 7}
+                    />
+                  </>
                 )}
                 <Badge tone={latest.trigger === 'rescore' ? 'accent' : 'neutral'}>
                   {t(`evaluations.trigger.${latest.trigger}`)}
                 </Badge>
                 {latest.simulated && <Badge tone="mock">{t('common.simulated')}</Badge>}
+                {latest.outcome === 'scored' && (
+                  <span className={styles.summary}>
+                    {t('evaluations.awardedSummary', {
+                      awarded: fmt.integer(latest.awardedPoints),
+                      assessable: fmt.integer(latest.assessablePoints),
+                      possible: fmt.integer(latest.possiblePoints),
+                    })}
+                  </span>
+                )}
               </div>
               <CriterionResults evaluation={latest} version={version} onEvidence={onEvidence} />
               <ProhibitedHits evaluation={latest} onEvidence={onEvidence} />

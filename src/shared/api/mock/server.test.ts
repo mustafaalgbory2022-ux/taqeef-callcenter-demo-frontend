@@ -34,6 +34,31 @@ describe('simulated backend', () => {
     expect(await api.listEvaluations({ callId: 'DEMO-005' })).toHaveLength(before.length + 1);
   });
 
+  it('seeds the approved scorecard and points-based results', async () => {
+    const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
+    await api.openSession('SYN-TEST04-DEMO');
+    const card = await api.getCurrentScorecard();
+    expect(card.criteria.map((c) => c.maxPoints)).toEqual([1, 1, 2, 3, 2, 1]);
+    expect(card).toMatchObject({
+      minimumAssessablePoints: 6,
+      lowScoreThreshold: 7,
+      prohibitedPenalty: { points: 0 },
+    });
+    const [demo1] = await api.listEvaluations({ callId: 'DEMO-001' });
+    expect(demo1).toMatchObject({
+      outcome: 'scored',
+      awardedPoints: 9,
+      assessablePoints: 10,
+      overallScore: 9,
+    });
+    const [demo4] = await api.listEvaluations({ callId: 'DEMO-004' });
+    expect(demo4).toMatchObject({
+      outcome: 'insufficient_evidence',
+      assessablePoints: 4,
+      overallScore: null,
+    });
+  });
+
   it('validates agent extensions on the server side too', async () => {
     const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
     await api.openSession('SYN-TEST03-DEMO');

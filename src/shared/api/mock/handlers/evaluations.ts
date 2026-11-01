@@ -36,8 +36,7 @@ export function evaluationRoutes(state: MockState, persist: () => void): Route[]
           .sort(byCreatedDesc)[0];
         const evaluation = simulateEvaluation({
           id: nextId(state, 'ev'),
-          callId: call.id,
-          agentId: call.agent_id,
+          call,
           segments: transcript.segments,
           judgments,
           scorecard: latestScorecard(state),

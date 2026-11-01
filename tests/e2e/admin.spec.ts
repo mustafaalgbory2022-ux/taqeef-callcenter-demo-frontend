@@ -49,6 +49,29 @@ test('supports at least seven agents without layout breakage', async ({ page }) 
   await expectNoHorizontalOverflow(page);
 });
 
+test('an approved penalty rule deducts points only for reliably attributed agent speech', async ({
+  page,
+}) => {
+  await openSession(page, { path: '/admin/scorecard' });
+  await expect(page.getByTestId('total-points')).toContainText('10 points in total');
+  await page.getByLabel('Penalty points per expression').fill('1');
+  await page
+    .getByLabel('Deduct from criterion')
+    .selectOption({ label: 'Professional language and courtesy' });
+  await page
+    .getByLabel('Change note')
+    .fill('Approved penalty: 1 point from professional language.');
+  await page.getByRole('button', { name: 'Save as v3' }).click();
+  await expect(page.getByRole('status').getByText('Scorecard saved as version v3.')).toBeVisible();
+
+  await page.goto('/calls/DEMO-005');
+  await page.getByRole('button', { name: 'Re-score with latest scorecard' }).click();
+  const hits = page.getByRole('region', { name: 'Prohibited expressions' });
+  await expect(hits).toContainText('Penalty applied: −1 pt');
+  await expect(page.getByTestId('criterion-c-language')).toContainText('0 / 2 pts');
+  await expect(page.getByTestId('overall-score')).toContainText('4.00'); // 4 of 10 points
+});
+
 test('editing the scorecard creates a new immutable version', async ({ page }) => {
   await openSession(page, { path: '/admin/scorecard' });
   await page.getByLabel('Low-score threshold').fill('7.5');

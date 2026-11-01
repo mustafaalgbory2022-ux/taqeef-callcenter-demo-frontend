@@ -1,18 +1,22 @@
 # API adapter (FastAPI integration)
 
-Status: **PROVISIONAL** — routes and payloads are placeholders until the local backend
-contract is confirmed. Everything below is isolated in `src/shared/api/`; components are
-unaffected by changes here.
+Status: **PROVISIONAL.** Routes, payload field names and units are frontend assumptions,
+not a finalized contract. All of them are confined to `src/shared/api/`; components,
+models and tests elsewhere use only domain types (`src/shared/types/domain.ts`).
 
-## Configuration (`src/shared/api/config.ts`)
+## Provisional assumptions (single place to change each)
 
-| Setting     | Value                                                  | Notes                                                                  |
-| ----------- | ------------------------------------------------------ | ---------------------------------------------------------------------- |
-| Base URL    | `/api`                                                 | Same origin as the static frontend served by FastAPI on 127.0.0.1:8000 |
-| Credentials | `same-origin`                                          | Session cookie set by the backend                                      |
-| CSRF        | cookie `csrf_token` → header `X-CSRF-Token` on non-GET | Names provisional                                                      |
-| Launch code | URL param `launch_code` → `POST /session/launch`       | Removed from URL after exchange                                        |
-| Mode        | `VITE_API_MODE=mock` (default) \| `live`               | Build-time developer setting only                                      |
+| Assumption                      | Current value                                          | Change in                                           |
+| ------------------------------- | ------------------------------------------------------ | --------------------------------------------------- |
+| Base path                       | same-origin `/api`                                     | `src/shared/api/config.ts`                          |
+| Routes                          | table below                                            | `src/shared/api/endpoints.ts`                       |
+| Wire casing                     | snake_case JSON                                        | `src/shared/api/wire/*.ts`                          |
+| Time unit for offsets/durations | milliseconds                                           | `WIRE_TIME_UNIT` in `src/shared/api/wire/common.ts` |
+| Datetimes                       | ISO-8601 with offset                                   | `src/shared/api/wire/*.ts`                          |
+| Agent / call / evaluation ids   | opaque strings                                         | — (never parsed)                                    |
+| CSRF                            | cookie `csrf_token` → header `X-CSRF-Token` on non-GET | `src/shared/api/config.ts`                          |
+| Launch code                     | URL `launch_code` → `POST /session/launch`             | `config.ts`, `endpoints.ts`                         |
+| Channel layout field            | `channel_layout: "dual" \| "mixed"` on calls           | `src/shared/api/wire/calls.ts`                      |
 
 ## Endpoints (`src/shared/api/endpoints.ts`)
 
@@ -31,63 +35,82 @@ unaffected by changes here.
 | POST   | `/calls`                          | multipart: `file`, `title`, `agent_id`           | `Call` (status `uploaded`)            |
 | GET    | `/calls/{id}/transcript`          | —                                                | `Transcript` · 409 while not ready    |
 | POST   | `/calls/{id}/rescore`             | —                                                | `Evaluation` (new, immutable)         |
-| GET    | `/evaluations?call_id=&agent_id=` | —                                                | `Evaluation[]` (all history)          |
+| GET    | `/evaluations?call_id=&agent_id=` | —                                                | `Evaluation[]` (full history)         |
 | GET    | `/scorecards/current`             | —                                                | `ScorecardVersion`                    |
 | GET    | `/scorecards/versions`            | —                                                | `ScorecardVersion[]`                  |
 | POST   | `/scorecards/versions`            | draft (below)                                    | `ScorecardVersion` (version n+1)      |
 
-## Wire shapes (snake_case; decoders in `src/shared/api/wire/`)
+## Wire shapes (decoders in `src/shared/api/wire/`)
 
 ```jsonc
-// Session
-{ "mode": "mock|live", "display_name": "…", "permissions": ["agents.manage", "scorecards.manage", "calls.upload", "evaluations.rescore", "settings.manage"], "expires_at": null }
-// Agent — id is opaque (convention unconfirmed); extension = Yeastar extension/agent number
-{ "id": "agt-001", "display_name": "Agent A", "extension": "SYN-101", "status": "active|inactive", "queue_ids": ["q-billing"], "synthetic": true, "created_at": "ISO-8601", "updated_at": "ISO-8601" }
-// AuditEntry
-{ "id": "…", "action": "created|updated|disabled|enabled", "actor": "…", "at": "ISO-8601", "changes": [{ "field": "extension", "before": "SYN-101", "after": "SYN-201" }] }
-// Call
-{ "id": "DEMO-001", "title": "…", "agent_id": "agt-001", "queue_id": "q-billing", "language": "ar|en|mixed", "duration_ms": 78000, "recorded_at": "ISO-8601", "status": "uploaded|transcribing|scoring|scored|failed", "audio_url": "/api/…", "synthetic": true, "simulated": false, "source": "fixture|upload" }
-// Transcript
-{ "call_id": "…", "segments": [{ "id": "s1", "start_ms": 500, "end_ms": 6000, "speaker": "agent|customer", "language": "ar|en", "text": "…" }] }
-// ScorecardVersion (draft = name, low_score_threshold, criteria, prohibited_expressions, change_note)
-{ "scorecard_id": "sc-quality", "version": 2, "name": { "en": "…", "ar": "…" }, "low_score_threshold": 7,
-  "criteria": [{ "id": "c-greeting", "label": { "en": "…", "ar": "…" }, "description": { "en": "…", "ar": "…" }, "weight": 1 }],
-  "prohibited_expressions": [{ "id": "px-1", "phrase": "…", "language": "ar|en" }], "created_at": "…", "created_by": "…", "change_note": "…" }
-// Evaluation (criterion score: whole points 0–10 when result = "scored", else null)
-{ "id": "…", "call_id": "…", "agent_id": "…", "scorecard_id": "…", "scorecard_version": 2, "status": "completed|failed", "overall_score": 4.714,
-  "criteria": [{ "criterion_id": "…", "result": "scored|not_assessable|insufficient_evidence", "score": 4, "rationale": "…", "evidence": [{ "segment_id": "s5", "start_ms": 27000, "end_ms": 38000, "quote": "…" }] }],
-  "prohibited_hits": [{ "expression_id": "px-1", "phrase": "…", "segment_id": "s5", "start_ms": 27000, "quote": "…" }],
+// Call — channel_layout decides whether speaker attribution is reliable
+{ "id": "DEMO-001", "title": "…", "agent_id": "agt-001", "queue_id": "q-billing", "language": "ar|en|mixed",
+  "duration_ms": 78000, "recorded_at": "ISO-8601", "status": "uploaded|transcribing|scoring|scored|failed",
+  "audio_url": "/api/…", "synthetic": true, "simulated": false, "source": "fixture|upload", "channel_layout": "dual|mixed" }
+
+// Transcript — speaker stays "unresolved" until supported by evidence (e.g. mixed channel)
+{ "call_id": "…", "segments": [{ "id": "s1", "start_ms": 500, "end_ms": 6000, "speaker": "agent|customer|unresolved", "language": "ar|en", "text": "…" }] }
+
+// ScorecardVersion (draft = name, low_score_threshold, minimum_assessable_points, criteria,
+// prohibited_expressions, prohibited_penalty, change_note)
+{ "scorecard_id": "sc-quality", "version": 1, "name": { "en": "…", "ar": "…" },
+  "low_score_threshold": 7, "minimum_assessable_points": 6,
+  "criteria": [{ "id": "c-greeting", "label": { "en", "ar" }, "description": { "en", "ar" }, "max_points": 1, "allow_partial_credit": true }],
+  "prohibited_expressions": [{ "id": "px-1", "phrase": "…", "language": "ar|en" }],
+  "prohibited_penalty": { "points": 0, "criterion_id": null },   // 0 = flag for review only
+  "created_at": "…", "created_by": "…", "change_note": "…" }
+
+// Evaluation — actual points; overall_score only when outcome = "scored"
+{ "id": "…", "call_id": "…", "agent_id": "…", "scorecard_id": "…", "scorecard_version": 1,
+  "status": "completed|failed", "outcome": "scored|insufficient_evidence|null",   // null only when failed
+  "awarded_points": 9, "assessable_points": 10, "possible_points": 10, "minimum_assessable_points": 6,
+  "overall_score": 9.0,                                            // null when insufficient_evidence
+  "criteria": [{ "criterion_id": "c-resolution", "result": "scored|not_assessable|insufficient_evidence",
+                 "awarded_points": 3, "possible_points": 3, "penalty_points": 0, "rationale": "…",
+                 "evidence": [{ "segment_id": "s5", "start_ms": 29000, "end_ms": 42000, "quote": "…" }] }],
+  "prohibited_hits": [{ "expression_id": "px-1", "phrase": "…", "segment_id": "s5", "start_ms": 27000, "quote": "…",
+                        "speaker": "agent|customer|unresolved", "disposition": "penalty_applied|flagged_for_review", "penalty_points": 0 }],
   "trigger": "initial|rescore", "supersedes_id": "…|null", "created_at": "ISO-8601", "simulated": false }
-// Branding (any field may be null → neutral defaults)
-{ "product_name": { "en", "ar" }, "organization_name": { "en", "ar" }, "logo_light_url": "…", "logo_dark_url": "…",
-  "tokens": { "light": { "primary": "#rrggbb", "primary_hover": "…", "primary_soft": "…", "primary_text": "…" }, "dark": { … } } }
 ```
 
-- **Overall score** is sent unrounded; the frontend displays it floored to two decimals.
-- **Timestamps:** ISO-8601 with offset. **Durations/offsets:** milliseconds — UNCONFIRMED;
-  change `WIRE_TIME_UNIT` in `wire/common.ts` if the backend uses seconds.
-- Unknown extra fields are ignored (forward compatible); missing/mistyped fields fail loudly.
+Session, Agent, AuditEntry, Queue and Branding shapes are unchanged from the previous
+revision (see `src/shared/api/wire/{session,agents,branding}.ts`).
+
+## Scoring contract the frontend expects (backend is authoritative)
+
+- `awarded_points` per criterion are actual points (whole numbers; all-or-nothing when
+  `allow_partial_credit` is false), after any applied penalty (`penalty_points`).
+- `assessable_points` = Σ `possible_points` of criteria with `result = "scored"`.
+- If `assessable_points < minimum_assessable_points` → `outcome = "insufficient_evidence"`,
+  `overall_score = null`. Otherwise `overall_score = awarded_points / assessable_points × 10`
+  (sent unrounded; the UI floors to two decimals).
+- Prohibited expressions: `penalty_applied` only when the scorecard version has
+  `prohibited_penalty.points > 0`, the hit is reliably attributed to the agent
+  (`channel_layout = "dual"` and agent speaker), and the target criterion was scored and still
+  has points to deduct; otherwise `flagged_for_review` with `penalty_points = 0`. The hits'
+  `penalty_points` sum equals the target criterion's `penalty_points`. A penalty may only
+  target a criterion that allows partial credit.
+- Failed evaluations: `status = "failed"`, `outcome = null`, `overall_score = null` — shown as
+  "Failed", never as insufficient evidence.
+- The decoder rejects inconsistent data (`contract_mismatch`): scores outside 0–10, a scored
+  criterion without points, awarded > possible, or `overall_score` present iff not `scored`.
 
 ## Errors (`src/shared/api/errors.ts`)
 
-| Backend                                                       | Frontend                                                                 |
-| ------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `{"detail": "text"}`                                          | `ApiError(code by status, message = text)`                               |
-| 422 `{"detail": [{"loc": ["body","extension"], "msg": "…"}]}` | `validation_error` + field issues mapped onto form fields                |
-| 401 / 403 / 404 / 409 / 5xx                                   | `unauthorized` / `forbidden` / `not_found` / `conflict` / `server_error` |
-| network failure                                               | `network_error`                                                          |
-| decoder failure                                               | `contract_mismatch`                                                      |
+| Backend                                                       | Frontend                                                                                               |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| `{"detail": "text"}`                                          | `ApiError(code by status, message = text)`                                                             |
+| 422 `{"detail": [{"loc": ["body","extension"], "msg": "…"}]}` | `validation_error`; first field after `body` mapped to the form; unmapped issues shown as a form error |
+| 401 / 403 / 404 / 409 / 5xx                                   | `unauthorized` / `forbidden` / `not_found` / `conflict` / `server_error`                               |
+| network failure / decoder failure                             | `network_error` / `contract_mismatch`                                                                  |
 
 ## Mock vs live
 
-The simulated backend (`src/shared/api/mock/`) implements the same `Transport` interface
-and wire format, so the same client code runs in both modes. It is always labelled
-("Synthetic demo data · simulated backend"; "Simulated" badges on evaluations and
-processing). Transcription, scoring and persistence are performed by the real backend.
+The simulated backend (`src/shared/api/mock/`) implements the same transport and wire
+format, always labelled as simulated. The real backend performs transcription, scoring,
+re-scoring and persistence.
 
 ## Aligning with the confirmed contract
 
-1. Update `endpoints.ts` paths.
-2. Adjust decoders/mappers in `wire/*.ts` (field names, units). Domain types stay stable.
-3. If the backend publishes OpenAPI, compare `/openapi.json` with `wire/*.ts`.
-4. Run `npm run check` and the e2e suite against `VITE_API_MODE=live`.
+1. Update `endpoints.ts`; 2. adjust decoders/mappers in `wire/*.ts` (names, units);
+2. run `npm run check`; 4. run the e2e suite against `VITE_API_MODE=live`.

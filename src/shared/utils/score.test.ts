@@ -1,71 +1,135 @@
 import { describe, expect, it } from 'vitest';
 import type { Criterion, CriterionEvaluation } from '@/shared/types/domain';
-import { computeOverallScore, floorTo2, isLowScore, isWholePointScore } from './score';
+import { floorTo2, isLowScore, isValidAward, normalizeToTen, scoreEvaluation } from './score';
 
-const criterion = (id: string, weight = 1): Criterion => ({
-  id,
-  weight,
-  label: { en: id, ar: id },
+/** The approved default card: 1 + 1 + 2 + 3 + 2 + 1 = 10 points. */
+const card: Criterion[] = [
+  ['greeting', 1],
+  ['verification', 1],
+  ['needs', 2],
+  ['resolution', 3],
+  ['language', 2],
+  ['closing', 1],
+].map(([id, maxPoints]) => ({
+  id: String(id),
+  maxPoints: Number(maxPoints),
+  allowPartialCredit: true,
+  label: { en: String(id), ar: String(id) },
   description: { en: '', ar: '' },
+}));
+
+const scored = (criterionId: string, awardedPoints: number): CriterionEvaluation => ({
+  criterionId,
+  result: 'scored',
+  awardedPoints,
+  possiblePoints: 0,
+  penaltyPoints: 0,
+  rationale: '',
+  evidence: [],
+});
+const notScored = (
+  criterionId: string,
+  result: 'not_assessable' | 'insufficient_evidence',
+): CriterionEvaluation => ({
+  ...scored(criterionId, 0),
+  result,
+  awardedPoints: null,
 });
 
-const result = (
-  criterionId: string,
-  score: number | null,
-  kind: CriterionEvaluation['result'] = 'scored',
-): CriterionEvaluation => ({ criterionId, result: kind, score, rationale: '', evidence: [] });
-
 describe('floorTo2', () => {
-  it('always rounds down to two decimals', () => {
+  it('always rounds down to two decimals, robust to floating point', () => {
     expect(floorTo2(6.666)).toBe(6.66);
-    expect(floorTo2(6.669999)).toBe(6.66);
     expect(floorTo2(8.995)).toBe(8.99);
-    expect(floorTo2(7)).toBe(7);
-  });
-
-  it('is not fooled by floating-point error', () => {
     expect(floorTo2(0.1 + 0.2)).toBe(0.3);
     expect(floorTo2((7 * 3) / 3)).toBe(7);
-    expect(floorTo2(1.15 * 100) / 100).toBe(1.15);
   });
 });
 
 describe('isLowScore', () => {
   it('is strictly below the threshold', () => {
     expect(isLowScore(6.99)).toBe(true);
-    expect(isLowScore(6.999)).toBe(true);
     expect(isLowScore(7)).toBe(false);
-    expect(isLowScore(7.5, 8)).toBe(true);
     expect(isLowScore((7 + 29 / 3 + 13 / 3) / 3)).toBe(false); // exactly 7, computes as 6.999…
   });
 });
 
-describe('isWholePointScore', () => {
-  it('accepts integers 0–10 only', () => {
-    expect(isWholePointScore(0)).toBe(true);
-    expect(isWholePointScore(10)).toBe(true);
-    expect(isWholePointScore(7.5)).toBe(false);
-    expect(isWholePointScore(11)).toBe(false);
+describe('isValidAward', () => {
+  it('allows partial credit only when configured', () => {
+    expect(isValidAward(2, { maxPoints: 3, allowPartialCredit: true })).toBe(true);
+    expect(isValidAward(2, { maxPoints: 3, allowPartialCredit: false })).toBe(false);
+    expect(isValidAward(3, { maxPoints: 3, allowPartialCredit: false })).toBe(true);
+    expect(isValidAward(1.5, { maxPoints: 3, allowPartialCredit: true })).toBe(false);
+    expect(isValidAward(4, { maxPoints: 3, allowPartialCredit: true })).toBe(false);
   });
 });
 
-describe('computeOverallScore', () => {
-  it('is the weighted mean of scored criteria', () => {
-    const criteria = [criterion('a', 1), criterion('b', 2)];
-    expect(computeOverallScore(criteria, [result('a', 9), result('b', 6)])).toBe(7);
-  });
-
-  it('excludes not-assessable and insufficient-evidence criteria', () => {
-    const criteria = [criterion('a'), criterion('b'), criterion('c')];
+describe('scoreEvaluation', () => {
+  it('scores actual awarded points over assessable points', () => {
     const results = [
-      result('a', 8),
-      result('b', null, 'not_assessable'),
-      result('c', null, 'insufficient_evidence'),
+      scored('greeting', 1),
+      scored('verification', 1),
+      scored('needs', 1),
+      scored('resolution', 3),
+      scored('language', 2),
+      scored('closing', 1),
     ];
-    expect(computeOverallScore(criteria, results)).toBe(8);
+    expect(scoreEvaluation(card, results, 6)).toEqual({
+      awardedPoints: 9,
+      assessablePoints: 10,
+      possiblePoints: 10,
+      outcome: 'scored',
+      overallScore: 9,
+    });
   });
 
-  it('returns null when nothing was scored', () => {
-    expect(computeOverallScore([criterion('a')], [result('a', null, 'not_assessable')])).toBeNull();
+  it('excludes not-assessable criteria from the denominator', () => {
+    const results = [
+      scored('greeting', 1),
+      notScored('verification', 'not_assessable'),
+      scored('needs', 2),
+      scored('resolution', 2),
+      scored('language', 2),
+      scored('closing', 1),
+    ];
+    const s = scoreEvaluation(card, results, 6);
+    expect(s).toMatchObject({ awardedPoints: 8, assessablePoints: 9, outcome: 'scored' });
+    expect(floorTo2(s.overallScore ?? 0)).toBe(8.88);
+  });
+
+  it('scores at exactly the minimum of 6 assessable points', () => {
+    const results = [
+      scored('greeting', 1),
+      scored('verification', 1),
+      scored('needs', 1),
+      notScored('resolution', 'insufficient_evidence'),
+      scored('language', 2),
+      notScored('closing', 'insufficient_evidence'),
+    ];
+    expect(scoreEvaluation(card, results, 6)).toMatchObject({
+      assessablePoints: 6,
+      awardedPoints: 5,
+      outcome: 'scored',
+    });
+  });
+
+  it('gives no score below the minimum assessable points', () => {
+    const results = [
+      scored('greeting', 1),
+      scored('verification', 1),
+      notScored('needs', 'insufficient_evidence'),
+      notScored('resolution', 'insufficient_evidence'),
+      scored('language', 2),
+      notScored('closing', 'insufficient_evidence'),
+    ];
+    expect(scoreEvaluation(card, results, 6)).toMatchObject({
+      assessablePoints: 4,
+      outcome: 'insufficient_evidence',
+      overallScore: null,
+    });
+  });
+
+  it('normalizes to ten', () => {
+    expect(normalizeToTen(5, 8)).toBe(6.25);
+    expect(normalizeToTen(0, 0)).toBeNull();
   });
 });

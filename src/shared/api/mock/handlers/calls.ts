@@ -84,6 +84,8 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
           synthetic: true,
           simulated: true,
           source: 'upload',
+          // Uploads are treated as a single mixed channel: speakers stay unresolved.
+          channel_layout: 'mixed',
         };
         state.calls.push(call);
         state.uploads[id] = Date.now();

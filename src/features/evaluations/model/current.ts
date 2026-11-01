@@ -1,16 +1,26 @@
 import type { Evaluation } from '@/shared/types/domain';
 
-/** An evaluation counts in dashboards only if it completed with an overall score. */
+/**
+ * An evaluation is eligible to be a call's current evaluation when it completed (failed
+ * attempts never replace a result). An eligible evaluation may still be
+ * "Insufficient evidence — no score": the call then has no score (see isScored).
+ */
 export function isEligible(e: Evaluation): boolean {
-  return e.status === 'completed' && e.overallScore !== null;
+  return e.status === 'completed';
+}
+
+/** Counts in scored averages and low-score counts. */
+export function isScored(e: Evaluation): boolean {
+  return e.outcome === 'scored' && e.overallScore !== null;
 }
 
 const newerThan = (a: Evaluation, b: Evaluation) =>
   Date.parse(a.createdAt) > Date.parse(b.createdAt) || (a.createdAt === b.createdAt && a.id > b.id);
 
 /**
- * One evaluation per call: the latest eligible one. Earlier evaluations remain in the
- * immutable history but never count twice.
+ * One evaluation per call: the latest eligible (completed) one. Earlier evaluations remain
+ * in the immutable history but never count twice, and an insufficient-evidence result is
+ * never replaced by an older score.
  */
 export function currentEvaluations(evaluations: readonly Evaluation[]): Evaluation[] {
   const byCall = new Map<string, Evaluation>();

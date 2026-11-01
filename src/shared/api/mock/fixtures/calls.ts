@@ -19,13 +19,14 @@ const s = (
   text: string,
 ): WireSegment => ({ id, start_ms: start * 1000, end_ms: end * 1000, speaker, language, text });
 
+/** Simulated model judgment in ACTUAL points (see the approved default scorecard). */
 const j = (
   criterionId: string,
-  score: number | null,
+  awardedPoints: number | null,
   rationale: string,
   segmentIds: string[],
   result: Judgment['result'] = 'scored',
-): Judgment => ({ criterionId, result, score, rationale, segmentIds });
+): Judgment => ({ criterionId, result, awardedPoints, rationale, segmentIds });
 
 const call = (
   id: string,
@@ -48,6 +49,8 @@ const call = (
   synthetic: true,
   simulated: true,
   source: 'fixture',
+  // Fixtures assume agent and customer on separate channels (reliable attribution).
+  channel_layout: 'dual',
 });
 
 export const callFixtures: CallFixture[] = [
@@ -93,12 +96,12 @@ export const callFixtures: CallFixture[] = [
       s('s8', 65, 76, 'agent', 'ar', 'أكو شي ثاني أقدر أساعدك بيه؟ شكراً لاتصالك، يومك سعيد.'),
     ],
     judgments: [
-      j('c-greeting', 9, 'ترحيب واضح مع إشعار تسجيل المكالمة.', ['s1']),
-      j('c-discovery', 8, 'تحقق من الحساب وفهم سبب المبلغ الإضافي.', ['s3']),
-      j('c-accuracy', 9, 'شرح سبب الرسوم بدقة ونفذ الإلغاء.', ['s5', 's7']),
-      j('c-compliance', 9, 'إشعار التسجيل والتحقق من الحساب قبل الإجراء.', ['s1', 's3']),
-      j('c-courtesy', 8, 'أسلوب ودود ومهني.', ['s3']),
-      j('c-closing', 9, 'عرض مساعدة إضافية وختام لبق.', ['s8']),
+      j('c-greeting', 1, 'ترحيب واضح مع إشعار تسجيل المكالمة.', ['s1']),
+      j('c-verification', 1, 'تحقق من رقم الحساب قبل مراجعة الفاتورة.', ['s3']),
+      j('c-needs', 1, 'فهم سبب الاتصال دون استيضاح استخدام العميل للباقة.', ['s3']),
+      j('c-resolution', 3, 'شرح سبب الرسوم بدقة ونفذ الإلغاء.', ['s5', 's7']),
+      j('c-language', 2, 'أسلوب ودود ومهني.', ['s3', 's7']),
+      j('c-closing', 1, 'عرض مساعدة إضافية وختام لبق.', ['s8']),
     ],
   },
   {
@@ -128,12 +131,12 @@ export const callFixtures: CallFixture[] = [
       s('s7', 45, 68, 'agent', 'ar', 'تم تفعيل الباقة الجديدة من بداية الدورة الجاية. شكراً إلك.'),
     ],
     judgments: [
-      j('c-greeting', 8, 'ترحيب مناسب مع إشعار التسجيل.', ['s1']),
-      j('c-discovery', 8, 'سأل عن حجم الاستخدام قبل الاقتراح.', ['s3']),
-      j('c-accuracy', 7, 'عرض الخيارات دون ذكر الأسعار الدقيقة.', ['s5']),
-      j('c-compliance', 6, 'لم يؤكد شروط الباقة أو مدة الالتزام قبل التفعيل.', ['s7']),
-      j('c-courtesy', 8, 'أسلوب مهني.', ['s3']),
-      j('c-closing', 7, 'ختام مختصر دون عرض مساعدة إضافية.', ['s7']),
+      j('c-greeting', 1, 'ترحيب مناسب مع إشعار التسجيل.', ['s1']),
+      j('c-verification', 0, 'غيّر الباقة دون التحقق من هوية صاحب الحساب.', ['s7']),
+      j('c-needs', 2, 'سأل عن حجم الاستخدام قبل الاقتراح.', ['s3']),
+      j('c-resolution', 2, 'عرض الخيارات دون ذكر الأسعار الدقيقة.', ['s5']),
+      j('c-language', 2, 'أسلوب مهني.', ['s3']),
+      j('c-closing', 1, 'ختام لبق مع توضيح موعد التفعيل.', ['s7']),
     ],
   },
   {
@@ -172,22 +175,24 @@ export const callFixtures: CallFixture[] = [
       s('s9', 73, 76, 'agent', 'ar', 'مع السلامة.'),
     ],
     judgments: [
-      j('c-greeting', 3, 'لا يوجد ترحيب مهني ولا إشعار بتسجيل المكالمة.', ['s1']),
-      j('c-discovery', 5, 'طلب رقم الحساب دون استيضاح تفاصيل الخصم.', ['s3']),
-      j('c-accuracy', 6, 'رفع طلب مراجعة بعد محاولة تحويل المسؤولية.', ['s7']),
-      j('c-compliance', 4, 'غياب إشعار التسجيل وتحقق ناقص من الهوية.', ['s1', 's3']),
-      j('c-courtesy', 4, 'عبارة غير مهنية تجاه العميل.', ['s5']),
-      j('c-closing', 5, 'ختام مقتضب دون تلخيص الخطوات.', ['s9']),
+      j('c-greeting', 0, 'لا يوجد ترحيب مهني ولا إشعار بتسجيل المكالمة.', ['s1']),
+      j('c-verification', 1, 'طلب رقم الحساب قبل مناقشة الخصم.', ['s3']),
+      j('c-needs', 1, 'لم يستوضح تفاصيل الخصم المكرر.', ['s3']),
+      j('c-resolution', 1, 'رفع طلب مراجعة بعد محاولة تحويل المسؤولية.', ['s5', 's7']),
+      j('c-language', 0, 'عبارة غير مهنية تجاه العميل.', ['s5']),
+      j('c-closing', 0, 'ختام مقتضب دون تلخيص الخطوات.', ['s9']),
     ],
   },
   {
+    // The call drops after verification: only 4 of 10 points are assessable (< 6), so the
+    // evaluation is "Insufficient evidence — no score".
     call: call(
       'DEMO-004',
-      'Internet outage',
+      'Internet outage (call dropped)',
       'agt-003',
       'q-support',
       'en',
-      84,
+      32,
       '2026-10-23T08:30:00+03:00',
     ),
     segments: [
@@ -209,38 +214,27 @@ export const callFixtures: CallFixture[] = [
         "I'm sorry to hear that. Can I confirm the account number, please?",
       ),
       s('s4', 21, 25, 'customer', 'en', 'It ends in 0000.'),
-      s(
-        's5',
-        26,
-        40,
-        'agent',
-        'en',
-        'Thank you. I can see a reported outage in your area; engineers expect service back by 4 p.m. today.',
-      ),
-      s('s6', 41, 47, 'customer', 'en', 'Will I get a credit for the downtime?'),
-      s(
-        's7',
-        48,
-        66,
-        'agent',
-        'en',
-        "Outages longer than 24 hours are credited automatically. I've added a note to your account.",
-      ),
-      s('s8', 67, 72, 'customer', 'en', 'Okay, thanks, I just need to—'),
+      s('s5', 26, 30, 'agent', 'en', 'Thank you. Let me just check the—'),
     ],
     judgments: [
-      j('c-greeting', 9, 'Clear greeting with recording notice.', ['s1']),
-      j('c-discovery', 7, 'Confirmed the account but did not ask about affected devices.', ['s3']),
-      j('c-accuracy', 8, 'Accurate outage status and credit policy.', ['s5', 's7']),
-      j('c-compliance', 9, 'Recording notice and account verification given.', ['s1', 's3']),
-      j('c-courtesy', 9, 'Empathetic and professional.', ['s3']),
+      j('c-greeting', 1, 'Clear greeting with recording notice.', ['s1']),
+      j('c-verification', 1, 'Confirmed the account before checking.', ['s3']),
       j(
-        'c-closing',
+        'c-needs',
         null,
-        'The call ended abruptly; the closing was not captured.',
-        ['s8'],
+        'The call dropped before the need was explored.',
+        ['s5'],
         'insufficient_evidence',
       ),
+      j(
+        'c-resolution',
+        null,
+        'No resolution was reached before the call dropped.',
+        ['s5'],
+        'insufficient_evidence',
+      ),
+      j('c-language', 2, 'Empathetic and professional.', ['s3']),
+      j('c-closing', null, 'The closing was not captured.', ['s5'], 'insufficient_evidence'),
     ],
   },
   {
@@ -264,22 +258,25 @@ export const callFixtures: CallFixture[] = [
       s('s8', 63, 74, 'agent', 'ar', 'شكراً لصبرك، وإذا احتجت أي شي اتصل بينا.'),
     ],
     judgments: [
-      j('c-greeting', 8, 'ترحيب مع إشعار التسجيل.', ['s1']),
-      j('c-discovery', 6, 'سؤال واحد عن حالة الأضواء دون تشخيص كافٍ.', ['s3']),
-      j('c-accuracy', 5, 'لم يقدم تشخيصاً واضحاً قبل تحويل الطلب.', ['s5', 's7']),
-      j('c-compliance', 6, 'لم يتحقق من هوية العميل قبل حجز زيارة فني.', ['s7']),
-      j('c-courtesy', 7, 'أسلوب مقبول.', ['s8']),
-      j('c-closing', 8, 'ختام لبق مع توضيح الخطوة التالية.', ['s8']),
+      j('c-greeting', 1, 'ترحيب مع إشعار التسجيل.', ['s1']),
+      j('c-verification', 0, 'لم يتحقق من هوية العميل قبل حجز زيارة فني.', ['s7']),
+      j('c-needs', 1, 'سؤال واحد عن حالة الأضواء دون تشخيص كافٍ.', ['s3']),
+      j('c-resolution', 1, 'لم يقدم تشخيصاً واضحاً قبل تحويل الطلب.', ['s5', 's7']),
+      j('c-language', 1, 'أسلوب مقبول مع عبارة غير واثقة.', ['s5']),
+      j('c-closing', 1, 'ختام لبق مع توضيح الخطوة التالية.', ['s8']),
     ],
   },
 ];
 
-/** Synthetic transcript used for simulated processing of uploaded files. */
+/**
+ * Synthetic transcript for simulated processing of uploads. Uploads are treated as a single
+ * MIXED channel, so speakers stay unresolved (no evidence supports attribution).
+ */
 export const uploadTranscriptTemplate: WireSegment[] = [
-  s('s1', 0.5, 6, 'agent', 'ar', 'هلا بيك، خدمة العملاء وياك. المكالمة مسجلة لأغراض الجودة.'),
-  s('s2', 7, 14, 'customer', 'ar', 'عندي استفسار عن خدمة مفعلة على حسابي.'),
-  s('s3', 15, 22, 'agent', 'ar', 'تدلل، ممكن تأكد لي رقم الحساب؟'),
-  s('s4', 23, 27, 'customer', 'ar', 'ينتهي بـ 0000.'),
-  s('s5', 28, 44, 'agent', 'ar', 'الخدمة مفعلة من بداية الشهر، وأقدر ألغيها إذا تحب.'),
-  s('s6', 45, 58, 'agent', 'ar', 'أكو شي ثاني أقدر أساعدك بيه؟ شكراً لاتصالك.'),
+  s('s1', 0.5, 6, 'unresolved', 'ar', 'هلا بيك، خدمة العملاء وياك. المكالمة مسجلة لأغراض الجودة.'),
+  s('s2', 7, 14, 'unresolved', 'ar', 'عندي استفسار عن خدمة مفعلة على حسابي.'),
+  s('s3', 15, 22, 'unresolved', 'ar', 'تدلل، ممكن تأكد لي رقم الحساب؟'),
+  s('s4', 23, 27, 'unresolved', 'ar', 'ينتهي بـ 0000.'),
+  s('s5', 28, 44, 'unresolved', 'ar', 'الخدمة مفعلة من بداية الشهر، وأقدر ألغيها إذا تحب.'),
+  s('s6', 45, 58, 'unresolved', 'ar', 'أكو شي ثاني أقدر أساعدك بيه؟ شكراً لاتصالك.'),
 ];

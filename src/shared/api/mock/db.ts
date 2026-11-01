@@ -4,7 +4,7 @@ import { scorecardVersions } from './fixtures/scorecards';
 import { simulateEvaluation } from './scoring';
 import type { MockState, WireScorecard } from './types';
 
-const STORAGE_KEY = 'taqeef.mock.db.v1';
+const STORAGE_KEY = 'taqeef.mock.db.v2';
 
 function versionOf(n: number): WireScorecard {
   const v = scorecardVersions.find((sc) => sc.version === n);
@@ -34,8 +34,7 @@ export function createSeedState(): MockState {
     state.evaluations.push(
       simulateEvaluation({
         id: `ev-${String(i + 1).padStart(3, '0')}`,
-        callId: f.call.id,
-        agentId: f.call.agent_id,
+        call: f.call,
         segments: f.segments,
         judgments: f.judgments,
         scorecard: versionOf(1),
@@ -51,8 +50,7 @@ export function createSeedState(): MockState {
     state.evaluations.push(
       simulateEvaluation({
         id: 'ev-006',
-        callId: dispute.call.id,
-        agentId: dispute.call.agent_id,
+        call: dispute.call,
         segments: dispute.segments,
         judgments: dispute.judgments,
         scorecard: versionOf(2),

@@ -22,6 +22,11 @@ system (FastAPI backend, ORD-0035 frontend). This repo is frontend-only.
   per call, never an average of agent averages. Sample-size warnings stay on until an approved
   reporting policy exists; no rankings. PBX figures (missed/abandoned/SLA) come only from PBX
   data, never estimated. SLA % = (Total incoming − Missed) / Total incoming × 100.
+- Scoring (approved): six criteria worth 1/1/2/3/2/1 points; overall = awarded ÷ assessable
+  points × 10; below 6 assessable points → "Insufficient evidence — No score" (excluded from
+  averages and low counts). Show actual points; label normalized values as normalized.
+  Prohibited expressions only deduct under the scorecard's penalty rule with reliable agent
+  attribution; otherwise flag for review. Mixed-channel speakers stay unresolved.
 - All sample data is clearly labelled synthetic.
 - Mock behaviour must always be distinguishable from the live API (`DataSourceBadge`).
 - Stack is pinned to the confirmed ORD-0035 versions (`docs/handoff.md` §2). Do not add runtime

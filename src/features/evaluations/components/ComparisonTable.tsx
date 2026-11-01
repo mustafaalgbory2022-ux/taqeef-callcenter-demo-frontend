@@ -1,10 +1,9 @@
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import type { Evaluation, ScorecardVersion } from '@/shared/types/domain';
 import { Notice } from '@/shared/ui/Notice';
-import { ScoreValue } from '@/shared/ui/ScoreValue';
 import { TableRegion } from '@/shared/ui/Table';
 import { compareEvaluations } from '../model/compare';
-import { Delta, ResultValue } from './ResultValue';
+import { Delta, OverallValue, PointsDelta, ResultValue } from './ResultValue';
 
 /** Previous-versus-new comparison of two evaluations of the same call. */
 export function ComparisonTable({
@@ -46,9 +45,11 @@ export function ComparisonTable({
           <tr>
             <th scope="row">{t('evaluations.overall')}</th>
             <td>
-              {before.overallScore === null ? '—' : <ScoreValue score={before.overallScore} />}
+              <OverallValue evaluation={before} />
             </td>
-            <td>{after.overallScore === null ? '—' : <ScoreValue score={after.overallScore} />}</td>
+            <td>
+              <OverallValue evaluation={after} />
+            </td>
             <td>
               <Delta from={before.overallScore} to={after.overallScore} />
             </td>
@@ -63,7 +64,11 @@ export function ComparisonTable({
                 <ResultValue result={row.after} />
               </td>
               <td>
-                <Delta from={row.before?.score ?? null} to={row.after?.score ?? null} />
+                <PointsDelta
+                  delta={row.pointsDelta}
+                  possibleFrom={row.before?.possiblePoints}
+                  possibleTo={row.after?.possiblePoints}
+                />
               </td>
             </tr>
           ))}

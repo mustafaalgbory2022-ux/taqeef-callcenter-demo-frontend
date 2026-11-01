@@ -3,8 +3,8 @@ import { clickNav, openSession, syntheticWav } from './helpers';
 
 test('evidence and transcript lines seek the synthetic recording', async ({ page }) => {
   await openSession(page, { path: '/calls/DEMO-003' });
-  await expect(page.getByTestId('criterion-c-courtesy')).toContainText('4.00');
-  await page.getByTestId('criterion-c-courtesy').getByRole('button').first().click();
+  await expect(page.getByTestId('criterion-c-language')).toContainText('0 / 2 pts');
+  await page.getByTestId('criterion-c-language').getByRole('button').first().click();
   await expect(page.locator('[data-segment-id="s5"]')).toHaveAttribute('aria-current', 'true');
   const time = await page.locator('audio').evaluate((a: HTMLAudioElement) => a.currentTime);
   expect(time).toBeGreaterThanOrEqual(27);
@@ -12,9 +12,22 @@ test('evidence and transcript lines seek the synthetic recording', async ({ page
   await expect(page.locator('[data-segment-id="s7"]')).toHaveAttribute('aria-current', 'true');
 });
 
-test('distinguishes insufficient evidence from scores', async ({ page }) => {
+test('below 6 assessable points the evaluation has no score', async ({ page }) => {
   await openSession(page, { path: '/calls/DEMO-004' });
+  await expect(page.getByTestId('overall-score')).toContainText('Insufficient evidence — No score');
+  await expect(page.getByTestId('overall-score')).toContainText('4 of 10 points could be assessed');
   await expect(page.getByTestId('criterion-c-closing')).toContainText('Insufficient evidence');
+  await expect(page.getByTestId('criterion-c-greeting')).toContainText('1 / 1 pts');
+});
+
+test('prohibited expressions are flagged for review without an approved penalty rule', async ({
+  page,
+}) => {
+  await openSession(page, { path: '/calls/DEMO-003' });
+  const hits = page.getByRole('region', { name: 'Prohibited expressions' });
+  await expect(hits).toContainText('مو شغلي');
+  await expect(hits).toContainText('Flagged for review');
+  await expect(hits).not.toContainText('Penalty applied');
 });
 
 test('re-scoring adds an immutable evaluation and a comparison', async ({ page }) => {
@@ -27,6 +40,9 @@ test('re-scoring adds an immutable evaluation and a comparison', async ({ page }
   // v2 detects the prohibited expression "ما أدري" that v1 did not list.
   await expect(page.getByRole('region', { name: 'Prohibited expressions' })).toContainText(
     'ما أدري',
+  );
+  await expect(page.getByRole('region', { name: 'Prohibited expressions' })).toContainText(
+    'Flagged for review',
   );
 });
 
@@ -58,5 +74,8 @@ test('uploads a synthetic file and shows simulated processing', async ({ page })
   await expect(row.getByText('Scored')).toBeVisible({ timeout: 15_000 });
   await row.getByRole('link').first().click();
   await expect(page.getByTestId('overall-score')).toBeVisible({ timeout: 15_000 });
-  await expect(page.locator('[data-segment-id="s1"]')).toBeVisible();
+  // Uploads are a single mixed channel: speakers unresolved, too little assessable.
+  await expect(page.getByTestId('mixed-channel')).toBeVisible();
+  await expect(page.getByTestId('overall-score')).toContainText('Insufficient evidence — No score');
+  await expect(page.locator('[data-segment-id="s1"]')).toContainText('Speaker unresolved');
 });

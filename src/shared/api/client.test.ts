@@ -16,6 +16,7 @@ const wireCall = {
   synthetic: true,
   simulated: false,
   source: 'fixture',
+  channel_layout: 'dual',
 };
 
 const respond = (status: number, body: unknown) =>
@@ -69,6 +70,11 @@ describe('ApiClient over a transport', () => {
       scorecard_id: 's',
       scorecard_version: 1,
       status: 'completed',
+      outcome: 'scored',
+      awarded_points: 8,
+      assessable_points: 10,
+      possible_points: 10,
+      minimum_assessable_points: 6,
       overall_score: 85,
       criteria: [],
       prohibited_hits: [],
@@ -95,6 +101,59 @@ describe('ApiClient over a transport', () => {
         'live',
       ).listEvaluations(),
     ).rejects.toMatchObject({ code: 'contract_mismatch' });
+  });
+
+  it('rejects an insufficient-evidence outcome that still carries a score', async () => {
+    const evaluation = {
+      id: 'e',
+      call_id: 'c',
+      agent_id: null,
+      scorecard_id: 's',
+      scorecard_version: 1,
+      status: 'completed',
+      outcome: 'insufficient_evidence',
+      awarded_points: 3,
+      assessable_points: 4,
+      possible_points: 10,
+      minimum_assessable_points: 6,
+      overall_score: 7.5,
+      criteria: [],
+      prohibited_hits: [],
+      trigger: 'initial',
+      supersedes_id: null,
+      created_at: '2026-10-01T00:00:00Z',
+      simulated: false,
+    };
+    await expect(
+      createApiClient(respond(200, [evaluation]), 'live').listEvaluations(),
+    ).rejects.toMatchObject({
+      code: 'contract_mismatch',
+    });
+  });
+
+  it('decodes failed evaluations without an evidence outcome', async () => {
+    const failed = {
+      id: 'e',
+      call_id: 'c',
+      agent_id: null,
+      scorecard_id: 's',
+      scorecard_version: 1,
+      status: 'failed',
+      outcome: null,
+      awarded_points: 0,
+      assessable_points: 0,
+      possible_points: 10,
+      minimum_assessable_points: 6,
+      overall_score: null,
+      criteria: [],
+      prohibited_hits: [],
+      trigger: 'rescore',
+      supersedes_id: null,
+      created_at: '2026-10-01T00:00:00Z',
+      simulated: false,
+    };
+    const [e] = await createApiClient(respond(200, [failed]), 'live').listEvaluations();
+    expect(e).toMatchObject({ status: 'failed', outcome: null, overallScore: null });
   });
 
   it('maps FastAPI 422 details to field issues', async () => {

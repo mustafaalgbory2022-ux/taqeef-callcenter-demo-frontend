@@ -7,7 +7,7 @@ const ev = (
   id: string,
   createdAt: string,
   overall: number | null,
-  scores: Record<string, number | null>,
+  points: Record<string, number | null>,
   version = 1,
 ): Evaluation => ({
   id,
@@ -16,11 +16,18 @@ const ev = (
   scorecardId: 'sc',
   scorecardVersion: version,
   status: 'completed',
+  outcome: overall === null ? 'insufficient_evidence' : 'scored',
+  awardedPoints: 0,
+  assessablePoints: 0,
+  possiblePoints: 10,
+  minimumAssessablePoints: 6,
   overallScore: overall,
-  criteria: Object.entries(scores).map(([criterionId, score]) => ({
+  criteria: Object.entries(points).map(([criterionId, awardedPoints]) => ({
     criterionId,
-    result: score === null ? 'not_assessable' : 'scored',
-    score,
+    result: awardedPoints === null ? 'not_assessable' : 'scored',
+    awardedPoints,
+    possiblePoints: 3,
+    penaltyPoints: 0,
     rationale: '',
     evidence: [],
   })),
@@ -32,9 +39,9 @@ const ev = (
 });
 
 describe('currentEvaluations / historyByCall', () => {
-  const first = ev('e1', '2026-10-01T00:00:00Z', 6, { a: 6 });
-  const second = ev('e2', '2026-10-02T00:00:00Z', 8, { a: 8 });
-  it('uses the latest eligible evaluation and keeps full history', () => {
+  const first = ev('e1', '2026-10-01T00:00:00Z', 6, { a: 2 });
+  const second = ev('e2', '2026-10-02T00:00:00Z', 8, { a: 3 });
+  it('uses the latest completed evaluation and keeps full history', () => {
     expect(currentEvaluations([second, first])).toEqual([second]);
     expect(
       historyByCall([first, second])
@@ -45,17 +52,32 @@ describe('currentEvaluations / historyByCall', () => {
 });
 
 describe('compareEvaluations', () => {
-  it('reports per-criterion and overall deltas, including added criteria', () => {
-    const before = ev('e1', '2026-10-01T00:00:00Z', 6, { a: 6, b: null });
-    const after = ev('e2', '2026-10-02T00:00:00Z', 7.5, { a: 8, b: 7, c: 9 }, 2);
+  it('reports actual-point deltas per criterion and the overall score change', () => {
+    const before = ev('e1', '2026-10-01T00:00:00Z', 6, { a: 1, b: null });
+    const after = ev('e2', '2026-10-02T00:00:00Z', 7.5, { a: 3, b: 2, c: 1 }, 2);
     const result = compareEvaluations(before, after, []);
     expect(result.overallDelta).toBe(1.5);
     expect(result.versionChanged).toBe(true);
-    expect(result.criteria.map((c) => [c.criterionId, c.delta])).toEqual([
+    expect(result.criteria.map((c) => [c.criterionId, c.pointsDelta])).toEqual([
       ['a', 2],
       ['b', null],
       ['c', null],
     ]);
-    expect(result.criteria.find((c) => c.criterionId === 'c')?.before).toBeNull();
+  });
+
+  it('does not compare points when a criterion maximum changed', () => {
+    const before = ev('e1', '2026-10-01T00:00:00Z', 6, { a: 2 });
+    const after = ev('e2', '2026-10-02T00:00:00Z', 6, { a: 2 });
+    const changed = {
+      ...after,
+      criteria: after.criteria.map((c) => ({ ...c, possiblePoints: 4 })),
+    };
+    expect(compareEvaluations(before, changed, []).criteria[0]?.pointsDelta).toBeNull();
+  });
+
+  it('has no overall delta when one side has no score', () => {
+    const before = ev('e1', '2026-10-01T00:00:00Z', null, { a: 1 });
+    const after = ev('e2', '2026-10-02T00:00:00Z', 8, { a: 3 });
+    expect(compareEvaluations(before, after, []).overallDelta).toBeNull();
   });
 });

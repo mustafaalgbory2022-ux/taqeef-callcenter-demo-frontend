@@ -10,8 +10,8 @@ export interface CriterionComparison {
   label: LocalizedText;
   before: CriterionEvaluation | null;
   after: CriterionEvaluation | null;
-  /** Score change when both sides were scored, otherwise null. */
-  delta: number | null;
+  /** Change in ACTUAL awarded points when both sides were scored, otherwise null. */
+  pointsDelta: number | null;
 }
 
 export interface EvaluationComparison {
@@ -36,13 +36,18 @@ export function compareEvaluations(
   const criteria = ids.map((criterionId) => {
     const b = before.criteria.find((c) => c.criterionId === criterionId) ?? null;
     const a = after.criteria.find((c) => c.criterionId === criterionId) ?? null;
-    const delta = b?.score != null && a?.score != null ? a.score - b.score : null;
+    // Points are only comparable when the criterion's maximum did not change.
+    const sameScale = b !== null && a !== null && b.possiblePoints === a.possiblePoints;
+    const pointsDelta =
+      sameScale && b.awardedPoints != null && a.awardedPoints != null
+        ? a.awardedPoints - b.awardedPoints
+        : null;
     return {
       criterionId,
       label: labels.get(criterionId) ?? { en: criterionId, ar: criterionId },
       before: b,
       after: a,
-      delta,
+      pointsDelta,
     };
   });
   return {

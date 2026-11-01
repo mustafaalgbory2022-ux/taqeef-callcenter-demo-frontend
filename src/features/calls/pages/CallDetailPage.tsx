@@ -6,6 +6,7 @@ import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import { Badge, SyntheticBadge } from '@/shared/ui/Badge';
 import { Card } from '@/shared/ui/Card';
+import { Notice } from '@/shared/ui/Notice';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { QueryView } from '@/shared/ui/States';
 import type { Call } from '@/shared/types/domain';
@@ -76,6 +77,11 @@ function CallDetail({ call }: { call: Call }) {
           </span>
         }
       />
+      {call.channelLayout === 'mixed' && (
+        <Notice tone="info" title={t('calls.channel.mixedTitle')} testId="mixed-channel">
+          {t('calls.channel.mixedBody')}
+        </Notice>
+      )}
       {call.status !== 'scored' && (
         <ProcessingStatus status={call.status} simulated={call.simulated} />
       )}

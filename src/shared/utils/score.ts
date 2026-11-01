@@ -3,6 +3,7 @@ import type { Criterion, CriterionEvaluation } from '@/shared/types/domain';
 export const SCORE_MIN = 0;
 export const SCORE_MAX = 10;
 export const DEFAULT_LOW_SCORE_THRESHOLD = 7;
+export const DEFAULT_MINIMUM_ASSESSABLE_POINTS = 6;
 
 /**
  * Truncate to two decimals, always rounding down (approved display rule).
@@ -23,28 +24,58 @@ export function isLowScore(
   return score < threshold - 1e-9;
 }
 
-export function isWholePointScore(value: number): boolean {
-  return Number.isInteger(value) && value >= SCORE_MIN && value <= SCORE_MAX;
+/** Points expressed on the 0–10 display scale. Null when nothing was possible. */
+export function normalizeToTen(awarded: number, possible: number): number | null {
+  return possible > 0 ? (awarded / possible) * SCORE_MAX : null;
+}
+
+/** Valid awarded points for a criterion: whole points; all-or-nothing without partial credit. */
+export function isValidAward(
+  points: number,
+  criterion: Pick<Criterion, 'maxPoints' | 'allowPartialCredit'>,
+): boolean {
+  if (!Number.isInteger(points) || points < 0 || points > criterion.maxPoints) return false;
+  return criterion.allowPartialCredit || points === 0 || points === criterion.maxPoints;
+}
+
+export interface EvaluationScore {
+  awardedPoints: number;
+  assessablePoints: number;
+  possiblePoints: number;
+  outcome: 'scored' | 'insufficient_evidence';
+  /** awarded / assessable × 10, or null when below the minimum assessable points. */
+  overallScore: number | null;
 }
 
 /**
- * Reference implementation of the overall score: weighted mean of criteria that were
- * scored. "Not assessable" and "insufficient evidence" are excluded from the denominator.
- * Returns null when nothing could be scored. The real backend is authoritative; this is
- * used by the simulated backend and tests.
+ * Deterministic reference scoring from actual points (the backend is authoritative):
+ * - only criteria with result "scored" are assessable (count in the denominator);
+ * - if assessable points < the scorecard minimum (approved: 6 of 10), the whole evaluation
+ *   is "Insufficient evidence — no score";
+ * - otherwise overall = awarded points / assessable points × 10.
  */
-export function computeOverallScore(
+export function scoreEvaluation(
   criteria: readonly Criterion[],
   results: readonly CriterionEvaluation[],
-): number | null {
+  minimumAssessablePoints: number,
+): EvaluationScore {
   const byId = new Map(results.map((r) => [r.criterionId, r]));
-  let weighted = 0;
-  let totalWeight = 0;
+  let awardedPoints = 0;
+  let assessablePoints = 0;
+  let possiblePoints = 0;
   for (const criterion of criteria) {
-    const result = byId.get(criterion.id);
-    if (result?.result !== 'scored' || result.score === null) continue;
-    weighted += result.score * criterion.weight;
-    totalWeight += criterion.weight;
+    possiblePoints += criterion.maxPoints;
+    const r = byId.get(criterion.id);
+    if (r?.result !== 'scored' || r.awardedPoints === null) continue;
+    assessablePoints += criterion.maxPoints;
+    awardedPoints += Math.min(criterion.maxPoints, Math.max(0, r.awardedPoints));
   }
-  return totalWeight === 0 ? null : weighted / totalWeight;
+  const sufficient = assessablePoints > 0 && assessablePoints >= minimumAssessablePoints;
+  return {
+    awardedPoints,
+    assessablePoints,
+    possiblePoints,
+    outcome: sufficient ? 'scored' : 'insufficient_evidence',
+    overallScore: sufficient ? normalizeToTen(awardedPoints, assessablePoints) : null,
+  };
 }

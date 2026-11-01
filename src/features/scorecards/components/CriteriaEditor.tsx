@@ -2,15 +2,15 @@ import { useI18n } from '@/shared/i18n/I18nProvider';
 import type { MessageKey } from '@/shared/i18n/translate';
 import type { Criterion } from '@/shared/types/domain';
 import { Button } from '@/shared/ui/Button';
-import { Field } from '@/shared/ui/Field';
+import { Checkbox, Field } from '@/shared/ui/Field';
 import {
   MAX_CRITERIA,
-  MAX_WEIGHT,
+  MAX_POINTS,
   moveItem,
   newCriterion,
   numberInputValue,
   parseNumberInput,
-  weightShares,
+  totalPoints,
   type CriterionErrors,
 } from '../model/draft';
 import styles from './Editor.module.css';
@@ -22,9 +22,9 @@ export interface CriteriaEditorProps {
   onChange: (criteria: Criterion[]) => void;
 }
 
+/** Criteria with their point values and partial-credit setting (all configurable). */
 export function CriteriaEditor({ criteria, errors, listError, onChange }: CriteriaEditorProps) {
   const { t, fmt } = useI18n();
-  const shares = weightShares(criteria);
   const update = (i: number, patch: Partial<Criterion>) =>
     onChange(criteria.map((c, idx) => (idx === i ? { ...c, ...patch } : c)));
   const err = (key: MessageKey | undefined) => (key ? t(key) : undefined);
@@ -32,7 +32,10 @@ export function CriteriaEditor({ criteria, errors, listError, onChange }: Criter
   return (
     <section className={styles.section} aria-labelledby="criteria-heading">
       <h3 className={styles.sectionTitle} id="criteria-heading">
-        {t('scorecards.criteria.title', { n: fmt.integer(criteria.length) })}
+        {t('scorecards.criteria.title', { n: fmt.integer(criteria.length) })} ·{' '}
+        <span data-testid="total-points">
+          {t('scorecards.criteria.total', { total: fmt.integer(totalPoints(criteria)) })}
+        </span>
       </h3>
       <p className={styles.hint}>{t('scorecards.criteria.rule')}</p>
       {listError && (
@@ -75,10 +78,10 @@ export function CriteriaEditor({ criteria, errors, listError, onChange }: Criter
               )}
             </Field>
             <Field
-              label={t('scorecards.criteria.weight')}
-              hint={t('scorecards.criteria.weightHint', { max: MAX_WEIGHT })}
+              label={t('scorecards.criteria.points')}
+              hint={t('scorecards.criteria.pointsHint', { max: MAX_POINTS })}
               required
-              error={err(errors[i]?.weight)}
+              error={err(errors[i]?.points)}
             >
               {(p) => (
                 <input
@@ -86,14 +89,20 @@ export function CriteriaEditor({ criteria, errors, listError, onChange }: Criter
                   type="number"
                   inputMode="numeric"
                   min={1}
-                  max={MAX_WEIGHT}
+                  max={MAX_POINTS}
                   step={1}
-                  value={numberInputValue(c.weight)}
-                  onChange={(e) => update(i, { weight: parseNumberInput(e.target.value) })}
+                  value={numberInputValue(c.maxPoints)}
+                  onChange={(e) => update(i, { maxPoints: parseNumberInput(e.target.value) })}
                 />
               )}
             </Field>
           </div>
+          <Checkbox
+            checked={c.allowPartialCredit}
+            onChange={(v) => update(i, { allowPartialCredit: v })}
+          >
+            {t('scorecards.criteria.partialCredit')}
+          </Checkbox>
           <div className={styles.grid}>
             <Field label={t('scorecards.criteria.descriptionEn')}>
               {(p) => (
@@ -150,9 +159,6 @@ export function CriteriaEditor({ criteria, errors, listError, onChange }: Criter
             >
               {t('scorecards.criteria.remove')}
             </Button>
-            <span className={styles.share}>
-              {t('scorecards.criteria.share', { pct: fmt.integer(Math.round(shares[i] ?? 0)) })}
-            </span>
           </div>
         </fieldset>
       ))}

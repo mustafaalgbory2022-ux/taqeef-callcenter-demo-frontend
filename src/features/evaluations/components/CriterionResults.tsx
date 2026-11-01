@@ -1,5 +1,6 @@
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import type { Evaluation, ScorecardVersion } from '@/shared/types/domain';
+import { Badge } from '@/shared/ui/Badge';
 import { Icon } from '@/shared/ui/Icon';
 import { formatDuration } from '@/shared/utils/time';
 import { ResultValue } from './ResultValue';
@@ -72,7 +73,7 @@ export function ProhibitedHits({
   evaluation: Evaluation;
   onEvidence: CriterionResultsProps['onEvidence'];
 }) {
-  const { t } = useI18n();
+  const { t, fmt } = useI18n();
   return (
     <section className={styles.section} aria-label={t('evaluations.prohibited.title')}>
       <h3 className={styles.sectionTitle}>{t('evaluations.prohibited.title')}</h3>
@@ -81,16 +82,27 @@ export function ProhibitedHits({
       ) : (
         <div className={styles.evidence}>
           {evaluation.prohibitedHits.map((h) => (
-            <button
-              key={`${h.expressionId}-${h.segmentId}`}
-              type="button"
-              className={styles.evidenceButton}
-              onClick={() => onEvidence(h.startMs, [h.segmentId])}
-            >
-              <Icon name="flag" size={12} />
-              <span className={styles.ts}>{formatDuration(h.startMs)}</span>
-              <bdi>“{h.phrase}”</bdi>
-            </button>
+            <span key={`${h.expressionId}-${h.segmentId}`} className={styles.hit}>
+              <button
+                type="button"
+                className={styles.evidenceButton}
+                onClick={() => onEvidence(h.startMs, [h.segmentId])}
+              >
+                <Icon name="flag" size={12} />
+                <span className={styles.ts}>{formatDuration(h.startMs)}</span>
+                <bdi>“{h.phrase}”</bdi>
+              </button>
+              <Badge>{t(`evaluations.speaker.${h.speaker}`)}</Badge>
+              {h.disposition === 'penalty_applied' ? (
+                <Badge tone="danger" icon="minus">
+                  {t('evaluations.prohibited.penaltyApplied', { n: fmt.integer(h.penaltyPoints) })}
+                </Badge>
+              ) : (
+                <Badge tone="warning" icon="flag">
+                  {t('evaluations.prohibited.flagged')}
+                </Badge>
+              )}
+            </span>
           ))}
         </div>
       )}

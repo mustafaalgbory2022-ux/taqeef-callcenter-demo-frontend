@@ -31,16 +31,31 @@ export function VersionHistory({ versions }: { versions: readonly ScorecardVersi
                 {t('scorecards.history.threshold', { value: fmt.score(v.lowScoreThreshold) })} ·{' '}
                 {t('scorecards.history.counts', {
                   criteria: v.criteria.length,
+                  points: v.criteria.reduce((sum, c) => sum + c.maxPoints, 0),
+                  minimum: v.minimumAssessablePoints,
                   expressions: v.prohibitedExpressions.length,
                 })}
               </p>
               <ul>
                 {v.criteria.map((c) => (
                   <li key={c.id}>
-                    {pick(c.label)} — {t('scorecards.criteria.weight')} <bdi>{c.weight}</bdi>
+                    {pick(c.label)} — <bdi>{c.maxPoints}</bdi> {t('scorecards.criteria.points')}
                   </li>
                 ))}
               </ul>
+              <p>
+                {v.prohibitedPenalty.points > 0
+                  ? t('scorecards.history.penaltyActive', {
+                      points: v.prohibitedPenalty.points,
+                      criterion: pick(
+                        v.criteria.find((c) => c.id === v.prohibitedPenalty.criterionId)?.label ?? {
+                          en: '—',
+                          ar: '—',
+                        },
+                      ),
+                    })
+                  : t('scorecards.history.penaltyNone')}
+              </p>
               {v.prohibitedExpressions.length > 0 && (
                 <p>
                   {t('scorecards.prohibited.title')}:{' '}

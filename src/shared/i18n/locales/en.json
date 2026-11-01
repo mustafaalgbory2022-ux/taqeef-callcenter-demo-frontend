@@ -79,10 +79,10 @@
     },
     "kpi": {
       "label": "Key figures",
-      "evaluated": "Evaluated calls",
-      "evaluatedNote": "Each call counted once (latest evaluation)",
+      "evaluated": "Scored calls",
+      "evaluatedNote": "{k} with insufficient evidence — no score (excluded)",
       "average": "Average quality score",
-      "averageNote": "Pooled over n = {n} calls · rounded down",
+      "averageNote": "Pooled over n = {n} scored calls · rounded down",
       "low": "Calls below {threshold}",
       "ofN": "of {n}",
       "lowNote": "Strictly below the scorecard threshold",
@@ -91,7 +91,7 @@
       "lowMixed": "Calls below their version's threshold"
     },
     "sample": {
-      "title": "Sample only — n = {n} evaluated calls. Not a performance ranking.",
+      "title": "Sample only — n = {n} scored calls. Not a performance ranking.",
       "body": "Synthetic demonstration data. Results stay labelled as a sample until an approved reporting policy defines when agent results are reliable."
     },
     "versions": {
@@ -100,17 +100,19 @@
     },
     "criteria": {
       "title": "Criterion performance",
-      "caption": "Pooled averages · threshold {threshold} (v{version})",
+      "caption": "Normalized to 10 from actual points · threshold {threshold} (v{version})",
       "n": "n = {n}",
       "notAssessable": "{n} not assessable",
-      "insufficient": "{n} insufficient evidence"
+      "insufficient": "{n} insufficient evidence",
+      "points": "{awarded} of {possible} points awarded"
     },
     "agents": {
       "title": "Agents (sample)",
       "caption": "Alphabetical — not a ranking. Open an agent for details.",
-      "evaluated": "Evaluated calls",
+      "evaluated": "Scored calls",
       "average": "Average",
-      "low": "Below threshold"
+      "low": "Below threshold",
+      "noScore": "No score (insufficient evidence)"
     },
     "pbx": {
       "title": "Call handling (PBX)",
@@ -208,7 +210,8 @@
       "recorded": "Recorded",
       "duration": "Duration",
       "status": "Status",
-      "score": "Score"
+      "score": "Score",
+      "noScore": "No score"
     },
     "status": {
       "uploaded": "Uploaded",
@@ -243,7 +246,8 @@
       "agent": "Agent",
       "customer": "Customer",
       "pending": "The transcript will appear when processing reaches this stage.",
-      "count": "{n} transcript segments"
+      "count": "{n} transcript segments",
+      "unresolved": "Speaker unresolved"
     },
     "upload": {
       "open": "Upload call",
@@ -268,6 +272,10 @@
         "agentRequired": "Select the agent who handled the call.",
         "confirmRequired": "Confirm that the recording is synthetic."
       }
+    },
+    "channel": {
+      "mixedTitle": "Mixed channel — speakers unresolved",
+      "mixedBody": "Speaker labels and agent attribution are not assumed until supported by evidence. Behaviour criteria may be insufficient and prohibited expressions are only flagged for review."
     }
   },
   "evaluations": {
@@ -298,7 +306,9 @@
     "prohibited": {
       "title": "Prohibited expressions",
       "none": "None detected.",
-      "note": "Detected expressions are reported for review; they do not change the score automatically."
+      "note": "Expressions affect the score only under the scorecard's approved penalty rule and when reliably attributed to the agent; otherwise they are flagged for review.",
+      "flagged": "Flagged for review",
+      "penaltyApplied": "Penalty applied: −{n} pt"
     },
     "history": {
       "title": "Evaluation history",
@@ -312,7 +322,8 @@
       "change": "Change",
       "criterion": "Criterion",
       "pickTwo": "Select two different evaluations to compare.",
-      "versionChanged": "Scorecard changed from v{from} to v{to}."
+      "versionChanged": "Scorecard changed from v{from} to v{to}.",
+      "possibleChanged": "Max points changed ({from} → {to})"
     },
     "log": {
       "date": "Evaluated",
@@ -328,41 +339,60 @@
       "logCaption": "{n} evaluations · newest first",
       "rescoresOnly": "Re-scores only"
     },
-    "latestFailed": "The latest re-score attempt failed. The previous evaluation is still current."
+    "latestFailed": "The latest re-score attempt failed. The previous evaluation is still current.",
+    "points": "{awarded} / {possible} pts",
+    "pointsTitle": "Actual points awarded",
+    "penaltyNote": "includes −{n} penalty",
+    "noScore": "No score",
+    "insufficient": {
+      "title": "Insufficient evidence — No score",
+      "body": "{assessable} of {possible} points could be assessed; at least {minimum} are required. Excluded from scored averages and low-score counts."
+    },
+    "awardedSummary": "{awarded} of {assessable} assessable points ({possible} on the scorecard) · normalized to 10",
+    "speaker": {
+      "agent": "Agent",
+      "customer": "Customer",
+      "unresolved": "Speaker unresolved"
+    },
+    "failed": "Failed — no result",
+    "pointsDelta": "{sign}{n} pt"
   },
   "scorecards": {
     "page": {
       "title": "Quality scorecard",
       "description": "Configure criteria, weights, the low-score threshold and prohibited expressions. Every save creates a new version.",
-      "placeholderTitle": "Placeholder criteria",
-      "placeholderBody": "The six criteria are synthetic placeholders matching the approved count. Replace them with the approved Taqeef criteria."
+      "placeholderTitle": "Approved default scorecard",
+      "placeholderBody": "Six approved criteria worth 10 points, minimum 6 assessable points, low score below 7.00. Criteria, points, partial credit, minimum evidence and threshold stay configurable."
     },
     "editor": {
       "title": "{name} — editing from v{version}",
-      "caption": "Scores are whole points 0–10 per criterion."
+      "caption": "Criteria are scored in actual points; the evaluation score is normalized to 10."
     },
     "general": {
       "title": "General",
       "nameEn": "Name (English)",
       "nameAr": "Name (Arabic)",
       "threshold": "Low-score threshold",
-      "thresholdHint": "Calls strictly below this value are low-scoring. Default 7.00."
+      "thresholdHint": "Calls strictly below this value are low-scoring. Default 7.00.",
+      "minimumAssessable": "Minimum assessable points",
+      "minimumAssessableHint": "Below this the evaluation is “Insufficient evidence — No score”. Approved: 6."
     },
     "criteria": {
       "title": "Criteria ({n})",
-      "rule": "Overall score = weighted mean of scored criteria, shown to two decimals and rounded down. Not assessable and insufficient-evidence criteria are excluded.",
+      "rule": "Overall score = awarded points ÷ assessable points × 10, shown to two decimals and rounded down. Not-assessable and insufficient-evidence criteria are excluded; below the minimum assessable points the evaluation gets no score.",
       "item": "Criterion {n}",
       "labelEn": "Label (English)",
       "labelAr": "Label (Arabic)",
       "descriptionEn": "Guidance (English)",
       "descriptionAr": "Guidance (Arabic)",
-      "weight": "Weight",
-      "weightHint": "Whole number 1–{max}",
-      "share": "{pct}% of total weight",
       "moveUp": "Move up",
       "moveDown": "Move down",
       "remove": "Remove",
-      "add": "Add criterion"
+      "add": "Add criterion",
+      "points": "Points",
+      "pointsHint": "Whole number 1–{max}",
+      "partialCredit": "Allow partial credit (any whole number of points)",
+      "total": "{total} points in total"
     },
     "prohibited": {
       "title": "Prohibited expressions",
@@ -387,17 +417,31 @@
       "threshold": "Use a value from 0 to 10 with at most two decimals.",
       "criteriaCount": "A scorecard needs 1 to 12 criteria.",
       "label": "Required.",
-      "weight": "Whole number from 1 to 10.",
       "phraseEmpty": "Enter the expression or remove it.",
       "phraseDuplicate": "This expression is already listed.",
-      "changeNote": "Describe what changed."
+      "changeNote": "Describe what changed.",
+      "points": "Whole number from 1 to 10.",
+      "minimumAssessable": "Use a whole number from 1 to the total points.",
+      "penaltyPoints": "Whole number from 0 to 10.",
+      "penaltyCriterion": "Choose the criterion the penalty is deducted from.",
+      "penaltyPartialCredit": "Penalties can only target criteria that allow partial credit."
     },
     "history": {
       "title": "Version history",
       "caption": "Versions are immutable. Expand a version to see its configuration.",
       "current": "Current",
       "threshold": "Threshold {value}",
-      "counts": "{criteria} criteria · {expressions} prohibited expressions"
+      "counts": "{criteria} criteria · {points} points · minimum {minimum} assessable · {expressions} prohibited expressions",
+      "penaltyNone": "Prohibited expressions: flag for review only",
+      "penaltyActive": "Prohibited expressions: −{points} pt from “{criterion}” when reliably attributed to the agent"
+    },
+    "penalty": {
+      "title": "Prohibited-expression penalty rule",
+      "points": "Penalty points per expression",
+      "pointsHint": "0 = flag for review only (no approved penalty rule).",
+      "criterion": "Deduct from criterion",
+      "selectCriterion": "Select a criterion",
+      "note": "Applied only when the expression is reliably attributed to the agent (separate channels). Otherwise it is flagged for review."
     }
   },
   "settings": {
@@ -428,7 +472,9 @@
       "ranking": "Agent ranking",
       "rankingValue": "Disabled. Agents are listed alphabetically.",
       "rounding": "Score display",
-      "roundingValue": "Two decimals, always rounded down. Low score: strictly below the threshold."
+      "roundingValue": "Two decimals, always rounded down. Low score: strictly below the threshold.",
+      "minimum": "Minimum evidence",
+      "minimumValue": "At least the scorecard's minimum assessable points (approved: 6 of 10); otherwise “Insufficient evidence — No score”."
     },
     "session": {
       "title": "Session",

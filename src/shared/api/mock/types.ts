@@ -17,7 +17,8 @@ export type { WireEvaluation };
 export interface Judgment {
   criterionId: string;
   result: 'scored' | 'not_assessable' | 'insufficient_evidence';
-  score: number | null;
+  /** Actual points before any prohibited-expression penalty. */
+  awardedPoints: number | null;
   rationale: string;
   segmentIds: readonly string[];
 }

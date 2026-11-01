@@ -5,14 +5,14 @@ import styles from './Dashboard.module.css';
 
 export function KpiRow({ summary }: { summary: PerformanceSummary }) {
   const { t, fmt } = useI18n();
-  const n = summary.evaluatedCalls;
+  const n = summary.scoredCalls;
   return (
     <section className={styles.kpis} aria-label={t('dashboard.kpi.label')}>
       <StatTile
         testId="kpi-evaluated"
         label={t('dashboard.kpi.evaluated')}
         value={fmt.integer(n)}
-        footnote={t('dashboard.kpi.evaluatedNote')}
+        footnote={t('dashboard.kpi.evaluatedNote', { k: fmt.integer(summary.insufficientCalls) })}
       />
       <StatTile
         testId="kpi-average"
