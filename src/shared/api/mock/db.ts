@@ -4,6 +4,7 @@ import { aiModels, initialAiConfig, seedAiJobs } from './fixtures/ai';
 import { initialConnector, pbxVendors } from './fixtures/pbx';
 import { initialReportSettings } from './fixtures/reports';
 import { initialStorageSettings, volumes } from './fixtures/storage';
+import { initialBackupSettings } from './fixtures/backups';
 import { initialPolicy, seedSecurityEvents, seedSessions, seedUsers } from './fixtures/users';
 import { deliveries, initialSender, reportEmail, rules, templates } from './fixtures/notifications';
 import { corrections, dictionaryEntries, initialVersions } from './fixtures/dictionary';
@@ -73,6 +74,7 @@ export function createSeedState(): MockState {
       settings: structuredClone(initialStorageSettings),
       recovery: [],
     },
+    backups: { settings: structuredClone(initialBackupSettings), runs: [], restores: [] },
     seq: 100,
   };
   state.adminAudit = [...seedSecurityEvents(Date.now()), ...seedAdminAudit(state)];

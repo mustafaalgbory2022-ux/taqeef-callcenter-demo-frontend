@@ -35,7 +35,8 @@
     "users": "Users and roles",
     "security": "Authentication and MFA",
     "account": "My account security",
-    "storage": "Storage and retention"
+    "storage": "Storage and retention",
+    "backups": "Backup and restore"
   },
   "common": {
     "outOfTen": "/ 10",
@@ -2022,6 +2023,139 @@
       "restoreBody": "The item becomes available again exactly as before.",
       "restoredToast": "{id} was restored.",
       "noPurge": "Permanent deletion is not available here: it requires an approved retention policy and is performed by the backend with its own audit."
+    }
+  },
+  "backups": {
+    "title": "Backup, restore and migration",
+    "description": "Backup configuration, manual backups, verification, the restore wizard, restore tests and migration readiness.",
+    "syntheticTitle": "Every backup and restore here is simulated",
+    "syntheticBody": "No data is copied, verified or restored, and no result on this page proves that a backup exists or works. The production backup service must perform and verify real backups.",
+    "recent": "Recent backup actions",
+    "components": {
+      "database": "Database (calls, metadata)",
+      "recordings": "Recordings",
+      "transcripts": "Transcripts",
+      "evaluations": "QA evaluations and KPI results",
+      "scorecards": "Scorecard versions",
+      "users": "Users and roles",
+      "settings": "Settings",
+      "audit": "Audit history",
+      "secrets": "Required secrets (encrypted)"
+    },
+    "status": {
+      "simulated": "Simulated",
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "verification": {
+      "not_verified": "Not verified",
+      "simulated": "Simulated check",
+      "passed": "Passed",
+      "failed": "Failed"
+    },
+    "errors": {
+      "required": "Database, QA/KPI results, scorecards, users, settings, audit history and secrets are always included.",
+      "retention": "Keep 1 to 90 backups.",
+      "time": "Use HH:MM (24-hour).",
+      "changeNote": "Describe the change (at least 3 characters)."
+    },
+    "settings": {
+      "title": "Backup configuration",
+      "caption": "Version v{v}. Each save creates a new version.",
+      "saved": "Backup settings saved as v{v}.",
+      "encryption": "Backups are always encrypted; secrets are only ever stored encrypted.",
+      "target": "Backup location",
+      "retention": "Backups to keep",
+      "schedule": "Schedule",
+      "scheduleHint": "Scheduled backups run on the backend; the simulation never runs them.",
+      "manual": "Manual only",
+      "daily": "Daily",
+      "time": "Daily at",
+      "components": "Included data",
+      "required": "Required",
+      "partial": "Recordings or transcripts are excluded: a restore would not bring them back."
+    },
+    "history": {
+      "title": "Backups",
+      "caption": "Newest first. Run a manual backup or verify an existing one.",
+      "note": "Note (optional)",
+      "start": "Run manual backup",
+      "started": "Started",
+      "empty": "No backups yet.",
+      "id": "Backup",
+      "status": "Status",
+      "size": "Estimated size",
+      "verification": "Verification",
+      "verify": "Verify",
+      "restore": "Restore…",
+      "integrity": "Integrity results",
+      "verified": "Verification of {id} recorded (simulated).",
+      "startedToast": "Backup {id} recorded (simulated — nothing was copied)."
+    },
+    "restores": {
+      "title": "Restore history",
+      "caption": "Test and full restores, newest first.",
+      "empty": "No restores yet.",
+      "modes": {
+        "test": "Test restore",
+        "full": "Full restore"
+      }
+    },
+    "wizard": {
+      "title": "Restore from {id}",
+      "step": "Step {n} of {total}: {name}",
+      "steps": {
+        "source": "Backup and mode",
+        "components": "Data to restore",
+        "impact": "Impact",
+        "confirm": "Confirm"
+      },
+      "simulated": "Simulated: no data will be read or changed.",
+      "mode": "Restore mode",
+      "modeHint": {
+        "test": "into an isolated area to prove the backup can be restored; live data is untouched.",
+        "full": "replaces live data with the backup contents."
+      },
+      "verifyFirst": "Verify this backup before a full restore.",
+      "components": "Data to restore",
+      "impactTitle": "What will happen",
+      "typeId": "Type the backup ID ({id}) to confirm",
+      "idMismatch": "The ID does not match.",
+      "ackFull": "I understand a full restore replaces live data and signs everyone out.",
+      "ackTest": "I confirm this test restore.",
+      "back": "Back",
+      "next": "Next",
+      "startFull": "Start full restore",
+      "startTest": "Start test restore",
+      "done": "Restore {id} recorded (simulated)."
+    },
+    "impact": {
+      "test": "The backup is restored into an isolated area and checked; users and live data are not affected.",
+      "downtime": "The application is put into maintenance mode; processing and ingestion pause during the restore.",
+      "newerLost": "Changes made after the backup was taken are replaced.",
+      "users": "Accounts, roles and MFA enrollments return to their backed-up state; everyone is signed out.",
+      "secrets": "PBX and email credentials are replaced with the backed-up (encrypted) values.",
+      "audit": "The audit history is restored and the restore itself is appended to it."
+    },
+    "migration": {
+      "title": "Migration readiness",
+      "caption": "Checked {at}.",
+      "overall": "Overall:",
+      "status": {
+        "ready": "Ready",
+        "attention": "Needs attention",
+        "blocked": "Blocked"
+      },
+      "checks": {
+        "recentBackup": "Recent backup",
+        "verified": "Verified backup",
+        "restoreTested": "Restore tested",
+        "coverage": "Data coverage",
+        "secrets": "Required secrets included",
+        "capacity": "Backup target capacity",
+        "backend": "Production backup service"
+      }
     }
   }
 }

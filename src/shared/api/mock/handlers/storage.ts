@@ -28,7 +28,7 @@ export function categoryUsage(state: MockState) {
   const gb = (mb: number) => Math.round((mb / 1024) * 100) / 100;
   const oldest = (dates: string[]) =>
     dates.length ? dates.reduce((a, b) => (a < b ? a : b)) : null;
-  const backupGb = state.backups ? state.backups.runs.reduce((s, r) => s + r.size_gb, 0) : 0;
+  const backupGb = state.backups.runs.reduce((s, r) => s + r.size_gb, 0);
   return {
     recordings: {
       used_gb: gb(withAudio.length * SIZE_MB.recording),

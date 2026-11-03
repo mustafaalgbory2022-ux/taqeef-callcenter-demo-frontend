@@ -1098,3 +1098,88 @@ export interface RecoveryItem {
   restoredAt: string | null;
   restoredBy: string | null;
 }
+
+/* Backup, restore and migration (Phase C) — simulated until the backend exists ------------ */
+
+export type BackupComponent =
+  | 'database'
+  | 'recordings'
+  | 'transcripts'
+  | 'evaluations'
+  | 'scorecards'
+  | 'users'
+  | 'settings'
+  | 'audit'
+  | 'secrets';
+
+export interface BackupSettingsInput {
+  targetVolumeId: string;
+  components: readonly BackupComponent[];
+  retentionCount: number;
+  schedule: 'manual' | 'daily';
+  scheduleTime: string;
+  changeNote: string;
+}
+
+export interface BackupSettings extends Omit<BackupSettingsInput, 'changeNote'> {
+  version: number;
+  /** Backups are always encrypted; secrets are only ever stored encrypted. */
+  encryptionRequired: true;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export type VerificationResult = 'simulated' | 'passed' | 'failed';
+
+export interface BackupRun {
+  id: string;
+  trigger: 'manual' | 'scheduled';
+  /** 'simulated' = nothing was copied; only the live backend reports 'completed'. */
+  status: 'simulated' | 'running' | 'completed' | 'failed';
+  startedAt: string;
+  finishedAt: string | null;
+  sizeGb: number;
+  components: readonly { component: BackupComponent; items: number; sizeGb: number }[];
+  verification: {
+    status: 'not_verified' | 'simulated' | 'passed' | 'failed';
+    checkedAt: string | null;
+    results: readonly { component: BackupComponent; result: VerificationResult; detail: string }[];
+  };
+  note: string;
+  startedBy: string;
+  simulated: boolean;
+}
+
+export interface RestoreRequest {
+  backupId: string;
+  mode: 'test' | 'full';
+  components: readonly BackupComponent[];
+  /** Full restores must repeat the backup id. */
+  confirmText: string;
+}
+
+export interface RestoreRun {
+  id: string;
+  backupId: string;
+  mode: 'test' | 'full';
+  components: readonly BackupComponent[];
+  status: 'simulated' | 'running' | 'completed' | 'failed';
+  startedAt: string;
+  finishedAt: string | null;
+  message: string;
+  startedBy: string;
+  simulated: boolean;
+}
+
+export interface MigrationCheck {
+  id: string;
+  status: 'ready' | 'attention' | 'blocked';
+  detail: string;
+}
+
+export interface MigrationReadiness {
+  generatedAt: string;
+  simulated: boolean;
+  overall: 'ready' | 'attention' | 'blocked';
+  checks: readonly MigrationCheck[];
+}

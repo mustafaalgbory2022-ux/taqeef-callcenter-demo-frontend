@@ -531,3 +531,40 @@ describe('simulated storage and retention', () => {
     expect(actions).toEqual(['restored', 'soft_deleted', 'soft_deleted']);
   });
 });
+
+describe('simulated backup, restore and migration', () => {
+  it('never claims real backups and gates full restores', async () => {
+    const s = await api.backups.settings();
+    expect(s).toMatchObject({ encryptionRequired: true, schedule: 'manual' });
+    await expect(
+      api.backups.saveSettings({ ...s, components: ['recordings'], changeNote: 'drop data' }),
+    ).rejects.toMatchObject({ code: 'validation_error' });
+    const run = await api.backups.start('Before migration test');
+    expect(run).toMatchObject({
+      status: 'simulated',
+      simulated: true,
+      verification: { status: 'not_verified' },
+    });
+    expect(run.components.map((c) => c.component)).toContain('secrets');
+    expect(JSON.stringify(run)).not.toMatch(/synthetic-secret/);
+    const full = {
+      backupId: run.id,
+      mode: 'full' as const,
+      components: ['database' as const],
+      confirmText: run.id,
+    };
+    await expect(api.backups.restore(full)).rejects.toMatchObject({ code: 'conflict' }); // unverified
+    const verified = await api.backups.verify(run.id);
+    expect(verified.verification.status).toBe('simulated');
+    expect(verified.verification.results.every((r) => r.result === 'simulated')).toBe(true);
+    await expect(api.backups.restore({ ...full, confirmText: 'wrong' })).rejects.toMatchObject({
+      code: 'validation_error',
+    });
+    const restored = await api.backups.restore(full);
+    expect(restored.status).toBe('simulated');
+    await api.backups.restore({ ...full, mode: 'test', confirmText: '' });
+    const readiness = await api.backups.migrationReadiness();
+    expect(readiness.overall).toBe('blocked'); // the production backup service is not connected
+    expect(readiness.checks.find((c) => c.id === 'restoreTested')?.status).toBe('attention');
+  });
+});

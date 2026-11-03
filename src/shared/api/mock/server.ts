@@ -7,6 +7,7 @@ import { dictionaryRoutes } from './handlers/dictionary';
 import { notificationRoutes } from './handlers/notifications';
 import { pbxRoutes } from './handlers/pbx';
 import { reportSettingsRoutes } from './handlers/reportSettings';
+import { backupRoutes } from './handlers/backups';
 import { storageRoutes } from './handlers/storage';
 import { userRoutes } from './handlers/users';
 import { callRoutes } from './handlers/calls';
@@ -137,6 +138,7 @@ export function createMockTransport({ latencyMs = 160 }: MockTransportOptions = 
     ...reportSettingsRoutes(state, persist),
     ...userRoutes(state, syntheticSession.permissions, persist),
     ...storageRoutes(state, persist),
+    ...backupRoutes(state, persist),
   ];
 
   return async (req) => {
