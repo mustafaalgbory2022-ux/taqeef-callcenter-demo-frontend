@@ -1,3 +1,4 @@
+import { isRecoverable } from './storage';
 import { cachedAudioUrl, registerUploadedAudio, synthesizeCallAudio } from '../audio';
 import { nextId } from '../db';
 import { refreshUpload } from '../processing';
@@ -18,6 +19,8 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
   });
 
   const withAudio = (call: WireCall): WireCall => {
+    // A recording moved to recovery is not served until it is restored.
+    if (isRecoverable(state, 'recording', call.id)) return withReview({ ...call, audio_url: null });
     if (call.source === 'upload')
       return withReview({ ...call, audio_url: cachedAudioUrl(call.id) });
     const transcript = state.transcripts[call.id];
@@ -84,6 +87,8 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
       handler: ({ params }) => {
         refreshAll();
         if (!state.calls.some((c) => c.id === params.id)) return fail(404, 'Call not found.');
+        if (isRecoverable(state, 'transcript', params.id ?? ''))
+          return fail(404, 'This transcript is in the recovery area.');
         const transcript = state.transcripts[params.id ?? ''];
         return transcript ? ok(transcript) : fail(409, 'Transcript is not ready yet.');
       },

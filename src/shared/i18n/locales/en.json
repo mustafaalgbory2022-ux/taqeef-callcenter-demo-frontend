@@ -34,7 +34,8 @@
     "audit": "Audit log",
     "users": "Users and roles",
     "security": "Authentication and MFA",
-    "account": "My account security"
+    "account": "My account security",
+    "storage": "Storage and retention"
   },
   "common": {
     "outOfTen": "/ 10",
@@ -1923,6 +1924,104 @@
         "mixed": "Upper- and lower-case letters, a digit and a symbol",
         "username": "Does not contain your username"
       }
+    }
+  },
+  "storage": {
+    "title": "Storage and retention",
+    "description": "Disk usage and capacity, storage locations, retention rules and the audited recovery area.",
+    "syntheticTitle": "Simulated storage",
+    "syntheticBody": "Volumes, paths and sizes are synthetic estimates. No file is moved, deleted or restored in the browser.",
+    "recent": "Recent recovery actions",
+    "kinds": {
+      "local": "Local disk",
+      "network": "Network share"
+    },
+    "status": {
+      "ok": "OK",
+      "warning": "Warning",
+      "critical": "Critical",
+      "unavailable": "Unavailable"
+    },
+    "categories": {
+      "recordings": "Recordings",
+      "transcripts": "Transcripts",
+      "evaluations": "QA evaluations and KPI results",
+      "reports": "Reports",
+      "logs": "Logs and audit history",
+      "backups": "Backups"
+    },
+    "overview": {
+      "title": "Storage overview",
+      "caption": "Warning at {w} %, critical at {c} % of capacity.",
+      "used": "{used} of {total} GB ({pct} %)",
+      "unavailable": "Not reachable",
+      "capacityWarning": "One or more volumes are running out of space. Add capacity or move a category to another location.",
+      "categories": "Usage by category",
+      "category": "Category",
+      "items": "Items",
+      "size": "Size",
+      "location": "Location",
+      "oldest": "Oldest item",
+      "estimate": "Sizes are estimated from the synthetic dataset."
+    },
+    "settings": {
+      "title": "Locations and retention",
+      "caption": "Version v{v}. Each save creates a new version.",
+      "saved": "Storage settings saved as v{v}.",
+      "noAutoDelete": "Nothing is deleted automatically. By default every category is kept; an expiry rule only moves items to the recovery area, never deletes them permanently.",
+      "retention": "Retention",
+      "days": "Days",
+      "keep": "Keep (no automatic action)",
+      "recoverAfter": "Move to recovery after",
+      "locationFor": "Location for {c}",
+      "retentionFor": "Retention for {c}",
+      "daysFor": "Days for {c}",
+      "confirmTitle": "Confirm high-risk storage changes",
+      "confirmAck": "I understand the impact of these storage changes.",
+      "moveWarning": "{c}: new items are written to the new location; existing items are migrated by the backend in a monitored job.",
+      "expiryWarning": "{c}: items older than {n} days will be moved to recovery and stay restorable for {w} days."
+    },
+    "errors": {
+      "location": "Choose a storage location.",
+      "unavailable": "This location is unavailable.",
+      "days": "Enter 90 to 3650 days.",
+      "changeNote": "Describe the change (at least 3 characters).",
+      "itemId": "Enter the item ID."
+    },
+    "recovery": {
+      "title": "Recovery area",
+      "caption": "Items moved here are hidden but restorable. Every move and restore is audited.",
+      "moveTitle": "Move an item to recovery",
+      "type": "Item type",
+      "types": {
+        "recording": "Recording",
+        "transcript": "Transcript",
+        "report": "Report"
+      },
+      "itemId": "Item ID",
+      "itemIdHint": "Call ID (e.g. DEMO-002) or report ID.",
+      "reason": "Reason",
+      "move": "Move to recovery",
+      "empty": "The recovery area is empty.",
+      "item": "Item",
+      "moved": "Moved by",
+      "status": {
+        "recoverable": "Recoverable",
+        "restored": "Restored"
+      },
+      "restore": "Restore",
+      "confirmTitle": "Move {id} to recovery?",
+      "confirmAck": "I confirm this item should be hidden until restored.",
+      "impact": {
+        "recording": "The recording can no longer be played. Transcript, evaluations and statistics are kept.",
+        "transcript": "The transcript is hidden from the call page. Evaluations are kept.",
+        "report": "The report disappears from report history."
+      },
+      "movedToast": "{id} was moved to recovery.",
+      "restoreTitle": "Restore {id}?",
+      "restoreBody": "The item becomes available again exactly as before.",
+      "restoredToast": "{id} was restored.",
+      "noPurge": "Permanent deletion is not available here: it requires an approved retention policy and is performed by the backend with its own audit."
     }
   }
 }

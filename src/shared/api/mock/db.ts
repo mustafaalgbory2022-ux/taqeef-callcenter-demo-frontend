@@ -3,6 +3,7 @@ import { agents, initialAudit, queues } from './fixtures/agents';
 import { aiModels, initialAiConfig, seedAiJobs } from './fixtures/ai';
 import { initialConnector, pbxVendors } from './fixtures/pbx';
 import { initialReportSettings } from './fixtures/reports';
+import { initialStorageSettings, volumes } from './fixtures/storage';
 import { initialPolicy, seedSecurityEvents, seedSessions, seedUsers } from './fixtures/users';
 import { deliveries, initialSender, reportEmail, rules, templates } from './fixtures/notifications';
 import { corrections, dictionaryEntries, initialVersions } from './fixtures/dictionary';
@@ -66,6 +67,11 @@ export function createSeedState(): MockState {
       sessions: seedSessions(Date.now()),
       policy: structuredClone(initialPolicy),
       enrollment: null,
+    },
+    storage: {
+      volumes: structuredClone(volumes),
+      settings: structuredClone(initialStorageSettings),
+      recovery: [],
     },
     seq: 100,
   };

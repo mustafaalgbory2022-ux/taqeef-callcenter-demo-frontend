@@ -1,3 +1,4 @@
+import { isRecoverable } from './storage';
 import { recordReportDelivery } from './notifications';
 import type { GeneratedData } from '../generate';
 import { generateLiveStatus } from '../generate/live';
@@ -116,7 +117,13 @@ export function operationsRoutes(
         return ok(drawSample(state, b.agent_ids, b.from, b.to, count, minMs));
       },
     },
-    { method: 'GET', pattern: '/reports', handler: () => ok([...state.reports].reverse()) },
+    {
+      method: 'GET',
+      pattern: '/reports',
+      // Reports moved to recovery are hidden from history until restored.
+      handler: () =>
+        ok([...state.reports].reverse().filter((r) => !isRecoverable(state, 'report', r.id))),
+    },
     {
       method: 'POST',
       pattern: '/reports',

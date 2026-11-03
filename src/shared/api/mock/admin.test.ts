@@ -475,3 +475,59 @@ describe('simulated users, roles and authentication', () => {
     expect(JSON.stringify(await api.audit.list())).not.toContain('123456');
   });
 });
+
+describe('simulated storage and retention', () => {
+  it('keeps everything by default and confirms risky changes', async () => {
+    const s = await api.storage.settings();
+    expect(s.automaticPermanentDeletion).toBe(false);
+    expect(s.retention.every((r) => r.mode === 'keep')).toBe(true);
+    const overview = await api.storage.overview();
+    expect(overview.categories.find((c) => c.category === 'recordings')?.items).toBeGreaterThan(
+      200,
+    );
+    const input = {
+      locations: s.locations,
+      retention: s.retention.map((r) =>
+        r.category === 'logs' ? { ...r, mode: 'recover_after' as const, days: 400 } : r,
+      ),
+      changeNote: 'Expire old logs',
+    };
+    await expect(api.storage.saveSettings(input, false)).rejects.toMatchObject({
+      code: 'conflict',
+    });
+    await expect(
+      api.storage.saveSettings(
+        {
+          ...input,
+          retention: input.retention.map((r) => ({
+            ...r,
+            mode: 'recover_after' as const,
+            days: 10,
+          })),
+        },
+        true,
+      ),
+    ).rejects.toMatchObject({ code: 'validation_error' });
+    expect((await api.storage.saveSettings(input, true)).version).toBe(2);
+  });
+
+  it('moves items to recovery (hiding them) and restores them with audit', async () => {
+    await expect(
+      api.storage.moveToRecovery('recording', 'NOPE-1', 'Customer asked for removal'),
+    ).rejects.toMatchObject({ code: 'validation_error' });
+    const item = await api.storage.moveToRecovery(
+      'recording',
+      'DEMO-002',
+      'Synthetic removal request #7',
+    );
+    expect((await api.getCall('DEMO-002')).audioUrl).toBeNull();
+    await expect(
+      api.storage.moveToRecovery('recording', 'DEMO-002', 'Synthetic removal request #7'),
+    ).rejects.toMatchObject({ code: 'conflict' });
+    await api.storage.moveToRecovery('transcript', 'DEMO-002', 'Synthetic removal request #7');
+    await expect(api.getTranscript('DEMO-002')).rejects.toMatchObject({ code: 'not_found' });
+    expect((await api.storage.restore(item.id)).status).toBe('restored');
+    const actions = (await api.audit.list({ resource: 'storage_item' })).map((e) => e.action);
+    expect(actions).toEqual(['restored', 'soft_deleted', 'soft_deleted']);
+  });
+});

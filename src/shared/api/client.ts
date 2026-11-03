@@ -31,6 +31,7 @@ import { createDictionaryApi, type DictionaryApi } from './adapters/dictionary';
 import { createNotificationsApi, type NotificationsApi } from './adapters/notifications';
 import { createPbxAdminApi, type PbxAdminApi } from './adapters/pbx';
 import { createReportSettingsApi, type ReportSettingsApi } from './adapters/reportSettings';
+import { createStorageApi, type StorageApi } from './adapters/storage';
 import { createAuthApi, createUsersApi, type AuthApi, type UsersApi } from './adapters/users';
 import { createQueueAdminApi, type QueueAdminApi } from './adapters/queues';
 import { ApiError } from './errors';
@@ -132,6 +133,7 @@ export interface ApiClient {
   readonly reportSettings: ReportSettingsApi;
   readonly users: UsersApi;
   readonly auth: AuthApi;
+  readonly storage: StorageApi;
 }
 
 export function createApiClient(transport: Transport, mode: ApiMode): ApiClient {
@@ -155,6 +157,7 @@ export function createApiClient(transport: Transport, mode: ApiMode): ApiClient 
     reportSettings: createReportSettingsApi(send),
     users: createUsersApi(send),
     auth: createAuthApi(send),
+    storage: createStorageApi(send),
     async getSession() {
       try {
         return await send({ method: 'GET', path: endpoints.session }, wireSession, sessionFromWire);

@@ -1,0 +1,32 @@
+.wrap {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.track {
+  block-size: 0.5rem;
+  border-radius: var(--radius-md);
+  background: var(--color-score-track);
+  overflow: hidden;
+}
+
+.bar {
+  block-size: 100%;
+  background: var(--color-success);
+}
+
+.warning {
+  background: var(--color-warning);
+}
+
+.critical {
+  background: var(--color-danger);
+}
+
+.label {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}

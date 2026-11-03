@@ -15,6 +15,7 @@ export function createFormatters(lang: Language) {
     });
   const integer = nf(0, 0);
   const twoDp = nf(2, 2);
+  const upTo2 = nf(0, 2);
   const date = new Intl.DateTimeFormat(locale(lang), {
     numberingSystem: NUMBERING_SYSTEM,
     dateStyle: 'medium',
@@ -27,6 +28,8 @@ export function createFormatters(lang: Language) {
 
   return {
     integer: (v: number) => integer.format(v),
+    /** Quantities such as GB or percentages: up to two decimals (not a score). */
+    number: (v: number) => upTo2.format(v),
     /** Scores: two decimals, always rounded down. */
     score: (v: number) => twoDp.format(floorTo2(v)),
     /** Signed difference between two scores, e.g. +0.21 / −1.50 (each floored first). */

@@ -1028,3 +1028,73 @@ export interface RecoveryCodesResult {
   simulated: boolean;
   message: string;
 }
+
+/* Storage and retention (Phase C) --------------------------------------------------------- */
+
+export type StorageCategory =
+  'recordings' | 'transcripts' | 'evaluations' | 'reports' | 'logs' | 'backups';
+export type VolumeStatus = 'ok' | 'warning' | 'critical' | 'unavailable';
+
+export interface StorageVolume {
+  id: string;
+  name: string;
+  path: string;
+  kind: 'local' | 'network';
+  totalGb: number;
+  usedGb: number;
+  status: VolumeStatus;
+}
+
+export interface StorageCategoryUsage {
+  category: StorageCategory;
+  usedGb: number;
+  items: number;
+  volumeId: string;
+  oldestItemAt: string | null;
+}
+
+export interface StorageOverview {
+  generatedAt: string;
+  simulated: boolean;
+  warningPct: number;
+  criticalPct: number;
+  volumes: readonly StorageVolume[];
+  categories: readonly StorageCategoryUsage[];
+}
+
+export interface RetentionRule {
+  category: StorageCategory;
+  /** 'keep' = never removed automatically (default). Expiry only moves items to recovery. */
+  mode: 'keep' | 'recover_after';
+  days: number | null;
+}
+
+export interface StorageSettingsInput {
+  locations: Readonly<Record<StorageCategory, string>>;
+  retention: readonly RetentionRule[];
+  changeNote: string;
+}
+
+export interface StorageSettings extends Omit<StorageSettingsInput, 'changeNote'> {
+  version: number;
+  /** Permanent deletion is never automatic. */
+  automaticPermanentDeletion: false;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export type RecoverableType = 'recording' | 'transcript' | 'report';
+
+export interface RecoveryItem {
+  id: string;
+  itemType: RecoverableType;
+  itemId: string;
+  label: string;
+  reason: string;
+  sizeMb: number;
+  status: 'recoverable' | 'restored';
+  deletedAt: string;
+  deletedBy: string;
+  restoredAt: string | null;
+  restoredBy: string | null;
+}

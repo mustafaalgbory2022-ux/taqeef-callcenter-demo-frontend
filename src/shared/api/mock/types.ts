@@ -1,5 +1,6 @@
 import type { Decoded } from '../decode';
 import type { WireReportSettings } from './fixtures/reports';
+import type { WireRecoveryItem, WireStorageSettings, WireVolume } from './fixtures/storage';
 import type { WireAuthSession, WirePolicy, WireUser } from './fixtures/users';
 import type { WireAiConfig, WireAiJob, WireAiModel } from './fixtures/ai';
 import type { WirePbxConnector, WirePbxSync, WirePbxVendor } from './fixtures/pbx';
@@ -91,5 +92,8 @@ export interface MockState {
     policy: WirePolicy;
     enrollment: { id: string; expires_at: string } | null;
   };
+  storage: { volumes: WireVolume[]; settings: WireStorageSettings; recovery: WireRecoveryItem[] };
+  /** Added in the backup group; optional so storage usage works without it. */
+  backups?: { runs: { size_gb: number; started_at: string }[] };
   seq: number;
 }
