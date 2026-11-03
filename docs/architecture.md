@@ -27,6 +27,13 @@ src/
     pbx-admin/               PBX connectors; vendors/ = replaceable vendor form adapters (Phase B)
     notifications/           Microsoft 365 sender, rules, templates, deliveries (Phase B)
     reports/                 + report configuration and manual weekly generation (Phase B)
+    audit-log/               Searchable audit log with audited export (Phase C)
+    users/                   Accounts, roles, permission matrix, effective access (Phase C)
+    security/                Sign-in policy, sessions, lockouts, MFA enrollment, password (Phase C)
+    storage/                 Capacity, locations, retention, recovery area (Phase C)
+    backups/                 Backup config/history, restore wizard, migration readiness (Phase C)
+    system/                  Health, resources, workers, error log (Phase C)
+    general/                 Application settings and runtime branding (Phase C)
   shared/
     api/                     ApiClient, transport, endpoints, wire mappers, errors, query cache
       adapters/              One typed, replaceable adapter per administration area (Phase B)
@@ -54,9 +61,11 @@ Inside a feature: `pages/` (route components), `components/` (presentation),
    `calls → evaluations, agents, scorecards`; `evaluations → scorecards, agents`;
    `agents`, `scorecards`, `settings` → shared only. Phase B: `queues`, `pbx-admin`,
    `notifications` → `agents`; `ai-admin` → `scorecards`; `dictionary` → shared only;
-   `reports` → `agents, dashboard, evaluations, scorecards`.
+   `reports` → `agents, dashboard, evaluations, scorecards`. Phase C: `security` → `users`;
+   `system` → `ai-admin`; `audit-log`, `users`, `storage`, `backups`, `general` → shared only.
 4. Rules used by both a form and the simulated backend live in `shared/utils/*Rules.ts`
-   (`aiRules`, `dictionaryRules`, `pbxRules`, `emailRules`, `reportRules`, `arabic`).
+   (`aiRules`, `dictionaryRules`, `pbxRules`, `emailRules`, `reportRules`, `arabic`; Phase C:
+   `securityRules`, `storageRules`, `backupRules`, `brandingRules`, `color`, `redact`).
 5. UI components never call `fetch` and never compute scores or aggregates. Business
    rules live in `model/` or `shared/utils/` and are unit-tested.
 

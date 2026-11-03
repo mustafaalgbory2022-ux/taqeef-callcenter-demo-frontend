@@ -81,3 +81,34 @@ destructive (server 409 without `confirm`), and audited in the append-only log
   custom-range generation; automatic scheduling locked (server 403).
 - Tests: 111 unit; Playwright adds one spec per module and axe on the six new pages
   (EN/AR × light/dark, desktop + mobile).
+
+## Phase C checkpoint
+
+Frontend complete against the simulated backend; **production security, storage and backup
+behaviour must be implemented and enforced by the local backend** (see
+`docs/backend-operations.md`). Every screen labels simulated operations; nothing claims a real
+MFA secret, recovery code, verified email, successful backup or restore.
+
+- ✅ Audit log (`/admin/audit`): search, filters (object, action, result, actor, dates),
+  pagination, change details, result and correlation ID per entry, permission-gated Excel export
+  that is itself audited. Read-only.
+- ✅ Users and roles (`/admin/users`): administrator and read-only/export roles, unique
+  username/email, no agent accounts, permission matrix and effective access; confirmations for
+  role/email changes, disable and password reset; self/last-admin protections (denials audited);
+  MFA reset with reason by another administrator; unlock; verification email (simulated).
+- ✅ Authentication and MFA (`/admin/security`, `/account/security`): demo launch code vs
+  production password + TOTP distinguished, versioned sign-in policy (MFA mandatory), sessions
+  with revoke, lockouts, security events, recovery workflow; enrollment wizard (no secret/QR is
+  produced), recovery codes never generated, password change with live policy checklist.
+- ✅ Storage and retention (`/admin/storage`): capacity meters, usage by category, versioned
+  locations and retention (keep by default; expiry only moves to recovery), audited recovery area
+  that really hides recordings/transcripts/reports until restored; no permanent purge.
+- ✅ Backup, restore and migration (`/admin/backups`): versioned configuration (core components
+  and encryption locked), manual backup and verification (always "simulated"), four-step restore
+  wizard (test vs full; full needs verification + typed ID), restore history, readiness checklist.
+- ✅ System health (`/admin/health`): services, CPU/RAM/GPU/disk gauges, workers, job queue with
+  retry controls, PBX/email health, sanitized error log with severity, correlation IDs and audited
+  acknowledgement; shared redaction utility.
+- ✅ General and branding (`/admin/general`): versioned application defaults and branding
+  (local `/brand/` assets, contrast-checked colours, approval reference) served at runtime via
+  `GET /branding`; neutral placeholder by default.
