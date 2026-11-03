@@ -36,6 +36,8 @@ export type Permission =
 
 export interface Session {
   mode: 'mock' | 'live';
+  /** Account id of the signed-in user (null for older backends). */
+  userId: string | null;
   displayName: string;
   permissions: readonly Permission[];
   expiresAt: string | null;
@@ -924,4 +926,105 @@ export interface ReportRun {
   sample: AudioSample;
   delivery: DeliveryRecord | null;
   settingsVersion: number;
+}
+
+/* Users, roles and production authentication (Phase C) ---------------------------------- */
+
+/** Admin, or read-only with export. Agents never get accounts (no agent self-service). */
+export type UserRole = 'admin' | 'viewer';
+export type EmailStatus = 'unverified' | 'verification_sent' | 'verified';
+export type MfaState = 'not_enrolled' | 'pending' | 'enrolled';
+
+export interface UserAccount {
+  id: string;
+  username: string;
+  displayName: string;
+  email: string;
+  emailStatus: EmailStatus;
+  role: UserRole;
+  status: 'active' | 'disabled';
+  locked: boolean;
+  lockedUntil: string | null;
+  failedAttempts: number;
+  mfaState: MfaState;
+  mfaEnrolledAt: string | null;
+  /** Remaining unused recovery codes as reported by the backend; never the codes themselves. */
+  recoveryCodesRemaining: number | null;
+  mustChangePassword: boolean;
+  passwordSetAt: string | null;
+  lastLoginAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  synthetic: boolean;
+}
+
+export interface UserInput {
+  username: string;
+  displayName: string;
+  email: string;
+  role: UserRole;
+}
+
+export interface RoleDefinition {
+  id: UserRole;
+  permissions: readonly Permission[];
+}
+
+export interface AuthSession {
+  id: string;
+  userId: string;
+  username: string;
+  /** The demo launch-code session is not production authentication. */
+  kind: 'demo_launch_code' | 'password_mfa';
+  createdAt: string;
+  lastSeenAt: string;
+  expiresAt: string;
+  ipMasked: string;
+  client: string;
+  current: boolean;
+  simulated: boolean;
+}
+
+export interface SecurityPolicyInput {
+  minPasswordLength: number;
+  requireMixedCharacters: boolean;
+  passwordHistory: number;
+  lockoutThreshold: number;
+  lockoutMinutes: number;
+  sessionIdleMinutes: number;
+  sessionMaxHours: number;
+  changeNote: string;
+}
+
+export interface SecurityPolicy extends Omit<SecurityPolicyInput, 'changeNote'> {
+  version: number;
+  /** Mandatory TOTP MFA (Microsoft Authenticator compatible) — not configurable. */
+  mfaRequired: true;
+  updatedAt: string;
+  updatedBy: string;
+}
+
+export interface AccountMfa {
+  state: MfaState;
+  enrolledAt: string | null;
+  recoveryCodesRemaining: number | null;
+  simulated: boolean;
+}
+
+export interface MfaEnrollment {
+  enrollmentId: string;
+  issuer: string;
+  accountLabel: string;
+  /** Whether the backend supplied a QR code/secret. Always false in the simulation. */
+  secretAvailable: boolean;
+  expiresAt: string;
+  simulated: boolean;
+}
+
+export interface RecoveryCodesResult {
+  /** True only when the backend actually generated codes. Never true in the simulation. */
+  generated: boolean;
+  codes: readonly string[];
+  simulated: boolean;
+  message: string;
 }

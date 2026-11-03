@@ -31,6 +31,7 @@ import { createDictionaryApi, type DictionaryApi } from './adapters/dictionary';
 import { createNotificationsApi, type NotificationsApi } from './adapters/notifications';
 import { createPbxAdminApi, type PbxAdminApi } from './adapters/pbx';
 import { createReportSettingsApi, type ReportSettingsApi } from './adapters/reportSettings';
+import { createAuthApi, createUsersApi, type AuthApi, type UsersApi } from './adapters/users';
 import { createQueueAdminApi, type QueueAdminApi } from './adapters/queues';
 import { ApiError } from './errors';
 import { createSend, listOf as listPair } from './send';
@@ -129,6 +130,8 @@ export interface ApiClient {
   readonly pbx: PbxAdminApi;
   readonly notifications: NotificationsApi;
   readonly reportSettings: ReportSettingsApi;
+  readonly users: UsersApi;
+  readonly auth: AuthApi;
 }
 
 export function createApiClient(transport: Transport, mode: ApiMode): ApiClient {
@@ -150,6 +153,8 @@ export function createApiClient(transport: Transport, mode: ApiMode): ApiClient 
     pbx: createPbxAdminApi(send),
     notifications: createNotificationsApi(send),
     reportSettings: createReportSettingsApi(send),
+    users: createUsersApi(send),
+    auth: createAuthApi(send),
     async getSession() {
       try {
         return await send({ method: 'GET', path: endpoints.session }, wireSession, sessionFromWire);

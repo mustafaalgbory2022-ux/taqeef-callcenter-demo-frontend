@@ -390,3 +390,88 @@ describe('simulated audit log', () => {
     expect(latest).toMatchObject({ action: 'exported' });
   });
 });
+
+describe('simulated users, roles and authentication', () => {
+  it('enforces unique emails, no agent accounts and last-admin/self protections', async () => {
+    await expect(
+      api.users.create({
+        username: 'new.user',
+        displayName: 'New',
+        email: 'QUALITY.LEAD@example.invalid',
+        role: 'viewer',
+      }),
+    ).rejects.toMatchObject({ code: 'validation_error' });
+    await expect(
+      api.users.create({
+        username: 'agent.a',
+        displayName: 'Agent',
+        email: 'a@example.invalid',
+        role: 'agent' as never,
+      }),
+    ).rejects.toMatchObject({ code: 'validation_error' });
+    const created = await api.users.create({
+      username: 'new.user',
+      displayName: 'New',
+      email: 'new@example.invalid',
+      role: 'viewer',
+    });
+    expect(created).toMatchObject({
+      emailStatus: 'verification_sent',
+      mfaState: 'not_enrolled',
+      mustChangePassword: true,
+    });
+    await expect(api.users.setStatus('usr-admin', 'disabled')).rejects.toMatchObject({
+      code: 'conflict',
+    });
+    await expect(
+      api.users.update('usr-supervisor', { role: 'viewer' }, false),
+    ).rejects.toMatchObject({ code: 'conflict' });
+    await api.users.update('usr-supervisor', { role: 'viewer' }, true);
+    // usr-admin is now the only active admin and cannot demote themself.
+    await expect(api.users.update('usr-admin', { role: 'viewer' }, true)).rejects.toMatchObject({
+      code: 'conflict',
+    });
+    const denied = await api.audit.list({ resource: 'user', result: 'denied' });
+    expect(denied.length).toBeGreaterThan(0);
+  });
+
+  it('resets passwords and MFA with the required authorization and revokes sessions', async () => {
+    await expect(api.users.resetPassword('usr-ops')).rejects.toMatchObject({ code: 'conflict' }); // unverified email
+    await expect(api.users.resetMfa('usr-admin', 'Lost my phone yesterday')).rejects.toMatchObject({
+      code: 'forbidden',
+    });
+    await expect(api.users.resetMfa('usr-viewer', 'short')).rejects.toMatchObject({
+      code: 'validation_error',
+    });
+    const reset = await api.users.resetMfa(
+      'usr-viewer',
+      'Ticket SYN-42: lost phone, identity checked',
+    );
+    expect(reset).toMatchObject({ mfaState: 'not_enrolled', recoveryCodesRemaining: null });
+    expect((await api.auth.sessions()).some((s) => s.userId === 'usr-viewer')).toBe(false);
+    await expect(api.auth.revokeSession('sess-demo')).rejects.toMatchObject({ code: 'conflict' });
+    const unlocked = await api.users.unlock('usr-ops');
+    expect(unlocked.locked).toBe(false);
+  });
+
+  it('keeps MFA mandatory and never generates secrets or recovery codes', async () => {
+    const policy = await api.auth.policy();
+    expect(policy.mfaRequired).toBe(true);
+    await expect(
+      api.auth.savePolicy({ ...policy, sessionIdleMinutes: 700, changeNote: 'x' }),
+    ).rejects.toMatchObject({
+      code: 'validation_error',
+    });
+    const enrollment = await api.auth.startEnrollment();
+    expect(enrollment).toMatchObject({ secretAvailable: false, simulated: true });
+    await expect(
+      api.auth.verifyEnrollment(enrollment.enrollmentId, '12ab56'),
+    ).rejects.toMatchObject({ code: 'validation_error' });
+    expect((await api.auth.verifyEnrollment(enrollment.enrollmentId, '123456')).state).toBe(
+      'enrolled',
+    );
+    const codes = await api.auth.regenerateRecoveryCodes();
+    expect(codes).toMatchObject({ generated: false, codes: [], simulated: true });
+    expect(JSON.stringify(await api.audit.list())).not.toContain('123456');
+  });
+});

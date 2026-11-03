@@ -3,6 +3,7 @@ import { agents, initialAudit, queues } from './fixtures/agents';
 import { aiModels, initialAiConfig, seedAiJobs } from './fixtures/ai';
 import { initialConnector, pbxVendors } from './fixtures/pbx';
 import { initialReportSettings } from './fixtures/reports';
+import { initialPolicy, seedSecurityEvents, seedSessions, seedUsers } from './fixtures/users';
 import { deliveries, initialSender, reportEmail, rules, templates } from './fixtures/notifications';
 import { corrections, dictionaryEntries, initialVersions } from './fixtures/dictionary';
 import { callFixtures } from './fixtures/calls';
@@ -60,9 +61,15 @@ export function createSeedState(): MockState {
       deliveries: structuredClone(deliveries),
     },
     reportSettings: structuredClone(initialReportSettings),
+    security: {
+      users: seedUsers(Date.now()),
+      sessions: seedSessions(Date.now()),
+      policy: structuredClone(initialPolicy),
+      enrollment: null,
+    },
     seq: 100,
   };
-  state.adminAudit = seedAdminAudit(state);
+  state.adminAudit = [...seedSecurityEvents(Date.now()), ...seedAdminAudit(state)];
 
   callFixtures.forEach((f, i) => {
     const recorded = Date.parse(f.call.recorded_at);

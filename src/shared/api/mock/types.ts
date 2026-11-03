@@ -1,5 +1,6 @@
 import type { Decoded } from '../decode';
 import type { WireReportSettings } from './fixtures/reports';
+import type { WireAuthSession, WirePolicy, WireUser } from './fixtures/users';
 import type { WireAiConfig, WireAiJob, WireAiModel } from './fixtures/ai';
 import type { WirePbxConnector, WirePbxSync, WirePbxVendor } from './fixtures/pbx';
 import type {
@@ -84,5 +85,11 @@ export interface MockState {
     deliveries: WireDelivery[];
   };
   reportSettings: WireReportSettings;
+  security: {
+    users: WireUser[];
+    sessions: WireAuthSession[];
+    policy: WirePolicy;
+    enrollment: { id: string; expires_at: string } | null;
+  };
   seq: number;
 }

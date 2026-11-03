@@ -31,7 +31,10 @@
     "notifications": "Notifications and email",
     "reportSettings": "Report configuration",
     "system": "Security and system",
-    "audit": "Audit log"
+    "audit": "Audit log",
+    "users": "Users and roles",
+    "security": "Authentication and MFA",
+    "account": "My account security"
   },
   "common": {
     "outOfTen": "/ 10",
@@ -1589,6 +1592,337 @@
       "audit_log": "Audit log",
       "app_settings": "Application settings",
       "branding": "Branding"
+    }
+  },
+  "users": {
+    "title": "Users and roles",
+    "description": "Accounts for administrators and read-only/export users. Each account has a unique email and mandatory MFA. Agents are data, not users.",
+    "add": "Add user",
+    "syntheticTitle": "Synthetic accounts",
+    "syntheticBody": "Accounts, email verification states and MFA states are synthetic. No password, one-time code or recovery code exists in the browser; resets and verification emails are recorded as simulated.",
+    "listTitle": "Accounts",
+    "listCaption": "{n} accounts · {admins} active administrators",
+    "recent": "Recent account changes",
+    "fields": {
+      "displayName": "Name",
+      "username": "Username",
+      "email": "Email",
+      "role": "Role"
+    },
+    "roles": {
+      "admin": "Administrator",
+      "viewer": "Read-only and export"
+    },
+    "status": {
+      "active": "Active",
+      "disabled": "Disabled",
+      "locked": "Locked"
+    },
+    "emailStatus": {
+      "verified": "Verified",
+      "verification_sent": "Verification pending",
+      "unverified": "Not verified"
+    },
+    "mfa": {
+      "enrolled": "MFA enrolled",
+      "pending": "Enrollment pending",
+      "not_enrolled": "Not enrolled"
+    },
+    "table": {
+      "label": "User accounts",
+      "account": "Account",
+      "mfa": "MFA",
+      "lastLogin": "Last sign-in",
+      "you": "You",
+      "access": "Access",
+      "mustChange": "Must set a new password"
+    },
+    "errors": {
+      "username": "Use 3–32 lowercase letters, digits, dots, hyphens or underscores, starting with a letter.",
+      "usernameTaken": "This username is already taken.",
+      "name": "Enter a name of up to 80 characters.",
+      "email": "Enter a valid email address.",
+      "emailTaken": "Another account already uses this email address.",
+      "reason": "Give a reason of at least {n} characters."
+    },
+    "protected": {
+      "self": "You cannot disable or change the role of your own account.",
+      "lastAdmin": "At least one active administrator must remain."
+    },
+    "form": {
+      "createTitle": "Add user",
+      "editTitle": "Edit {name}",
+      "usernameHint": "Used to sign in.",
+      "emailHint": "Must be unique and verified before first sign-in.",
+      "roleHint": "Read-only users can view everything and export reports.",
+      "noAgents": "Agents do not receive accounts: there is no agent self-service access.",
+      "sensitiveTitle": "Sensitive change",
+      "roleChange": "Role: {from} → {to}. The user's sessions end and new permissions apply at next sign-in.",
+      "emailChange": "Email: {from} → {to}. The new address must be verified again.",
+      "ack": "I confirm this sensitive account change.",
+      "ackRequired": "Confirm the sensitive change before saving.",
+      "createNote": "The user receives a verification email (simulated), sets a password and enrolls MFA at first sign-in.",
+      "created": "{name} was added.",
+      "updated": "{name} was updated."
+    },
+    "actions": {
+      "disable": {
+        "short": "Disable",
+        "title": "Disable {name}?",
+        "confirm": "Disable account",
+        "ack": "I understand the user will be signed out and cannot sign in.",
+        "body": "All sessions end immediately. The account and its history are kept.",
+        "done": "{name} was disabled."
+      },
+      "enable": {
+        "short": "Enable",
+        "title": "Enable {name}?",
+        "confirm": "Enable account",
+        "body": "The user can sign in again with password and MFA.",
+        "done": "{name} was enabled."
+      },
+      "passwordReset": {
+        "short": "Reset password",
+        "title": "Reset the password of {name}?",
+        "confirm": "Reset password",
+        "ack": "I confirm the identity of the requester was checked.",
+        "body": "Sessions end and a reset link is sent to {email} (simulated: nothing is sent).",
+        "done": "Password reset recorded for {name} (simulated)."
+      },
+      "mfaReset": {
+        "short": "Reset MFA",
+        "title": "Reset MFA for {name}?",
+        "confirm": "Reset MFA",
+        "body": "Use this only when the authenticator is lost. Existing recovery codes stop working, sessions end and the user must enroll again at next sign-in.",
+        "reason": "Reason",
+        "reasonHint": "For example the support ticket and how identity was verified.",
+        "ack": "I verified the user's identity through an approved channel.",
+        "done": "MFA reset for {name}."
+      },
+      "unlock": {
+        "short": "Unlock",
+        "done": "{name} was unlocked."
+      },
+      "verification": {
+        "short": "Send verification",
+        "done": "Verification email recorded for {name} (simulated)."
+      }
+    },
+    "access": {
+      "title": "Effective access · {name}",
+      "canSignIn": "Can sign in",
+      "cannotSignIn": "Cannot sign in",
+      "readAll": "View dashboards, calls, evaluations and reports (read-only)",
+      "none": "No permissions until the blockers are resolved.",
+      "blockers": {
+        "disabled": "The account is disabled.",
+        "locked": "The account is locked after failed sign-ins.",
+        "emailUnverified": "The email address is not verified.",
+        "mfaNotEnrolled": "MFA enrollment is required at next sign-in."
+      }
+    },
+    "matrix": {
+      "title": "Permission matrix",
+      "caption": "Permissions per role as reported by the backend.",
+      "permission": "Permission",
+      "yes": "Allowed",
+      "no": "Not allowed"
+    },
+    "permissions": {
+      "agents": {
+        "manage": "Manage agents"
+      },
+      "scorecards": {
+        "manage": "Manage scorecards"
+      },
+      "calls": {
+        "upload": "Upload calls",
+        "review": "Review calls"
+      },
+      "evaluations": {
+        "rescore": "Re-score calls"
+      },
+      "reports": {
+        "export": "Export reports",
+        "manage": "Manage reports"
+      },
+      "settings": {
+        "manage": "Manage settings"
+      },
+      "queues": {
+        "manage": "Manage queues"
+      },
+      "ai": {
+        "manage": "Manage AI"
+      },
+      "dictionary": {
+        "manage": "Manage dictionary",
+        "review": "Review corrections"
+      },
+      "pbx": {
+        "manage": "Manage PBX"
+      },
+      "notifications": {
+        "manage": "Manage notifications"
+      },
+      "users": {
+        "manage": "Manage users"
+      },
+      "security": {
+        "manage": "Manage authentication and MFA"
+      },
+      "storage": {
+        "manage": "Manage storage"
+      },
+      "backups": {
+        "manage": "Manage backups and restore"
+      },
+      "system": {
+        "view": "View system health"
+      },
+      "audit": {
+        "view": "View audit log",
+        "export": "Export audit log"
+      },
+      "branding": {
+        "manage": "Manage branding and application settings"
+      }
+    }
+  },
+  "security": {
+    "title": "Authentication and MFA",
+    "description": "Production sign-in policy, sessions, lockouts, security events and account recovery.",
+    "syntheticTitle": "Simulated authentication",
+    "syntheticBody": "Nothing on this page performs real authentication. Production sign-in (password and TOTP MFA) must be implemented and enforced by the backend.",
+    "mode": {
+      "title": "Sign-in mode",
+      "caption": "Demo access versus production authentication.",
+      "current": "This session",
+      "demo": "Demo launch code (simulated)",
+      "demoBody": "Opened with a one-time launch code. No password or MFA was used; this is not production authentication.",
+      "production": "Production",
+      "productionBody": "Signed in with password and MFA.",
+      "productionFlow": "Username and password, then a 6-digit TOTP code from an authenticator app such as Microsoft Authenticator. MFA is mandatory for every account.",
+      "backend": "Backend requirement",
+      "backendBody": "Password hashing, TOTP secrets, recovery-code hashes, lockouts and session expiry live only on the backend."
+    },
+    "policy": {
+      "title": "Sign-in policy",
+      "caption": "Version v{v}. Each save creates a new version.",
+      "saved": "Security policy saved as v{v}.",
+      "mfaMandatory": "TOTP MFA is mandatory for every account and cannot be switched off.",
+      "fields": {
+        "minPasswordLength": "Minimum password length",
+        "passwordHistory": "Previous passwords that cannot be reused",
+        "lockoutThreshold": "Failed sign-ins before lockout",
+        "lockoutMinutes": "Lockout duration (minutes)",
+        "sessionIdleMinutes": "Idle timeout (minutes)",
+        "sessionMaxHours": "Maximum session length (hours)",
+        "requireMixedCharacters": "Require upper- and lower-case letters, a digit and a symbol"
+      }
+    },
+    "errors": {
+      "range": "Enter a whole number within the allowed range.",
+      "idleTooLong": "The idle timeout cannot exceed the maximum session length.",
+      "changeNote": "Describe the change (at least 3 characters)."
+    },
+    "sessions": {
+      "title": "Active sessions",
+      "caption": "Addresses are masked. Revoking signs the user out.",
+      "user": "User",
+      "kind": "Sign-in",
+      "client": "Client",
+      "lastSeen": "Last active",
+      "expires": "Expires",
+      "current": "This session",
+      "kinds": {
+        "demo_launch_code": "Demo launch code",
+        "password_mfa": "Password + MFA"
+      },
+      "revoke": "Revoke",
+      "revokeTitle": "Revoke the session of {user}?",
+      "revokeBody": "The user is signed out on that device and must sign in again with password and MFA.",
+      "revoked": "Session of {user} revoked."
+    },
+    "lockouts": {
+      "title": "Locked accounts",
+      "caption": "Accounts locked by repeated failed sign-ins.",
+      "empty": "No locked accounts.",
+      "detail": "{n} failed sign-ins, locked until {until}"
+    },
+    "events": {
+      "title": "Security events",
+      "caption": "Sign-ins, failures and lockouts. Passwords and one-time codes are never recorded."
+    },
+    "recovery": {
+      "title": "Password reset and account recovery",
+      "caption": "Enforced by the backend; administrators start the steps from Users and roles.",
+      "passwordTitle": "Forgotten password",
+      "mfaTitle": "Lost authenticator",
+      "steps": {
+        "p1": "An administrator starts a password reset (or the user requests one at sign-in).",
+        "p2": "A single-use, time-limited link is sent to the verified email address.",
+        "p3": "The user sets a new password that meets the policy; all sessions end.",
+        "p4": "The user signs in with the new password and their existing authenticator.",
+        "m1": "The user contacts an administrator through an approved channel, or uses a recovery code.",
+        "m2": "Another administrator verifies identity and resets MFA with a recorded reason.",
+        "m3": "The user signs in with their password and enrolls a new authenticator.",
+        "m4": "New recovery codes are shown once; old ones stop working."
+      }
+    }
+  },
+  "account": {
+    "title": "My account security",
+    "description": "Your MFA enrollment, recovery codes and password.",
+    "syntheticTitle": "Simulated account security",
+    "syntheticBody": "No TOTP secret, QR code or recovery code is produced in the browser, and passwords are not stored or checked. These screens show the production workflow.",
+    "mfa": {
+      "title": "Two-step verification (TOTP)",
+      "caption": "Compatible with Microsoft Authenticator and other TOTP apps.",
+      "since": "Enrolled {at}",
+      "required": "MFA is mandatory. Enroll an authenticator to keep access.",
+      "start": "Set up authenticator",
+      "wizard": "Authenticator setup",
+      "step1": "Install Microsoft Authenticator (or another TOTP app) on your phone.",
+      "step2": "Add an account by scanning the QR code for {issuer} ({account}).",
+      "step3": "Enter the 6-digit code the app shows.",
+      "qrPlaceholder": "QR code placeholder — the backend generates the QR code; no secret exists in this simulation.",
+      "qrFromBackend": "QR code from the backend",
+      "code": "6-digit code",
+      "codeHint": "Digits only; the code changes every 30 seconds.",
+      "codeFormat": "Enter the 6-digit code from the authenticator app.",
+      "expires": "This setup expires {at}.",
+      "verify": "Verify and enroll",
+      "enrolledToast": "MFA enrolled (simulated: only the code format was checked)."
+    },
+    "recovery": {
+      "title": "Recovery codes",
+      "unknown": "Recovery codes are not available in the simulation.",
+      "remaining": "{n} unused recovery codes remain.",
+      "generate": "Generate new recovery codes",
+      "confirmTitle": "Generate new recovery codes?",
+      "confirmBody": "Existing recovery codes stop working. New codes are shown once and must be stored safely.",
+      "ack": "I will store the new codes safely.",
+      "shownOnce": "Store these codes now — they are shown only once.",
+      "none": "No recovery codes were generated"
+    },
+    "password": {
+      "title": "Change password",
+      "caption": "Changing your password ends your other sessions.",
+      "current": "Current password",
+      "next": "New password",
+      "repeat": "Repeat new password",
+      "rules": "Password requirements",
+      "submit": "Change password",
+      "currentRequired": "Enter your current password.",
+      "policy": "The new password does not meet the policy.",
+      "mismatch": "The passwords do not match.",
+      "changed": "Password change recorded (simulated).",
+      "checks": {
+        "length": "At least {n} characters",
+        "mixed": "Upper- and lower-case letters, a digit and a symbol",
+        "username": "Does not contain your username"
+      }
     }
   }
 }

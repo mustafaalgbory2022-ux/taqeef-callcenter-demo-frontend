@@ -143,6 +143,27 @@ export const routes: RouteObject[] = [
         ),
       },
       {
+        path: 'admin/users',
+        element: page(
+          () => import('@/features/users/pages/UsersAdminPage'),
+          (m) => m.UsersAdminPage,
+        ),
+      },
+      {
+        path: 'admin/security',
+        element: page(
+          () => import('@/features/security/pages/SecurityAdminPage'),
+          (m) => m.SecurityAdminPage,
+        ),
+      },
+      {
+        path: 'account/security',
+        element: page(
+          () => import('@/features/security/pages/AccountSecurityPage'),
+          (m) => m.AccountSecurityPage,
+        ),
+      },
+      {
         path: 'admin/audit',
         element: page(
           () => import('@/features/audit-log/pages/AuditLogPage'),

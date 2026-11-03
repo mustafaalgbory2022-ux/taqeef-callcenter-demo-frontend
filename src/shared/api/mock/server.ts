@@ -7,6 +7,7 @@ import { dictionaryRoutes } from './handlers/dictionary';
 import { notificationRoutes } from './handlers/notifications';
 import { pbxRoutes } from './handlers/pbx';
 import { reportSettingsRoutes } from './handlers/reportSettings';
+import { userRoutes } from './handlers/users';
 import { callRoutes } from './handlers/calls';
 import { evaluationRoutes } from './handlers/evaluations';
 import { scorecardRoutes } from './handlers/scorecards';
@@ -21,6 +22,7 @@ const LAUNCH_CODE = /^[A-Z0-9-]{8,64}$/i;
 
 const syntheticSession = {
   mode: 'mock',
+  user_id: 'usr-admin',
   display_name: 'Synthetic administrator',
   permissions: [
     'agents.manage',
@@ -132,6 +134,7 @@ export function createMockTransport({ latencyMs = 160 }: MockTransportOptions = 
     ...pbxRoutes(state, generated, persist),
     ...notificationRoutes(state, persist),
     ...reportSettingsRoutes(state, persist),
+    ...userRoutes(state, syntheticSession.permissions, persist),
   ];
 
   return async (req) => {
