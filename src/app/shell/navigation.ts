@@ -48,4 +48,8 @@ export const navigation: readonly NavGroup[] = [
       { to: '/admin/planned', label: 'nav.planned', icon: 'grid' },
     ],
   },
+  {
+    label: 'nav.system',
+    items: [{ to: '/admin/audit', label: 'nav.audit', icon: 'history' }],
+  },
 ];

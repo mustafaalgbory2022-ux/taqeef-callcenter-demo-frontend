@@ -29,7 +29,9 @@
     "dictionary": "Iraqi Arabic dictionary",
     "pbx": "PBX administration",
     "notifications": "Notifications and email",
-    "reportSettings": "Report configuration"
+    "reportSettings": "Report configuration",
+    "system": "Security and system",
+    "audit": "Audit log"
   },
   "common": {
     "outOfTen": "/ 10",
@@ -775,7 +777,22 @@
         "generated": "Generated",
         "delivered": "Delivery recorded",
         "assigned": "Assignments changed",
-        "credential_replaced": "Credential replaced"
+        "credential_replaced": "Credential replaced",
+        "exported": "Exported",
+        "restored": "Restored",
+        "soft_deleted": "Moved to recovery",
+        "verified": "Verified",
+        "revoked": "Revoked",
+        "unlocked": "Unlocked",
+        "password_reset": "Password reset",
+        "mfa_reset": "MFA reset",
+        "mfa_enrolled": "MFA enrolled",
+        "login_succeeded": "Sign-in succeeded",
+        "login_failed": "Sign-in failed",
+        "locked_out": "Locked out",
+        "acknowledged": "Acknowledged",
+        "role_changed": "Role changed",
+        "verification_sent": "Verification sent"
       }
     }
   },
@@ -1506,6 +1523,72 @@
     "audit": {
       "runs": "Generated reports",
       "settings": "Settings changes"
+    }
+  },
+  "auditLog": {
+    "title": "Audit log",
+    "description": "Read-only history of administration and security actions: who did what, to which object, when, with what result.",
+    "syntheticTitle": "Simulated audit log",
+    "syntheticBody": "Entries come from the simulated backend in this browser. In production the backend stores and enforces the audit log; entries can never be edited or deleted.",
+    "listTitle": "Audit entries",
+    "count": "{n} matching entries",
+    "empty": "No entries match these filters.",
+    "export": "Export to Excel",
+    "exported": "Exported {n} entries. The export was recorded in the audit log.",
+    "invalidRange": "The start date must be on or before the end date.",
+    "changes": "{n} field changes",
+    "productionNote": "Production requirement: the backend must store audit entries append-only, protect them from administrators, and never record passwords, secrets, one-time codes or recording content.",
+    "filters": {
+      "search": "Search",
+      "searchHint": "Actor, summary, object or correlation ID",
+      "actor": "Actor",
+      "object": "Object",
+      "action": "Action",
+      "result": "Result",
+      "all": "All"
+    },
+    "cols": {
+      "at": "Time",
+      "actor": "Actor",
+      "action": "Action",
+      "object": "Object",
+      "objectId": "Object ID",
+      "result": "Result",
+      "correlation": "Correlation ID",
+      "summary": "Summary",
+      "changes": "Changes"
+    },
+    "results": {
+      "success": "Success",
+      "failure": "Failure",
+      "denied": "Denied"
+    },
+    "resources": {
+      "queue": "Queue",
+      "ai_config": "AI configuration",
+      "ai_jobs": "AI job queue",
+      "dictionary_entry": "Dictionary entry",
+      "dictionary_correction": "Dictionary correction",
+      "pbx_connector": "PBX connector",
+      "email_sender": "Email sender",
+      "notification_rule": "Notification rule",
+      "email_template": "Email template",
+      "report_email": "Report email",
+      "report_settings": "Report settings",
+      "report_run": "Generated report",
+      "user": "User account",
+      "session": "Session",
+      "security_policy": "Security policy",
+      "auth": "Authentication",
+      "storage_settings": "Storage settings",
+      "storage_item": "Stored item",
+      "backup": "Backup",
+      "backup_settings": "Backup settings",
+      "restore": "Restore",
+      "system_error": "System error",
+      "audit_log": "Audit log",
+      "app_settings": "Application settings",
+      "branding": "Branding"
     }
   }
 }

@@ -17,6 +17,7 @@ export function recordAudit(
     changes?: Change[];
     actor?: string;
     at?: string;
+    result?: WireAdminAudit['result'];
   },
 ): WireAdminAudit {
   state.seq += 1;
@@ -29,11 +30,17 @@ export function recordAudit(
     at: entry.at ?? new Date().toISOString(),
     summary: entry.summary,
     changes: entry.changes ?? [],
+    result: entry.result ?? 'success',
+    correlation_id: correlationId(state.seq),
     simulated: true,
   };
   state.adminAudit.unshift(record);
   return record;
 }
+
+/** Synthetic correlation id (the backend issues one per request). */
+export const correlationId = (n: number) =>
+  `cid-${(0x5a17 * n + 0x1f3).toString(16).padStart(8, '0')}`;
 
 const show = (v: unknown): string | null =>
   v === undefined || v === null ? null : typeof v === 'string' ? v : JSON.stringify(v);
@@ -65,6 +72,8 @@ export function seedAdminAudit(state: MockState): WireAdminAudit[] {
       { field: 'number', before: null, after: q.number },
       { field: 'name', before: null, after: q.name.en },
     ],
+    result: 'success' as const,
+    correlation_id: correlationId(900 + i),
     simulated: true,
   }));
 }

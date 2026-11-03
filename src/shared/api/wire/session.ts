@@ -16,6 +16,14 @@ const PERMISSIONS = [
   'dictionary.review',
   'pbx.manage',
   'notifications.manage',
+  'users.manage',
+  'security.manage',
+  'storage.manage',
+  'backups.manage',
+  'system.view',
+  'audit.view',
+  'audit.export',
+  'branding.manage',
 ] as const satisfies readonly Permission[];
 
 export const wireSession = object({

@@ -24,7 +24,15 @@ export type Permission =
   | 'dictionary.manage'
   | 'dictionary.review'
   | 'pbx.manage'
-  | 'notifications.manage';
+  | 'notifications.manage'
+  | 'users.manage'
+  | 'security.manage'
+  | 'storage.manage'
+  | 'backups.manage'
+  | 'system.view'
+  | 'audit.view'
+  | 'audit.export'
+  | 'branding.manage';
 
 export interface Session {
   mode: 'mock' | 'live';
@@ -434,7 +442,20 @@ export type AdminResource =
   | 'email_template'
   | 'report_email'
   | 'report_settings'
-  | 'report_run';
+  | 'report_run'
+  | 'user'
+  | 'session'
+  | 'security_policy'
+  | 'auth'
+  | 'storage_settings'
+  | 'storage_item'
+  | 'backup'
+  | 'backup_settings'
+  | 'restore'
+  | 'system_error'
+  | 'audit_log'
+  | 'app_settings'
+  | 'branding';
 
 export const ADMIN_AUDIT_ACTIONS = [
   'created',
@@ -455,6 +476,21 @@ export const ADMIN_AUDIT_ACTIONS = [
   'delivered',
   'assigned',
   'credential_replaced',
+  'exported',
+  'restored',
+  'soft_deleted',
+  'verified',
+  'revoked',
+  'unlocked',
+  'password_reset',
+  'mfa_reset',
+  'mfa_enrolled',
+  'login_succeeded',
+  'login_failed',
+  'locked_out',
+  'acknowledged',
+  'role_changed',
+  'verification_sent',
 ] as const;
 export type AdminAuditAction = (typeof ADMIN_AUDIT_ACTIONS)[number];
 
@@ -468,6 +504,28 @@ export interface AdminAuditEntry {
   at: string;
   summary: string;
   changes: readonly AuditChange[];
+  /** Outcome of the attempted action; denied = blocked by a permission or rule. */
+  result: 'success' | 'failure' | 'denied';
+  /** Correlates the entry with API requests and error-log records. */
+  correlationId: string;
+  simulated: boolean;
+}
+
+export interface AuditQuery {
+  resource?: AdminResource | undefined;
+  resourceId?: string | undefined;
+  action?: AdminAuditAction | undefined;
+  result?: AdminAuditEntry['result'] | undefined;
+  actor?: string | undefined;
+  search?: string | undefined;
+  from?: string | undefined;
+  to?: string | undefined;
+}
+
+export interface AuditExport {
+  exportedAt: string;
+  count: number;
+  entries: readonly AdminAuditEntry[];
   simulated: boolean;
 }
 

@@ -181,19 +181,60 @@ export function queueRoutes(state: MockState, persist: () => void): Route[] {
   ];
 }
 
-export function auditRoutes(state: MockState): Route[] {
+const day = (iso: string) => iso.slice(0, 10);
+
+/** Filter the append-only log. Text search covers actor, summary, object and correlation id. */
+export function filterAudit(state: MockState, q: Readonly<Record<string, unknown>>) {
+  const text = typeof q.search === 'string' ? q.search.trim().toLowerCase() : '';
+  const actor = typeof q.actor === 'string' ? q.actor.trim().toLowerCase() : '';
+  return state.adminAudit.filter(
+    (e) =>
+      (!q.resource || e.resource === q.resource) &&
+      (!q.resource_id || e.resource_id === q.resource_id) &&
+      (!q.action || e.action === q.action) &&
+      (!q.result || e.result === q.result) &&
+      (!actor || e.actor.toLowerCase().includes(actor)) &&
+      (!q.from || day(e.at) >= String(q.from)) &&
+      (!q.to || day(e.at) <= String(q.to)) &&
+      (!text ||
+        [e.actor, e.summary, e.resource, e.resource_id ?? '', e.correlation_id].some((x) =>
+          x.toLowerCase().includes(text),
+        )),
+  );
+}
+
+export function auditRoutes(state: MockState, persist: () => void): Route[] {
   return [
     {
       method: 'GET',
       pattern: '/admin/audit',
-      handler: ({ query }) =>
-        ok(
-          state.adminAudit.filter(
-            (e) =>
-              (!query.resource || e.resource === query.resource) &&
-              (!query.resource_id || e.resource_id === query.resource_id),
-          ),
-        ),
+      handler: ({ query }) => ok(filterAudit(state, query)),
+    },
+    {
+      method: 'POST',
+      pattern: '/admin/audit/export',
+      handler: ({ body }) => {
+        const filters = (typeof body === 'object' && body !== null ? body : {}) as Record<
+          string,
+          unknown
+        >;
+        const entries = filterAudit(state, filters);
+        const active = Object.entries(filters).filter(([, v]) => v !== undefined && v !== '');
+        // The export itself is audited (after selecting rows, so it is not part of its own file).
+        recordAudit(state, {
+          resource: 'audit_log',
+          resourceId: null,
+          action: 'exported',
+          summary: `Audit log exported: ${entries.length} entries${active.length ? ` (${active.map(([k, v]) => `${k}=${String(v)}`).join(', ')})` : ''}`,
+        });
+        persist();
+        return ok({
+          exported_at: new Date().toISOString(),
+          count: entries.length,
+          entries,
+          simulated: true,
+        });
+      },
     },
   ];
 }

@@ -1,5 +1,19 @@
-import { ADMIN_AUDIT_ACTIONS, type AdminAuditEntry } from '@/shared/types/domain';
-import { arrayOf, bool, nullable, object, oneOf, str, type Decoded } from '../decode';
+import {
+  ADMIN_AUDIT_ACTIONS,
+  type AdminAuditEntry,
+  type AdminResource,
+} from '@/shared/types/domain';
+import {
+  arrayOf,
+  bool,
+  nullable,
+  num,
+  object,
+  oneOf,
+  str,
+  withDefault,
+  type Decoded,
+} from '../decode';
 
 export const ADMIN_RESOURCES = [
   'queue',
@@ -14,7 +28,20 @@ export const ADMIN_RESOURCES = [
   'report_email',
   'report_settings',
   'report_run',
-] as const;
+  'user',
+  'session',
+  'security_policy',
+  'auth',
+  'storage_settings',
+  'storage_item',
+  'backup',
+  'backup_settings',
+  'restore',
+  'system_error',
+  'audit_log',
+  'app_settings',
+  'branding',
+] as const satisfies readonly AdminResource[];
 
 /** PROVISIONAL shape of one append-only administration audit record. */
 export const wireAdminAudit = object({
@@ -26,6 +53,15 @@ export const wireAdminAudit = object({
   at: str,
   summary: str,
   changes: arrayOf(object({ field: str, before: nullable(str), after: nullable(str) })),
+  result: withDefault(oneOf(['success', 'failure', 'denied']), 'success'),
+  correlation_id: withDefault(str, ''),
+  simulated: bool,
+});
+
+export const wireAuditExport = object({
+  exported_at: str,
+  count: num,
+  entries: arrayOf(wireAdminAudit),
   simulated: bool,
 });
 
@@ -39,6 +75,8 @@ export function adminAuditFromWire(w: Decoded<typeof wireAdminAudit>): AdminAudi
     at: w.at,
     summary: w.summary,
     changes: w.changes,
+    result: w.result,
+    correlationId: w.correlation_id,
     simulated: w.simulated,
   };
 }

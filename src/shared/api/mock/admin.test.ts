@@ -373,3 +373,20 @@ describe('simulated report configuration', () => {
     expect((await api.listReports())[0]?.id).toBe(run.report.id);
   });
 });
+
+describe('simulated audit log', () => {
+  it('filters by object, action, result and text and records audited exports', async () => {
+    await api.queueAdmin.setStatus('q-6002', 'disabled');
+    const entries = await api.audit.list({ resource: 'queue', action: 'disabled' });
+    expect(entries).toHaveLength(1);
+    expect(entries[0]).toMatchObject({ result: 'success', simulated: true });
+    expect(entries[0]?.correlationId).toMatch(/^cid-/);
+    const byCid = await api.audit.list({ search: entries[0]?.correlationId });
+    expect(byCid.map((e) => e.id)).toEqual([entries[0]?.id]);
+    expect(await api.audit.list({ result: 'denied', resource: 'queue' })).toEqual([]);
+    const exported = await api.audit.export({ resource: 'queue' });
+    expect(exported.count).toBe(exported.entries.length);
+    const [latest] = await api.audit.list({ resource: 'audit_log' });
+    expect(latest).toMatchObject({ action: 'exported' });
+  });
+});

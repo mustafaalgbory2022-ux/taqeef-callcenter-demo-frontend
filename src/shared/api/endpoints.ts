@@ -12,6 +12,7 @@ export const endpoints = {
   queue: (id: string) => `/queues/${seg(id)}`,
   queueAgents: (id: string) => `/queues/${seg(id)}/agents`,
   adminAudit: '/admin/audit',
+  adminAuditExport: '/admin/audit/export',
   aiModels: '/ai/models',
   aiStatus: '/ai/status',
   aiConfigCurrent: '/ai/config/current',
