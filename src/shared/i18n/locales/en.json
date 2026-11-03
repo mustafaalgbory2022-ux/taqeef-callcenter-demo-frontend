@@ -17,7 +17,7 @@
     "agents": "Agents",
     "scorecard": "Scorecard",
     "settings": "Settings",
-    "planned": "Planned areas",
+    "planned": "Administration overview",
     "operations": "Operations",
     "live": "Live center",
     "agentPerformance": "Agent performance",
@@ -37,7 +37,8 @@
     "account": "My account security",
     "storage": "Storage and retention",
     "backups": "Backup and restore",
-    "health": "System health"
+    "health": "System health",
+    "general": "General and branding"
   },
   "common": {
     "outOfTen": "/ 10",
@@ -568,30 +569,14 @@
       "confirmBody": "All simulated changes (agents, uploads, scorecard versions, re-scores) will be discarded."
     },
     "planned": {
-      "title": "Planned administration areas",
-      "description": "Production requirements recorded for later. Every area will be fully manageable in this interface — no command line, database or file editing.",
-      "noticeTitle": "Not part of the five-call demo",
-      "noticeBody": "Each area will include validation, permissions, feedback and audit history.",
-      "badge": "Planned",
-      "cardTitle": "Production administration",
-      "cardCaption": "Users and security, storage, system health and branding (Phase C)",
-      "open": "View planned areas",
-      "security": {
-        "title": "Users, roles, MFA and security",
-        "scope": "Users and roles, permissions, MFA enrolment and reset, session policies and the security audit log."
-      },
-      "storage": {
-        "title": "Storage, retention, backup and restore",
-        "scope": "Storage usage, retention policies, backup schedules and verified restore."
-      },
-      "health": {
-        "title": "System health and diagnostics",
-        "scope": "Service health, error log browser, diagnostics bundle and general application settings."
-      },
-      "branding": {
-        "title": "Branding and localization",
-        "scope": "Logo upload, brand colours with contrast validation, default language and theme, translation management."
-      }
+      "title": "Administration overview",
+      "description": "Every administration area and where it is managed in the GUI.",
+      "noticeTitle": "Frontend complete — backend integration pending",
+      "noticeBody": "All areas have working screens against the simulated backend. Production behaviour (security, storage, backups, delivery, PBX) depends on the local backend implementing the provisional contracts.",
+      "badge": "Frontend ready",
+      "cardTitle": "Administration overview",
+      "cardCaption": "All administration areas and their status",
+      "open": "Open overview"
     }
   },
   "charts": {
@@ -2238,6 +2223,79 @@
         "error": "Error",
         "warning": "Warning"
       }
+    }
+  },
+  "general": {
+    "title": "General administration and branding",
+    "description": "Application-wide defaults and runtime branding. Each save is a new version; earlier versions can be loaded back into the form.",
+    "personal": "My display preferences",
+    "syntheticTitle": "Simulated settings",
+    "syntheticBody": "Settings are stored by the simulated backend in this browser. Branding stays a neutral placeholder until approved Taqeef assets are installed locally and configured here.",
+    "recent": "Recent branding changes",
+    "errors": {
+      "timezone": "Choose a supported time zone.",
+      "email": "Enter a valid email address or leave it empty.",
+      "bothLanguages": "Enter the text in both English and Arabic, or leave both empty.",
+      "tooLong": "This text is too long.",
+      "changeNote": "Describe the change (at least 3 characters).",
+      "logoPath": "Use a local asset path under /brand/ ending in .svg, .png or .webp.",
+      "color": "Use a colour in #rrggbb format.",
+      "contrast": "This colour does not reach the 4.5:1 contrast required for text.",
+      "approval": "Enter the reference of the branding approval."
+    },
+    "app": {
+      "title": "Application settings",
+      "caption": "Version v{v}.",
+      "saved": "Application settings saved as v{v}.",
+      "language": "Default language",
+      "defaultsHint": "For users who have not chosen their own.",
+      "theme": "Default theme",
+      "themes": {
+        "system": "Follow the device",
+        "light": "Light",
+        "dark": "Dark"
+      },
+      "timezone": "Time zone",
+      "support": "Support contact",
+      "supportHint": "Shown on error and sign-in pages. Optional.",
+      "weekStart": "Reporting weeks run Saturday to Friday (approved rule).",
+      "noticeEn": "Sign-in notice (English)",
+      "noticeAr": "Sign-in notice (Arabic)",
+      "versions": "Application settings versions"
+    },
+    "branding": {
+      "title": "Branding",
+      "caption": "Version v{v}. Applied at runtime for every user.",
+      "saved": "Branding saved as v{v} and applied.",
+      "status": {
+        "placeholder": "Neutral placeholder",
+        "configured": "Configured"
+      },
+      "noInvented": "No company branding is included in this frontend; only approved assets installed locally may be referenced.",
+      "orgEn": "Organization name (English)",
+      "orgAr": "Organization name (Arabic)",
+      "productEn": "Product name (English)",
+      "productAr": "Product name (Arabic)",
+      "logoLightPath": "Logo for the light theme",
+      "logoDarkPath": "Logo for the dark theme",
+      "logoHint": "Path of a local, approved asset, e.g. /brand/logo-light.svg. Empty = placeholder.",
+      "lightPrimary": "Primary colour (light theme)",
+      "darkPrimary": "Primary colour (dark theme)",
+      "colorHint": "#rrggbb. Must reach 4.5:1 with its text colour. Empty = default.",
+      "contrast": "Contrast {r}:1",
+      "aa": "Meets AA",
+      "fails": "Below AA",
+      "approval": "Approval reference",
+      "approvalHint": "Required whenever any branding value is set.",
+      "preview": "Preview",
+      "defaultOrg": "Default organization name",
+      "defaultProduct": "Default product name",
+      "logoPreview": "Logo: {path}",
+      "versions": "Branding versions"
+    },
+    "versions": {
+      "load": "Load into form",
+      "restoredNote": "Restored values from v{v}"
     }
   }
 }

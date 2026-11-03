@@ -5,6 +5,7 @@ import { initialConnector, pbxVendors } from './fixtures/pbx';
 import { initialReportSettings } from './fixtures/reports';
 import { initialStorageSettings, volumes } from './fixtures/storage';
 import { initialBackupSettings } from './fixtures/backups';
+import { initialAppSettings, initialBranding } from './handlers/general';
 import { seedSystemErrors } from './handlers/system';
 import { initialPolicy, seedSecurityEvents, seedSessions, seedUsers } from './fixtures/users';
 import { deliveries, initialSender, reportEmail, rules, templates } from './fixtures/notifications';
@@ -77,6 +78,10 @@ export function createSeedState(): MockState {
     },
     backups: { settings: structuredClone(initialBackupSettings), runs: [], restores: [] },
     system: { errors: seedSystemErrors(Date.now()) },
+    general: {
+      app: [structuredClone(initialAppSettings)],
+      branding: [structuredClone(initialBranding)],
+    },
     seq: 100,
   };
   state.adminAudit = [...seedSecurityEvents(Date.now()), ...seedAdminAudit(state)];

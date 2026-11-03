@@ -596,3 +596,55 @@ describe('simulated system health and error log', () => {
     expect((await api.audit.list({ resource: 'system_error' }))[0]?.action).toBe('acknowledged');
   });
 });
+
+describe('simulated general administration and branding', () => {
+  it('starts as a neutral placeholder and serves configured branding at runtime', async () => {
+    const b = await api.general.branding();
+    expect(b.status).toBe('placeholder');
+    expect(await api.getBranding()).toMatchObject({ productName: null, logoLightUrl: null });
+    const base = { ...b, changeNote: 'Install approved assets' };
+    await expect(
+      api.general.saveBranding({ ...base, lightPrimary: '#0b5d73' }),
+    ).rejects.toMatchObject({ code: 'validation_error' }); // approval ref
+    await expect(
+      api.general.saveBranding({ ...base, lightPrimary: '#cccccc', approvalReference: 'APR-1' }),
+    ).rejects.toMatchObject({ code: 'validation_error' }); // contrast
+    await expect(
+      api.general.saveBranding({
+        ...base,
+        logoLightPath: 'https://cdn.example/logo.svg',
+        approvalReference: 'APR-1',
+      }),
+    ).rejects.toMatchObject({ code: 'validation_error' });
+    const v2 = await api.general.saveBranding({
+      ...base,
+      lightPrimary: '#0b5d73',
+      logoLightPath: '/brand/logo-light.svg',
+      approvalReference: 'APR-1',
+    });
+    expect(v2).toMatchObject({ version: 2, status: 'configured' });
+    const served = await api.getBranding();
+    expect(served.logoLightUrl).toBe('/brand/logo-light.svg');
+    expect(served.tokens.light.primary).toBe('#0b5d73');
+    expect((await api.general.brandingVersions()).map((v) => v.version)).toEqual([2, 1]);
+  });
+
+  it('versions application settings with validation', async () => {
+    const s = await api.general.appSettings();
+    await expect(
+      api.general.saveAppSettings({ ...s, timezone: 'Mars/Base', changeNote: 'x x' }),
+    ).rejects.toMatchObject({ code: 'validation_error' });
+    await expect(
+      api.general.saveAppSettings({ ...s, changeNote: 'nothing' }),
+    ).rejects.toMatchObject({ code: 'conflict' });
+    expect(
+      (
+        await api.general.saveAppSettings({
+          ...s,
+          defaultLanguage: 'en',
+          changeNote: 'English default',
+        })
+      ).version,
+    ).toBe(2);
+  });
+});

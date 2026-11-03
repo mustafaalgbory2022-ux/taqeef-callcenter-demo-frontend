@@ -10,6 +10,7 @@ import { reportSettingsRoutes } from './handlers/reportSettings';
 import { backupRoutes } from './handlers/backups';
 import { storageRoutes } from './handlers/storage';
 import { systemRoutes } from './handlers/system';
+import { generalRoutes, servedBranding } from './handlers/general';
 import { userRoutes } from './handlers/users';
 import { callRoutes } from './handlers/calls';
 import { evaluationRoutes } from './handlers/evaluations';
@@ -112,14 +113,7 @@ export function createMockTransport({ latencyMs = 160 }: MockTransportOptions = 
     {
       method: 'GET',
       pattern: '/branding',
-      handler: () =>
-        ok({
-          product_name: null,
-          organization_name: null,
-          logo_light_url: null,
-          logo_dark_url: null,
-          tokens: { light: null, dark: null },
-        }),
+      handler: () => ok(servedBranding(state)),
     },
   ];
 
@@ -141,6 +135,7 @@ export function createMockTransport({ latencyMs = 160 }: MockTransportOptions = 
     ...storageRoutes(state, persist),
     ...backupRoutes(state, persist),
     ...systemRoutes(state, persist),
+    ...generalRoutes(state, persist),
   ];
 
   return async (req) => {

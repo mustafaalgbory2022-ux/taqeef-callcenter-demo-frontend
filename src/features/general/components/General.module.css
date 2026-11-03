@@ -1,0 +1,13 @@
+.colorRow {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.preview {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}

@@ -1269,3 +1269,48 @@ export interface SystemErrorQuery {
   search?: string | undefined;
   includeAcknowledged?: boolean | undefined;
 }
+
+/* General administration and branding (Phase C) ------------------------------------------ */
+
+export type ThemePreference = 'light' | 'dark' | 'system';
+
+export interface AppSettingsInput {
+  /** Used for users who have not chosen their own language or theme. */
+  defaultLanguage: Language;
+  defaultTheme: ThemePreference;
+  timezone: string;
+  supportContact: string;
+  loginNotice: LocalizedText;
+  changeNote: string;
+}
+
+export interface AppSettings extends Omit<AppSettingsInput, 'changeNote'> {
+  version: number;
+  /** Reporting week (Saturday–Friday) is an approved rule, not configurable here. */
+  weekStart: 'saturday';
+  updatedAt: string;
+  updatedBy: string;
+  changeNote: string;
+}
+
+export interface BrandingSettingsInput {
+  productName: LocalizedText | null;
+  organizationName: LocalizedText | null;
+  /** Same-origin paths of locally installed, approved assets (e.g. /brand/logo-light.svg). */
+  logoLightPath: string | null;
+  logoDarkPath: string | null;
+  lightPrimary: string | null;
+  darkPrimary: string | null;
+  /** Reference to the branding approval (required whenever any value is set). */
+  approvalReference: string;
+  changeNote: string;
+}
+
+export interface BrandingSettings extends Omit<BrandingSettingsInput, 'changeNote'> {
+  version: number;
+  /** 'placeholder' while nothing is configured: the neutral defaults are shown. */
+  status: 'placeholder' | 'configured';
+  updatedAt: string;
+  updatedBy: string;
+  changeNote: string;
+}

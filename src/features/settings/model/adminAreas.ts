@@ -1,31 +1,31 @@
 import type { MessageKey } from '@/shared/i18n/translate';
 
 /**
- * Production administration areas recorded in docs/requirements/gui-administration.md.
- * Shown in the GUI as planned (not built yet) so the full scope is visible. ADM-03 (PBX),
- * ADM-04 (AI, dictionary) and ADM-07 (reports, notifications) were built in Phase B.
+ * Administration areas from docs/requirements/gui-administration.md and where each is managed
+ * in the GUI. All have frontend screens; production behaviour depends on the backend.
  */
 export interface AdminArea {
   id: string;
   title: MessageKey;
-  scope: MessageKey;
+  to: string;
 }
 
-export const plannedAreas: readonly AdminArea[] = [
-  {
-    id: 'ADM-08',
-    title: 'settings.planned.security.title',
-    scope: 'settings.planned.security.scope',
-  },
-  {
-    id: 'ADM-09',
-    title: 'settings.planned.storage.title',
-    scope: 'settings.planned.storage.scope',
-  },
-  { id: 'ADM-10', title: 'settings.planned.health.title', scope: 'settings.planned.health.scope' },
-  {
-    id: 'ADM-11',
-    title: 'settings.planned.branding.title',
-    scope: 'settings.planned.branding.scope',
-  },
+export const adminAreas: readonly AdminArea[] = [
+  { id: 'ADM-01', title: 'nav.overview', to: '/' },
+  { id: 'ADM-02', title: 'nav.agents', to: '/admin/agents' },
+  { id: 'ADM-02', title: 'nav.queues', to: '/admin/queues' },
+  { id: 'ADM-03', title: 'nav.pbx', to: '/admin/pbx' },
+  { id: 'ADM-04', title: 'nav.ai', to: '/admin/ai' },
+  { id: 'ADM-04', title: 'nav.dictionary', to: '/admin/dictionary' },
+  { id: 'ADM-05', title: 'nav.scorecard', to: '/admin/scorecard' },
+  { id: 'ADM-06', title: 'nav.calls', to: '/calls' },
+  { id: 'ADM-07', title: 'nav.reportSettings', to: '/admin/reports' },
+  { id: 'ADM-07', title: 'nav.notifications', to: '/admin/notifications' },
+  { id: 'ADM-08', title: 'nav.users', to: '/admin/users' },
+  { id: 'ADM-08', title: 'nav.security', to: '/admin/security' },
+  { id: 'ADM-09', title: 'nav.storage', to: '/admin/storage' },
+  { id: 'ADM-09', title: 'nav.backups', to: '/admin/backups' },
+  { id: 'ADM-10', title: 'nav.health', to: '/admin/health' },
+  { id: 'ADM-10', title: 'nav.audit', to: '/admin/audit' },
+  { id: 'ADM-11', title: 'nav.general', to: '/admin/general' },
 ];

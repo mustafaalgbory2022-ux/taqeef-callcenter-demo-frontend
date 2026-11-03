@@ -57,6 +57,7 @@ export const navigation: readonly NavGroup[] = [
       { to: '/admin/backups', label: 'nav.backups', icon: 'refresh' },
       { to: '/admin/health', label: 'nav.health', icon: 'dashboard' },
       { to: '/admin/audit', label: 'nav.audit', icon: 'history' },
+      { to: '/admin/general', label: 'nav.general', icon: 'grid' },
       { to: '/account/security', label: 'nav.account', icon: 'settings' },
     ],
   },

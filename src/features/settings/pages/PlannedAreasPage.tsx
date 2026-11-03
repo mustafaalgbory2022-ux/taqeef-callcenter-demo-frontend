@@ -1,12 +1,13 @@
+import { Link } from 'react-router';
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import { Badge } from '@/shared/ui/Badge';
 import { Notice } from '@/shared/ui/Notice';
 import { PageHeader } from '@/shared/ui/PageHeader';
-import { plannedAreas } from '../model/adminAreas';
+import { adminAreas } from '../model/adminAreas';
 import styles from '../components/Settings.module.css';
 
-/** Future production administration areas — documented, intentionally not built in the demo. */
+/** Index of every administration area and where it is managed in the GUI. */
 export function PlannedAreasPage() {
   const { t } = useI18n();
   useDocumentTitle(t('settings.planned.title'), t('app.title'));
@@ -21,13 +22,14 @@ export function PlannedAreasPage() {
         {t('settings.planned.noticeBody')}
       </Notice>
       <ul className={styles.areas}>
-        {plannedAreas.map((area) => (
-          <li key={area.id} className={styles.area}>
+        {adminAreas.map((area) => (
+          <li key={area.to} className={styles.area}>
             <div className={styles.areaHead}>
-              <h2 className={styles.areaTitle}>{t(area.title)}</h2>
-              <Badge>{t('settings.planned.badge')}</Badge>
+              <h2 className={styles.areaTitle}>
+                <Link to={area.to}>{t(area.title)}</Link>
+              </h2>
+              <Badge tone="success">{t('settings.planned.badge')}</Badge>
             </div>
-            <p className={styles.areaScope}>{t(area.scope)}</p>
             <span className={styles.areaScope}>
               <bdi>{area.id}</bdi>
             </span>
