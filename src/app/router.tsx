@@ -178,6 +178,13 @@ export const routes: RouteObject[] = [
         ),
       },
       {
+        path: 'admin/health',
+        element: page(
+          () => import('@/features/system/pages/SystemHealthPage'),
+          (m) => m.SystemHealthPage,
+        ),
+      },
+      {
         path: 'admin/audit',
         element: page(
           () => import('@/features/audit-log/pages/AuditLogPage'),

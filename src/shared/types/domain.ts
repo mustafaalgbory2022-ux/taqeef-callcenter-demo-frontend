@@ -1183,3 +1183,89 @@ export interface MigrationReadiness {
   overall: 'ready' | 'attention' | 'blocked';
   checks: readonly MigrationCheck[];
 }
+
+/* System health and operations (Phase C) -------------------------------------------------- */
+
+export type HealthState = 'healthy' | 'degraded' | 'down' | 'unknown';
+export type ServiceId =
+  | 'api'
+  | 'database'
+  | 'transcription_worker'
+  | 'evaluation_worker'
+  | 'pbx_ingestion'
+  | 'email_delivery'
+  | 'scheduler';
+
+export interface ServiceHealth {
+  id: ServiceId;
+  state: HealthState;
+  latencyMs: number | null;
+  detail: string;
+  checkedAt: string;
+}
+
+export interface SystemHealth {
+  generatedAt: string;
+  simulated: boolean;
+  overall: HealthState;
+  services: readonly ServiceHealth[];
+  resources: {
+    cpuPct: number;
+    ramUsedGb: number;
+    ramTotalGb: number;
+    gpus: readonly {
+      id: string;
+      name: string;
+      utilPct: number;
+      memUsedGb: number;
+      memTotalGb: number;
+      temperatureC: number;
+    }[];
+    disks: readonly {
+      volumeId: string;
+      name: string;
+      usedGb: number;
+      totalGb: number;
+      status: VolumeStatus;
+    }[];
+  };
+  workers: readonly {
+    id: string;
+    kind: 'transcription' | 'evaluation' | 'classification';
+    state: 'busy' | 'idle' | 'stopped' | 'error';
+    currentJobId: string | null;
+    heartbeatAt: string;
+  }[];
+  queue: { queued: number; running: number; failed: number; paused: boolean };
+  pbx: { state: PbxConnectionState; enabled: boolean; lastSyncAt: string | null };
+  email: {
+    state: SenderState;
+    lastDeliveryAt: string | null;
+    failed24h: number;
+    simulated24h: number;
+  };
+}
+
+export type ErrorSeverity = 'critical' | 'error' | 'warning';
+
+/** Structured, sanitized error record (admin-only). Never contains secrets or recording content. */
+export interface SystemError {
+  id: string;
+  at: string;
+  severity: ErrorSeverity;
+  service: ServiceId;
+  code: string;
+  message: string;
+  correlationId: string;
+  count: number;
+  acknowledged: boolean;
+  acknowledgedBy: string | null;
+  acknowledgedAt: string | null;
+}
+
+export interface SystemErrorQuery {
+  severity?: ErrorSeverity | undefined;
+  service?: ServiceId | undefined;
+  search?: string | undefined;
+  includeAcknowledged?: boolean | undefined;
+}

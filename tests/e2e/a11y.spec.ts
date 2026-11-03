@@ -27,6 +27,7 @@ const PAGES = [
   '/account/security',
   '/admin/storage',
   '/admin/backups',
+  '/admin/health',
 ];
 
 for (const lang of ['en', 'ar'] as const) {

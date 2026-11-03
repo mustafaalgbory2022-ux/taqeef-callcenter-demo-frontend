@@ -1,5 +1,6 @@
 import type { Decoded } from '../decode';
 import type { WireReportSettings } from './fixtures/reports';
+import type { WireSystemError } from './handlers/system';
 import type { WireBackupRun, WireBackupSettings, WireRestoreRun } from './handlers/backups';
 import type { WireRecoveryItem, WireStorageSettings, WireVolume } from './fixtures/storage';
 import type { WireAuthSession, WirePolicy, WireUser } from './fixtures/users';
@@ -95,5 +96,6 @@ export interface MockState {
   };
   storage: { volumes: WireVolume[]; settings: WireStorageSettings; recovery: WireRecoveryItem[] };
   backups: { settings: WireBackupSettings; runs: WireBackupRun[]; restores: WireRestoreRun[] };
+  system: { errors: WireSystemError[] };
   seq: number;
 }

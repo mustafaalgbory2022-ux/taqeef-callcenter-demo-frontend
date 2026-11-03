@@ -568,3 +568,31 @@ describe('simulated backup, restore and migration', () => {
     expect(readiness.checks.find((c) => c.id === 'restoreTested')?.status).toBe('attention');
   });
 });
+
+describe('simulated system health and error log', () => {
+  it('reports simulated health derived from queue, PBX and email state', async () => {
+    const h = await api.system.health();
+    expect(h.simulated).toBe(true);
+    expect(h.services.find((s) => s.id === 'pbx_ingestion')?.state).toBe('down'); // not configured
+    expect(h.resources.gpus[0]?.memTotalGb).toBe(24);
+    await api.ai.pauseJobs();
+    const paused = await api.system.health();
+    expect(paused.queue.paused).toBe(true);
+    expect(paused.workers.every((w) => w.state === 'stopped')).toBe(true);
+  });
+
+  it('never returns secrets or one-time codes in error messages and audits acknowledgements', async () => {
+    const all = await api.system.errors({ includeAcknowledged: true });
+    const text = JSON.stringify(all);
+    expect(text).not.toContain('SYNTHETIC-NOT-REAL');
+    expect(text).not.toContain('482913');
+    expect(text).not.toContain('quality.supervisors@example.invalid');
+    expect(await api.system.errors({ severity: 'critical' })).toHaveLength(1);
+    const [first] = await api.system.errors({ search: 'EVAL_TIMEOUT' });
+    if (!first) throw new Error('missing');
+    await api.system.acknowledge(first.id);
+    expect((await api.system.errors({ search: 'EVAL_TIMEOUT' })).length).toBe(0);
+    await expect(api.system.acknowledge(first.id)).rejects.toMatchObject({ code: 'conflict' });
+    expect((await api.audit.list({ resource: 'system_error' }))[0]?.action).toBe('acknowledged');
+  });
+});

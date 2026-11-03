@@ -32,6 +32,7 @@ import { createNotificationsApi, type NotificationsApi } from './adapters/notifi
 import { createPbxAdminApi, type PbxAdminApi } from './adapters/pbx';
 import { createReportSettingsApi, type ReportSettingsApi } from './adapters/reportSettings';
 import { createBackupsApi, type BackupsApi } from './adapters/backups';
+import { createSystemApi, type SystemApi } from './adapters/system';
 import { createStorageApi, type StorageApi } from './adapters/storage';
 import { createAuthApi, createUsersApi, type AuthApi, type UsersApi } from './adapters/users';
 import { createQueueAdminApi, type QueueAdminApi } from './adapters/queues';
@@ -136,6 +137,7 @@ export interface ApiClient {
   readonly auth: AuthApi;
   readonly storage: StorageApi;
   readonly backups: BackupsApi;
+  readonly system: SystemApi;
 }
 
 export function createApiClient(transport: Transport, mode: ApiMode): ApiClient {
@@ -161,6 +163,7 @@ export function createApiClient(transport: Transport, mode: ApiMode): ApiClient 
     auth: createAuthApi(send),
     storage: createStorageApi(send),
     backups: createBackupsApi(send),
+    system: createSystemApi(send),
     async getSession() {
       try {
         return await send({ method: 'GET', path: endpoints.session }, wireSession, sessionFromWire);

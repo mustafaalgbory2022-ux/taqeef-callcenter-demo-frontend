@@ -9,6 +9,7 @@ import { pbxRoutes } from './handlers/pbx';
 import { reportSettingsRoutes } from './handlers/reportSettings';
 import { backupRoutes } from './handlers/backups';
 import { storageRoutes } from './handlers/storage';
+import { systemRoutes } from './handlers/system';
 import { userRoutes } from './handlers/users';
 import { callRoutes } from './handlers/calls';
 import { evaluationRoutes } from './handlers/evaluations';
@@ -139,6 +140,7 @@ export function createMockTransport({ latencyMs = 160 }: MockTransportOptions = 
     ...userRoutes(state, syntheticSession.permissions, persist),
     ...storageRoutes(state, persist),
     ...backupRoutes(state, persist),
+    ...systemRoutes(state, persist),
   ];
 
   return async (req) => {
