@@ -29,14 +29,25 @@ export function Button({
   className,
   disabled,
   type = 'button',
+  onClick,
   ...rest
 }: ButtonProps) {
+  // While loading the button stays focusable (aria-disabled, clicks ignored) so keyboard focus
+  // is not lost to <body> as it would be with the native disabled attribute (WCAG 2.4.3).
   return (
     <button
       type={type}
       className={classes(variant, size, className)}
-      disabled={disabled || loading}
+      disabled={disabled}
+      aria-disabled={loading || undefined}
       aria-busy={loading || undefined}
+      onClick={(e) => {
+        if (loading) {
+          e.preventDefault();
+          return;
+        }
+        onClick?.(e);
+      }}
       {...rest}
     >
       {loading ? (

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { focusFirstInvalid } from '@/shared/ui/focusInvalid';
 import type { ConnectionTestResult } from '@/shared/api/adapters/notifications';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -50,12 +51,16 @@ export function SenderCard({ sender }: { sender: EmailSender }) {
   const [result, setResult] = useState<ConnectionTestResult | null>(null);
   const [to, setTo] = useState('');
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
     e.preventDefault();
     setFormError(null);
     const client = validateSender(v, sender.credentialSet);
     setErrors(Object.fromEntries(Object.entries(client).map(([k, key]) => [k, t(key)])));
-    if (Object.keys(client).length > 0) return;
+    if (Object.keys(client).length > 0) {
+      focusFirstInvalid(form);
+      return;
+    }
     try {
       await save.mutate(v);
       setV((x) => ({ ...x, secret: '' }));
@@ -63,6 +68,7 @@ export function SenderCard({ sender }: { sender: EmailSender }) {
     } catch (err) {
       const mapped = mapFieldIssues(err, SENDER_SERVER_FIELD);
       if (mapped) setErrors(mapped.fields);
+      focusFirstInvalid(form);
       if (!mapped || mapped.unmapped.length > 0)
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
     }

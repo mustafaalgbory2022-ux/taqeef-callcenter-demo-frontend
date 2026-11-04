@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent, type ReactNode } from 'react';
+import { focusFirstInvalid } from '@/shared/ui/focusInvalid';
 import { Link } from 'react-router';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -75,7 +76,8 @@ export function AiConfigForm({ config, models, scorecards }: AiConfigFormProps) 
   const setPrompt = (k: AiPromptKind, v: string) =>
     setD((x) => ({ ...x, prompts: { ...x.prompts, [k]: v } }));
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
     e.preventDefault();
     setFormError(null);
     const client = validateAiConfig(
@@ -85,6 +87,7 @@ export function AiConfigForm({ config, models, scorecards }: AiConfigFormProps) 
     );
     setErrors(Object.fromEntries(Object.entries(client).map(([k, key]) => [k, t(key)])));
     if (Object.keys(client).length > 0) {
+      focusFirstInvalid(form);
       setFormError(t('errors.validation'));
       return;
     }
@@ -94,6 +97,7 @@ export function AiConfigForm({ config, models, scorecards }: AiConfigFormProps) 
     } catch (err) {
       const mapped = mapFieldIssues(err, AI_SERVER_FIELD);
       if (mapped) setErrors(mapped.fields);
+      focusFirstInvalid(form);
       if (!mapped || mapped.unmapped.length > 0)
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
     }

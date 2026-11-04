@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { focusFirstInvalid } from '@/shared/ui/focusInvalid';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
 import { usePermission } from '@/shared/hooks/usePermission';
 import { describeError } from '@/shared/i18n/errorMessage';
@@ -91,18 +92,23 @@ export function AppSettingsForm({
   const [errors, setErrors] = useState<Partial<Record<AppField, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
     e.preventDefault();
     setFormError(null);
     const client = validateApp(v);
     setErrors(Object.fromEntries(Object.entries(client).map(([k, key]) => [k, t(key)])));
-    if (Object.keys(client).length) return;
+    if (Object.keys(client).length) {
+      focusFirstInvalid(form);
+      return;
+    }
     try {
       const saved = await save.mutate(v);
       toast('success', t('general.app.saved', { v: saved.version }));
     } catch (err) {
       const mapped = mapFieldIssues(err, APP_SERVER_FIELD);
       if (mapped) setErrors(mapped.fields);
+      focusFirstInvalid(form);
       if (!mapped || mapped.unmapped.length > 0)
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
     }
@@ -294,18 +300,23 @@ export function BrandingForm({
     value: string,
   ) => setV((x) => ({ ...x, [k]: value.trim() ? value : null }));
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
     e.preventDefault();
     setFormError(null);
     const client = validateBranding(input);
     setErrors(Object.fromEntries(Object.entries(client).map(([k, key]) => [k, t(key)])));
-    if (Object.keys(client).length) return;
+    if (Object.keys(client).length) {
+      focusFirstInvalid(form);
+      return;
+    }
     try {
       const saved = await save.mutate(input);
       toast('success', t('general.branding.saved', { v: saved.version }));
     } catch (err) {
       const mapped = mapFieldIssues(err, BRANDING_SERVER_FIELD);
       if (mapped) setErrors(mapped.fields);
+      focusFirstInvalid(form);
       if (!mapped || mapped.unmapped.length > 0)
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
     }

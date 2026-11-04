@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { focusFirstInvalid } from '@/shared/ui/focusInvalid';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
 import { useAdminAudit } from '@/shared/hooks/useAdminAudit';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -103,12 +104,16 @@ function TemplateDialog({ template, onClose }: { template: EmailTemplate; onClos
   const set = <K extends keyof EmailTemplateInput>(k: K, value: EmailTemplateInput[K]) =>
     setV((x) => ({ ...x, [k]: value }));
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
     e.preventDefault();
     setFormError(null);
     const client = validateTemplate(template.kind, v);
     setErrors(Object.fromEntries(Object.entries(client).map(([k, key]) => [k, t(key)])));
-    if (Object.keys(client).length > 0) return;
+    if (Object.keys(client).length > 0) {
+      focusFirstInvalid(form);
+      return;
+    }
     try {
       const saved = await save.mutate({ id: template.id, input: v });
       toast('success', t('notifications.templates.saved', { v: saved.version }));
@@ -116,6 +121,7 @@ function TemplateDialog({ template, onClose }: { template: EmailTemplate; onClos
     } catch (err) {
       const mapped = mapFieldIssues(err, TEMPLATE_SERVER_FIELD);
       if (mapped) setErrors(mapped.fields);
+      focusFirstInvalid(form);
       if (!mapped || mapped.unmapped.length > 0)
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
     }

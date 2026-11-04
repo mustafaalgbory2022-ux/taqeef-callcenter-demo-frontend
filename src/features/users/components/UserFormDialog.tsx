@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { focusFirstInvalid } from '@/shared/ui/focusInvalid';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
 import { describeError } from '@/shared/i18n/errorMessage';
 import { useI18n } from '@/shared/i18n/I18nProvider';
@@ -43,12 +44,16 @@ export function UserFormDialog({
   const set = <K extends keyof UserInput>(k: K, value: UserInput[K]) =>
     setV((x) => ({ ...x, [k]: value }));
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
     e.preventDefault();
     setFormError(null);
     const client = validateUser(v, users, user?.id ?? null);
     setErrors(Object.fromEntries(Object.entries(client).map(([k, key]) => [k, t(key)])));
-    if (Object.keys(client).length > 0) return;
+    if (Object.keys(client).length > 0) {
+      focusFirstInvalid(form);
+      return;
+    }
     if (needsAck && !ack) {
       setFormError(t('users.form.ackRequired'));
       return;
@@ -63,6 +68,7 @@ export function UserFormDialog({
     } catch (err) {
       const mapped = mapFieldIssues(err, USER_SERVER_FIELD);
       if (mapped) setErrors(mapped.fields);
+      focusFirstInvalid(form);
       if (!mapped || mapped.unmapped.length > 0)
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
     }

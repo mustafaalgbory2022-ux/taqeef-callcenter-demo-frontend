@@ -55,3 +55,26 @@ test('validates and versions application settings and branding, applying brandin
     page.getByRole('form', { name: 'Branding' }).getByLabel('Organization name (English)'),
   ).toHaveValue('');
 });
+
+test('applies the organization default language and theme unless the user chose their own', async ({
+  page,
+}) => {
+  await openSession(page, { path: '/admin/general', noPreferences: true });
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  const app = page.getByRole('form', { name: 'Application settings' });
+  await app.getByLabel(/Default language/).selectOption('ar');
+  await app.getByLabel(/Default theme/).selectOption('dark');
+  await app.getByLabel(/Change note/).fill('Arabic and dark by default');
+  await app.getByRole('button', { name: 'Save as v2' }).click();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
+  await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'ar');
+  await page.getByRole('group', { name: 'اللغة' }).getByRole('button', { name: 'English' }).click();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await page.reload();
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en'); // personal choice wins
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark'); // still the default
+});

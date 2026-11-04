@@ -1,4 +1,5 @@
 import { useI18n } from '@/shared/i18n/I18nProvider';
+import { ChangeArrow } from '@/shared/ui/ChangeArrow';
 import type { MessageKey } from '@/shared/i18n/translate';
 import type { Agent } from '@/shared/types/domain';
 import { Dialog } from '@/shared/ui/Dialog';
@@ -41,7 +42,8 @@ export function AgentHistoryDialog({ agent, onClose }: { agent: Agent; onClose: 
                         {FIELD_KEYS[c.field] ? t(FIELD_KEYS[c.field] as MessageKey) : c.field}:{' '}
                         {c.before !== null && (
                           <>
-                            <bdi className={styles.before}>{c.before || '—'}</bdi> →{' '}
+                            <bdi className={styles.before}>{c.before || '—'}</bdi>
+                            <ChangeArrow />
                           </>
                         )}
                         <bdi>{c.after || '—'}</bdi>

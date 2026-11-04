@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { focusFirstInvalid } from '@/shared/ui/focusInvalid';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
 import { usePermission } from '@/shared/hooks/usePermission';
 import { describeError } from '@/shared/i18n/errorMessage';
@@ -44,19 +45,24 @@ export function ReportEmailCard({
   const [errors, setErrors] = useState<Partial<Record<ReportEmailField, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
     e.preventDefault();
     setFormError(null);
     const input = { ...v, recipients: splitList(recipients), cc: splitList(cc) };
     const client = validateReportEmail(input);
     setErrors(Object.fromEntries(Object.entries(client).map(([k, key]) => [k, t(key)])));
-    if (Object.keys(client).length > 0) return;
+    if (Object.keys(client).length > 0) {
+      focusFirstInvalid(form);
+      return;
+    }
     try {
       await save.mutate(input);
       toast('success', t('notifications.reportEmail.saved'));
     } catch (err) {
       const mapped = mapFieldIssues(err, REPORT_EMAIL_SERVER_FIELD);
       if (mapped) setErrors(mapped.fields);
+      focusFirstInvalid(form);
       if (!mapped || mapped.unmapped.length > 0)
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
     }

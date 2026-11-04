@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { ChangeArrow } from '@/shared/ui/ChangeArrow';
 import { usePermission } from '@/shared/hooks/usePermission';
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { describeError } from '@/shared/i18n/errorMessage';
@@ -271,7 +272,9 @@ export function AuditLogPage() {
                                 {e.changes.map((c) => (
                                   <li key={c.field}>
                                     <bdi className={layout.mono}>{c.field}</bdi>:{' '}
-                                    <bdi>{c.before ?? '—'}</bdi> → <bdi>{c.after ?? '—'}</bdi>
+                                    <bdi>{c.before ?? '—'}</bdi>
+                                    <ChangeArrow />
+                                    <bdi>{c.after ?? '—'}</bdi>
                                   </li>
                                 ))}
                               </ul>

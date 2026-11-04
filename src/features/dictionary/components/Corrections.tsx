@@ -1,4 +1,6 @@
 import { useState, type FormEvent } from 'react';
+import { focusFirstInvalid } from '@/shared/ui/focusInvalid';
+import { ChangeArrow } from '@/shared/ui/ChangeArrow';
 import { Link } from 'react-router';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
 import { usePermission } from '@/shared/hooks/usePermission';
@@ -94,7 +96,11 @@ export function CorrectionsCard() {
                     <tr key={c.id} data-testid={`correction-${c.id}`}>
                       <td className={tableStyles.wrap}>
                         <span lang="ar" dir="auto">
-                          <del>{c.heard}</del> → <strong>{c.proposed}</strong>
+                          <span className="visually-hidden">{t('common.heard')} </span>
+                          <del>{c.heard}</del>
+                          <ChangeArrow />
+                          <span className="visually-hidden">{t('common.proposed')} </span>
+                          <strong>{c.proposed}</strong>
                         </span>
                         <div className={tableStyles.muted}>
                           {t(`dictionary.kinds.${c.kind}`)} {c.synthetic && <SyntheticBadge />}
@@ -169,7 +175,7 @@ function ReviewDialog({
   const [add, setAdd] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     if (decision === 'reject' && note.trim().length < 3) {
@@ -220,7 +226,11 @@ function ReviewDialog({
     >
       <form id="correction-review" onSubmit={submit} noValidate className={layout.form}>
         <p lang="ar" dir="auto">
-          <del>{correction.heard}</del> → <strong>{correction.proposed}</strong>
+          <span className="visually-hidden">{t('common.heard')} </span>
+          <del>{correction.heard}</del>
+          <ChangeArrow />
+          <span className="visually-hidden">{t('common.proposed')} </span>
+          <strong>{correction.proposed}</strong>
         </p>
         <fieldset className={layout.checks}>
           <legend>{t('dictionary.corrections.decision')}</legend>
@@ -288,7 +298,8 @@ function ProposeDialog({ onClose }: { onClose: () => void }) {
   const set = <K extends keyof CorrectionProposal>(k: K, value: CorrectionProposal[K]) =>
     setV((x) => ({ ...x, [k]: value }));
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
     e.preventDefault();
     setFormError(null);
     const client: Partial<Record<keyof CorrectionProposal, string>> = {};
@@ -296,7 +307,10 @@ function ProposeDialog({ onClose }: { onClose: () => void }) {
     if (!v.heard.trim()) client.heard = t('dictionary.errors.required');
     if (!v.proposed.trim()) client.proposed = t('dictionary.errors.required');
     setErrors(client);
-    if (Object.keys(client).length > 0) return;
+    if (Object.keys(client).length > 0) {
+      focusFirstInvalid(form);
+      return;
+    }
     try {
       await propose.mutate(v);
       toast('success', t('dictionary.corrections.proposedToast'));
@@ -304,6 +318,7 @@ function ProposeDialog({ onClose }: { onClose: () => void }) {
     } catch (err) {
       const mapped = mapFieldIssues(err, SERVER_FIELD);
       if (mapped) setErrors(mapped.fields);
+      focusFirstInvalid(form);
       if (!mapped || mapped.unmapped.length > 0)
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
     }

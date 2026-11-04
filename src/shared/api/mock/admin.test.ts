@@ -641,8 +641,8 @@ describe('simulated general administration and branding', () => {
       (
         await api.general.saveAppSettings({
           ...s,
-          defaultLanguage: 'en',
-          changeNote: 'English default',
+          defaultLanguage: 'ar',
+          changeNote: 'Arabic default',
         })
       ).version,
     ).toBe(2);

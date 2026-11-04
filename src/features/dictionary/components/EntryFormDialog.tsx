@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { focusFirstInvalid } from '@/shared/ui/focusInvalid';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
 import { describeError } from '@/shared/i18n/errorMessage';
 import { useI18n } from '@/shared/i18n/I18nProvider';
@@ -41,13 +42,17 @@ export function EntryFormDialog({
   const set = <K extends keyof DictionaryEntryInput>(k: K, v: DictionaryEntryInput[K]) =>
     setValues((x) => ({ ...x, [k]: v }));
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
     e.preventDefault();
     setFormError(null);
     const input = { ...values, variants: splitList(variantsText) };
     const client = validateEntry(input, entries, entry?.id ?? null);
     setErrors(Object.fromEntries(Object.entries(client).map(([k, key]) => [k, t(key)])));
-    if (Object.keys(client).length > 0) return;
+    if (Object.keys(client).length > 0) {
+      focusFirstInvalid(form);
+      return;
+    }
     try {
       const saved = await save.mutate({ id: entry?.id ?? null, input });
       toast(
@@ -61,6 +66,7 @@ export function EntryFormDialog({
     } catch (err) {
       const mapped = mapFieldIssues(err, ENTRY_SERVER_FIELD);
       if (mapped) setErrors(mapped.fields);
+      focusFirstInvalid(form);
       if (!mapped || mapped.unmapped.length > 0)
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
     }

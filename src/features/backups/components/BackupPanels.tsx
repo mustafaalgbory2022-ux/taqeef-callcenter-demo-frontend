@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { focusFirstInvalid } from '@/shared/ui/focusInvalid';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
 import { usePermission } from '@/shared/hooks/usePermission';
 import { describeError } from '@/shared/i18n/errorMessage';
@@ -61,18 +62,23 @@ export function BackupSettingsForm({
       components: on ? [...x.components, c] : x.components.filter((y) => y !== c),
     }));
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
     e.preventDefault();
     setFormError(null);
     const client = validateBackupSettings(v);
     setErrors(Object.fromEntries(Object.entries(client).map(([k, key]) => [k, t(key)])));
-    if (Object.keys(client).length) return;
+    if (Object.keys(client).length) {
+      focusFirstInvalid(form);
+      return;
+    }
     try {
       const saved = await save.mutate(v);
       toast('success', t('backups.settings.saved', { v: saved.version }));
     } catch (err) {
       const mapped = mapFieldIssues(err, BACKUP_SERVER_FIELD);
       if (mapped) setErrors(mapped.fields);
+      focusFirstInvalid(form);
       if (!mapped || mapped.unmapped.length > 0)
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
     }
@@ -104,7 +110,8 @@ export function BackupSettingsForm({
                 >
                   {volumes.map((vol) => (
                     <option key={vol.id} value={vol.id} disabled={vol.status === 'unavailable'}>
-                      {vol.name} ({vol.path})
+                      {/* Paths are isolated as LTR (LRI…PDI): <option> cannot contain <bdi>. */}
+                      {`${vol.name} (\u2066${vol.path}\u2069)`}
                     </option>
                   ))}
                 </select>

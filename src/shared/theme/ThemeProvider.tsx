@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 
 export type ThemePreference = 'light' | 'dark' | 'system';
 export type ResolvedTheme = 'light' | 'dark';
@@ -6,14 +14,15 @@ export type ResolvedTheme = 'light' | 'dark';
 const STORAGE_KEY = 'taqeef.theme';
 const DARK_QUERY = '(prefers-color-scheme: dark)';
 
-function load(): ThemePreference {
+/** The user's own saved choice, or null when they have never chosen a theme. */
+function loadStored(): ThemePreference | null {
   try {
     const v = window.localStorage.getItem(STORAGE_KEY);
     if (v === 'light' || v === 'dark' || v === 'system') return v;
   } catch {
     /* storage unavailable */
   }
-  return 'system';
+  return null;
 }
 
 function systemTheme(): ResolvedTheme {
@@ -23,13 +32,18 @@ function systemTheme(): ResolvedTheme {
 interface ThemeContextValue {
   preference: ThemePreference;
   resolved: ResolvedTheme;
+  /** The user's explicit choice; persisted. */
   setPreference: (p: ThemePreference) => void;
+  /** Organization default (application settings); applied only without a personal choice. */
+  applyDefault: (p: ThemePreference) => void;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [preference, setPreference] = useState<ThemePreference>(load);
+  const [personal, setPersonal] = useState<ThemePreference | null>(loadStored);
+  const [orgDefault, setOrgDefault] = useState<ThemePreference>('system');
+  const preference = personal ?? orgDefault;
   const [system, setSystem] = useState<ResolvedTheme>(systemTheme);
 
   useEffect(() => {
@@ -44,14 +58,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.dataset.theme = resolved;
+  }, [resolved]);
+
+  const setPreference = useCallback((next: ThemePreference) => {
+    setPersonal(next);
     try {
-      window.localStorage.setItem(STORAGE_KEY, preference);
+      window.localStorage.setItem(STORAGE_KEY, next);
     } catch {
       /* non-persistent */
     }
-  }, [preference, resolved]);
+  }, []);
 
-  const value = useMemo(() => ({ preference, resolved, setPreference }), [preference, resolved]);
+  const value = useMemo(
+    () => ({ preference, resolved, setPreference, applyDefault: setOrgDefault }),
+    [preference, resolved, setPreference],
+  );
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 

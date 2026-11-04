@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { focusFirstInvalid } from '@/shared/ui/focusInvalid';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
 import { describeError } from '@/shared/i18n/errorMessage';
 import { useI18n } from '@/shared/i18n/I18nProvider';
@@ -38,7 +39,8 @@ export function QueueFormDialog({
   const [ack, setAck] = useState(false);
   const renumber = needsRenumberConfirmation(queue, values);
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
     e.preventDefault();
     setFormError(null);
     const clientErrors = validateQueue(values, queues, queue?.id ?? null);
@@ -61,6 +63,7 @@ export function QueueFormDialog({
     } catch (err) {
       const mapped = mapFieldIssues(err, QUEUE_SERVER_FIELD);
       if (mapped) setErrors(mapped.fields);
+      focusFirstInvalid(form);
       if (!mapped || mapped.unmapped.length > 0)
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
     }

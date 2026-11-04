@@ -59,7 +59,10 @@
     "edit": "Edit",
     "close": "Close",
     "actions": "Actions",
-    "readOnly": "You have read-only access to this area."
+    "readOnly": "You have read-only access to this area.",
+    "changedTo": "changed to",
+    "heard": "Heard:",
+    "proposed": "Proposed:"
   },
   "errors": {
     "network": "The server could not be reached. Check that the local application is running.",

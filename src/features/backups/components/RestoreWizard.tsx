@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { describeError } from '@/shared/i18n/errorMessage';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import type { BackupComponent, BackupRun, RestoreRequest } from '@/shared/types/domain';
@@ -33,6 +33,16 @@ export function RestoreWizard({ run, onClose }: { run: BackupRun; onClose: () =>
   const [ack, setAck] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const index = WIZARD_STEPS.indexOf(step);
+  // Move focus into the new step: the footer buttons that triggered the change may unmount.
+  const stepRef = useRef<HTMLParagraphElement>(null);
+  const firstRender = useRef(true);
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false;
+      return;
+    }
+    stepRef.current?.focus();
+  }, [step]);
   const block = restoreBlock(run, request);
   const toggle = (c: BackupComponent, on: boolean) =>
     setRequest((r) => ({
@@ -68,12 +78,13 @@ export function RestoreWizard({ run, onClose }: { run: BackupRun; onClose: () =>
         <>
           <Button onClick={onClose}>{t('common.cancel')}</Button>
           {index > 0 && (
-            <Button onClick={() => setStep(WIZARD_STEPS[index - 1] ?? 'source')}>
+            <Button key="back" onClick={() => setStep(WIZARD_STEPS[index - 1] ?? 'source')}>
               {t('backups.wizard.back')}
             </Button>
           )}
           {step !== 'confirm' ? (
             <Button
+              key="next"
               variant="primary"
               disabled={!canNext}
               onClick={() => setStep(WIZARD_STEPS[index + 1] ?? 'confirm')}
@@ -82,6 +93,7 @@ export function RestoreWizard({ run, onClose }: { run: BackupRun; onClose: () =>
             </Button>
           ) : (
             <Button
+              key="start"
               variant={request.mode === 'full' ? 'danger' : 'primary'}
               loading={restore.isPending}
               disabled={block !== null || !ack}
@@ -94,7 +106,7 @@ export function RestoreWizard({ run, onClose }: { run: BackupRun; onClose: () =>
       }
     >
       <div className={layout.stack}>
-        <p className={layout.muted} aria-live="polite">
+        <p className={layout.muted} ref={stepRef} tabIndex={-1} data-testid="wizard-step">
           {t('backups.wizard.step', {
             n: index + 1,
             total: WIZARD_STEPS.length,

@@ -14,7 +14,19 @@ const VARS: Record<keyof BrandTokens, { light: string; dark: string }> = {
  */
 export function safeAssetUrl(url: string | null): string | null {
   if (!url) return null;
-  if (/^\/(?!\/)/.test(url)) return url;
+  // Backslashes are treated as "/" by browsers ("/\\host" → "//host"), and control or
+  // percent-encoded separators can hide a scheme or host: reject them outright.
+  // eslint-disable-next-line no-control-regex -- control characters are exactly what is rejected
+  if (/[\\\u0000-\u001f\u007f]|%2f|%5c/i.test(url)) return null;
+  if (/^\/(?!\/)/.test(url)) {
+    try {
+      const base = window.location.origin;
+      const resolved = new URL(url, base);
+      return resolved.origin === base ? url : null;
+    } catch {
+      return null;
+    }
+  }
   if (/^data:image\/(png|svg\+xml|webp|jpeg);/.test(url)) return url;
   return null;
 }

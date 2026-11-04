@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { focusFirstInvalid } from '@/shared/ui/focusInvalid';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { describeError } from '@/shared/i18n/errorMessage';
@@ -76,7 +77,7 @@ function MfaCard({ mfa }: { mfa: AccountMfa }) {
     }
   }
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!enrollment) return;
     if (!isTotpCode(code)) {
@@ -230,14 +231,18 @@ function PasswordCard({ policy }: { policy: SecurityPolicy }) {
   // The server also rejects passwords containing the username.
   const checklist = passwordChecklist(next, policy, '');
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
     e.preventDefault();
     const client: typeof errors = {};
     if (!current) client.current = t('account.password.currentRequired');
     if (checklist.some((c) => !c.ok)) client.next = t('account.password.policy');
     if (next !== repeat) client.repeat = t('account.password.mismatch');
     setErrors(client);
-    if (Object.keys(client).length > 0) return;
+    if (Object.keys(client).length > 0) {
+      focusFirstInvalid(form);
+      return;
+    }
     try {
       const r = await change.mutate({ current, next });
       setResult(r.message);
@@ -250,8 +255,10 @@ function PasswordCard({ policy }: { policy: SecurityPolicy }) {
         current_password: 'current',
         new_password: 'next',
       } as const);
-      if (mapped) setErrors(mapped.fields);
-      else toast('error', describeError(err, t));
+      if (mapped) {
+        setErrors(mapped.fields);
+        focusFirstInvalid(form);
+      } else toast('error', describeError(err, t));
     }
   }
 

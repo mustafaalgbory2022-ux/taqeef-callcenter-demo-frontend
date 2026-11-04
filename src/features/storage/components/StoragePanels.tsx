@@ -1,4 +1,5 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent } from 'react';
+import { focusFirstInvalid } from '@/shared/ui/focusInvalid';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
 import { usePermission } from '@/shared/hooks/usePermission';
 import { describeError } from '@/shared/i18n/errorMessage';
@@ -136,6 +137,7 @@ export function StorageSettingsForm({
   const [errors, setErrors] = useState<Partial<Record<keyof StorageErrors, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const risks = storageRisks(settings, v);
 
   const setLocation = (c: StorageCategory, id: string) =>
@@ -155,17 +157,22 @@ export function StorageSettingsForm({
       setConfirming(false);
       const mapped = mapFieldIssues(err, STORAGE_SERVER_FIELD);
       if (mapped) setErrors(mapped.fields);
+      focusFirstInvalid(formRef.current);
       if (!mapped || mapped.unmapped.length > 0)
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
     }
   }
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
     e.preventDefault();
     setFormError(null);
     const client = validateStorage(v, overview.volumes, settings);
     setErrors(Object.fromEntries(Object.entries(client).map(([k, key]) => [k, t(key)])));
-    if (Object.keys(client).length > 0) return;
+    if (Object.keys(client).length > 0) {
+      focusFirstInvalid(form);
+      return;
+    }
     if (hasRisk(risks)) setConfirming(true);
     else await persist(false);
   }

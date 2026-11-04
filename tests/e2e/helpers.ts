@@ -4,6 +4,8 @@ export interface OpenOptions {
   lang?: 'en' | 'ar';
   theme?: 'light' | 'dark';
   path?: string;
+  /** Leave language/theme unset, as for a user who never chose them. */
+  noPreferences?: boolean;
 }
 
 /**
@@ -12,18 +14,19 @@ export interface OpenOptions {
  */
 export async function openSession(
   page: Page,
-  { lang = 'en', theme = 'light', path = '/' }: OpenOptions = {},
+  { lang = 'en', theme = 'light', path = '/', noPreferences = false }: OpenOptions = {},
 ) {
   const errors: string[] = [];
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
   page.on('pageerror', (e) => errors.push(e.message));
-  await page.addInitScript(
-    ([l, t]) => {
-      localStorage.setItem('taqeef.lang', l);
-      localStorage.setItem('taqeef.theme', t);
-    },
-    [lang, theme] as const,
-  );
+  if (!noPreferences)
+    await page.addInitScript(
+      ([l, t]) => {
+        localStorage.setItem('taqeef.lang', l);
+        localStorage.setItem('taqeef.theme', t);
+      },
+      [lang, theme] as const,
+    );
   const code = `SYN-${Math.random().toString(36).slice(2, 8).toUpperCase()}-E2E`;
   const sep = path.includes('?') ? '&' : '?';
   await page.goto(`${path}${sep}launch_code=${code}`);

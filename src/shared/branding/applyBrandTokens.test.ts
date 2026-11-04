@@ -18,6 +18,10 @@ describe('runtime brand tokens', () => {
     expect(safeAssetUrl('https://cdn.example.com/logo.svg')).toBeNull();
     expect(safeAssetUrl('//evil.example/logo.svg')).toBeNull();
     expect(safeAssetUrl('javascript:alert(1)')).toBeNull();
+    expect(safeAssetUrl('/\\evil.example/logo.png')).toBeNull();
+    expect(safeAssetUrl('/%5Cevil.example/logo.png')).toBeNull();
+    expect(safeAssetUrl('/\t/evil.example/logo.png')).toBeNull();
+    expect(safeAssetUrl('/brand/logo-light.svg')).toBe('/brand/logo-light.svg');
   });
 
   it('sets and clears CSS custom properties', () => {

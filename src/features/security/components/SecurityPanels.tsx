@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { focusFirstInvalid } from '@/shared/ui/focusInvalid';
 import { useUserAction, useUsers } from '@/features/users';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
 import { useApiClient } from '@/shared/api/ApiProvider';
@@ -66,18 +67,23 @@ export function PolicyForm({ policy }: { policy: SecurityPolicy }) {
   const [errors, setErrors] = useState<Partial<Record<PolicyField, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
     e.preventDefault();
     setFormError(null);
     const client = validatePolicy(v);
     setErrors(Object.fromEntries(Object.entries(client).map(([k, key]) => [k, t(key)])));
-    if (Object.keys(client).length > 0) return;
+    if (Object.keys(client).length > 0) {
+      focusFirstInvalid(form);
+      return;
+    }
     try {
       const saved = await save.mutate(v);
       toast('success', t('security.policy.saved', { v: saved.version }));
     } catch (err) {
       const mapped = mapFieldIssues(err, POLICY_SERVER_FIELD);
       if (mapped) setErrors(mapped.fields);
+      focusFirstInvalid(form);
       if (!mapped || mapped.unmapped.length > 0)
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
     }

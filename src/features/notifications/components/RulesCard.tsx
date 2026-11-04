@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { focusFirstInvalid } from '@/shared/ui/focusInvalid';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
 import { usePermission } from '@/shared/hooks/usePermission';
 import { describeError } from '@/shared/i18n/errorMessage';
@@ -194,13 +195,17 @@ function RuleDialog({
   const set = <K extends keyof NotificationRuleInput>(k: K, value: NotificationRuleInput[K]) =>
     setV((x) => ({ ...x, [k]: value }));
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
     e.preventDefault();
     setFormError(null);
     const input = { ...v, recipients: splitList(recipients) };
     const client = validateRule(input);
     setErrors(Object.fromEntries(Object.entries(client).map(([k, key]) => [k, t(key)])));
-    if (Object.keys(client).length > 0) return;
+    if (Object.keys(client).length > 0) {
+      focusFirstInvalid(form);
+      return;
+    }
     try {
       await save.mutate({ id: rule?.id ?? null, input });
       toast(
@@ -213,6 +218,7 @@ function RuleDialog({
     } catch (err) {
       const mapped = mapFieldIssues(err, RULE_SERVER_FIELD);
       if (mapped) setErrors(mapped.fields);
+      focusFirstInvalid(form);
       if (!mapped || mapped.unmapped.length > 0)
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
     }

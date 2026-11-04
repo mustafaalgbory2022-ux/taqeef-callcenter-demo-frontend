@@ -1,4 +1,5 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useRef, useState, type FormEvent } from 'react';
+import { focusFirstInvalid } from '@/shared/ui/focusInvalid';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
 import { usePermission } from '@/shared/hooks/usePermission';
 import { describeError } from '@/shared/i18n/errorMessage';
@@ -58,6 +59,7 @@ export function ConnectorForm({
   const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
   const today = todayISO();
   const impact = impactfulChanges(connector, v);
   const queueName = (id: string) => {
@@ -85,17 +87,20 @@ export function ConnectorForm({
       setConfirming(false);
       const mapped = mapFieldIssues(err, serverFields);
       if (mapped) setErrors(mapped.fields);
+      focusFirstInvalid(formRef.current);
       if (!mapped || mapped.unmapped.length > 0)
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
     }
   }
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
     e.preventDefault();
     setFormError(null);
     const client = validateConnector(v, adapter, connector.credentialSet, today);
     setErrors(Object.fromEntries(Object.entries(client).map(([k, key]) => [k, key ? t(key) : ''])));
     if (Object.keys(client).length > 0) {
+      focusFirstInvalid(form);
       setFormError(t('errors.validation'));
       return;
     }

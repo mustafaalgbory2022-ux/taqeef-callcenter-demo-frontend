@@ -14,7 +14,7 @@ const AT = '2026-09-15T09:00:00+03:00';
 
 export const initialAppSettings: WireAppSettings = {
   version: 1,
-  default_language: 'ar',
+  default_language: 'en',
   default_theme: 'system',
   timezone: 'Asia/Baghdad',
   support_contact: '',

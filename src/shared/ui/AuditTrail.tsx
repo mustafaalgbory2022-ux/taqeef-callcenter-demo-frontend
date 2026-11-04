@@ -2,6 +2,7 @@ import { useI18n } from '@/shared/i18n/I18nProvider';
 import type { QueryResult } from '@/shared/hooks/useApiQuery';
 import type { AdminAuditEntry } from '@/shared/types/domain';
 import { Badge } from './Badge';
+import { ChangeArrow } from './ChangeArrow';
 import { EmptyState, QueryView } from './States';
 import styles from './AuditTrail.module.css';
 
@@ -45,7 +46,8 @@ export function AuditTrail({
                         <bdi className={styles.field}>{c.field}</bdi>:{' '}
                         {c.before !== null && (
                           <>
-                            <bdi className={styles.before}>{c.before || '—'}</bdi> →{' '}
+                            <bdi className={styles.before}>{c.before || '—'}</bdi>
+                            <ChangeArrow />
                           </>
                         )}
                         <bdi>{c.after ?? '—'}</bdi>

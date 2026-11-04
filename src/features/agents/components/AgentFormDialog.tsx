@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { focusFirstInvalid } from '@/shared/ui/focusInvalid';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
 import { describeError } from '@/shared/i18n/errorMessage';
 import { useI18n } from '@/shared/i18n/I18nProvider';
@@ -42,7 +43,8 @@ export function AgentFormDialog({ agent, agents, onClose }: AgentFormDialogProps
   const toggleQueue = (id: string, on: boolean) =>
     set('queueIds', on ? [...values.queueIds, id] : values.queueIds.filter((q) => q !== id));
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
     e.preventDefault();
     setFormError(null);
     const clientErrors = validateAgent(values, agents, agent?.id ?? null);
@@ -61,6 +63,7 @@ export function AgentFormDialog({ agent, agents, onClose }: AgentFormDialogProps
     } catch (err) {
       const mapped = mapFieldIssues(err, SERVER_FIELD);
       if (mapped) setErrors(mapped.fields);
+      focusFirstInvalid(form);
       if (!mapped || mapped.unmapped.length > 0) {
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
       }

@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from 'react';
+import { focusFirstInvalid } from '@/shared/ui/focusInvalid';
 import { useNavigate } from 'react-router';
 import { sortAgents, useAgents } from '@/features/agents';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
@@ -35,7 +36,8 @@ export function UploadForm() {
   const set = <K extends UploadField>(k: K, v: UploadValues[K]) =>
     setValues((prev) => ({ ...prev, [k]: v }));
 
-  async function submit(e: FormEvent) {
+  async function submit(e: FormEvent<HTMLFormElement>) {
+    const form = e.currentTarget;
     e.preventDefault();
     setFormError(null);
     const clientErrors = validateUpload(values);
@@ -52,6 +54,7 @@ export function UploadForm() {
     } catch (err) {
       const mapped = mapFieldIssues(err, SERVER_UPLOAD_FIELD);
       if (mapped) setErrors(mapped.fields);
+      focusFirstInvalid(form);
       if (!mapped || mapped.unmapped.length > 0) {
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
       }

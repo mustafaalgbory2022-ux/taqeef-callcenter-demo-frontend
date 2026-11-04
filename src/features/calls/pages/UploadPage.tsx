@@ -1,4 +1,5 @@
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
+import { usePermission } from '@/shared/hooks/usePermission';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import { Card } from '@/shared/ui/Card';
 import { Notice } from '@/shared/ui/Notice';
@@ -7,6 +8,8 @@ import { UploadForm } from '../components/UploadForm';
 
 export function UploadPage() {
   const { t } = useI18n();
+  // UI gating only: the backend must also reject uploads without calls.upload.
+  const canUpload = usePermission('calls.upload');
   useDocumentTitle(t('calls.upload.pageTitle'), t('app.title'));
   return (
     <>
@@ -18,9 +21,13 @@ export function UploadPage() {
       <Notice tone="mock" title={t('calls.upload.syntheticTitle')}>
         {t('calls.upload.syntheticBody')}
       </Notice>
-      <Card title={t('calls.upload.formTitle')}>
-        <UploadForm />
-      </Card>
+      {canUpload ? (
+        <Card title={t('calls.upload.formTitle')}>
+          <UploadForm />
+        </Card>
+      ) : (
+        <Notice tone="warning" title={t('errors.forbidden')} />
+      )}
     </>
   );
 }

@@ -5,10 +5,12 @@ import { useApiQuery } from '@/shared/hooks/useApiQuery';
 import { SessionContext } from '@/shared/hooks/useSession';
 import { LoadingState } from '@/shared/ui/States';
 import { LaunchScreen } from './LaunchScreen';
+import { OrganizationDefaults } from './OrganizationDefaults';
 
 /**
  * The demo opens through a one-time launch-code exchange ("Open local demo session").
- * This is not a login form; production authentication is out of scope.
+ * This is not a login form: production password + TOTP sign-in is a backend requirement
+ * (see docs/handoff.md). After the session opens, organization defaults are applied.
  */
 export function SessionGate({
   launchCode,
@@ -23,6 +25,7 @@ export function SessionGate({
   if (session.status === 'success' && session.data) {
     return (
       <SessionContext.Provider value={session.data}>
+        <OrganizationDefaults />
         <BrandingProvider enabled>{children}</BrandingProvider>
       </SessionContext.Provider>
     );
