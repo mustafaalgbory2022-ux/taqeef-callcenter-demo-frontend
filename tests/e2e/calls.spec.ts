@@ -73,6 +73,8 @@ test('uploads a synthetic file and shows simulated processing', async ({ page })
   const row = page.getByRole('row', { name: /Synthetic upload test/ });
   await expect(row).toBeVisible();
   await expect(row.getByText('Scored')).toBeVisible({ timeout: 15_000 });
+  // The list keeps the no-score kind distinct: not assessable, never a generic or 0 score.
+  await expect(row.getByText('No score — not assessable')).toBeVisible();
   await row.getByRole('link').first().click();
   await expect(page.getByTestId('overall-score')).toBeVisible({ timeout: 15_000 });
   // Uploads are a single mixed channel: speakers unresolved, so no criterion is assessable.

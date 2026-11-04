@@ -199,7 +199,8 @@
       "duration": "المدة",
       "status": "الحالة",
       "score": "الدرجة",
-      "noScore": "بلا درجة"
+      "noScore": "بلا درجة",
+      "noScoreNotAssessable": "بلا درجة — غير قابل للتقييم"
     },
     "status": {
       "uploaded": "مرفوعة",

@@ -13,5 +13,5 @@ export const apiConfig = {
 
 export type ApiMode = 'mock' | 'live';
 
-/** Mock mode is the default for this standalone demo; set VITE_API_MODE=live for FastAPI. */
-export const apiMode: ApiMode = import.meta.env.VITE_API_MODE === 'live' ? 'live' : 'mock';
+// The mode is selected at build time through the `@/shared/api/runtime` alias
+// (vite.config.ts): mock by default, VITE_API_MODE=live for the local backend.

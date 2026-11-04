@@ -1,4 +1,5 @@
 import { Link } from 'react-router';
+import { resultPresentation } from '@/features/evaluations';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import type { Agent, Call, Evaluation, ScorecardVersion } from '@/shared/types/domain';
 import { Badge, SyntheticBadge } from '@/shared/ui/Badge';
@@ -76,6 +77,8 @@ export function CallsTable({ calls, agents, current, versions, label }: CallsTab
                       threshold={thresholdOf(evaluation)}
                     />
                   </>
+                ) : evaluation && resultPresentation(evaluation) === 'not_assessable' ? (
+                  <Badge icon="minus">{t('calls.table.noScoreNotAssessable')}</Badge>
                 ) : evaluation?.outcome === 'insufficient_evidence' ? (
                   <Badge tone="warning" icon="alert">
                     {t('calls.table.noScore')}

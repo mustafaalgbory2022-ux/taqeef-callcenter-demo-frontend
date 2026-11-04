@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { resultPresentation } from '../model/outcome';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import type { Evaluation, ScorecardVersion } from '@/shared/types/domain';
 import { Field } from '@/shared/ui/Field';
@@ -23,9 +24,18 @@ export function EvaluationHistory({
   const before = history.find((e) => e.id === beforeId);
 
   const label = (e: Evaluation) =>
-    `${fmt.dateTime(e.createdAt)} · v${e.scorecardVersion} · ${t(`evaluations.trigger.${e.trigger}`)} · ${
-      e.overallScore === null ? t('evaluations.noScore') : fmt.score(e.overallScore)
-    }`;
+    `${fmt.dateTime(e.createdAt)} · v${e.scorecardVersion} · ${t(`evaluations.trigger.${e.trigger}`)} · ${outcomeLabel(
+      e,
+    )}`;
+  // Failed, not assessable and insufficient evidence stay distinct; no score is ever implied.
+  function outcomeLabel(e: Evaluation): string {
+    const kind = resultPresentation(e);
+    if (kind === 'scored' && e.overallScore !== null) return fmt.score(e.overallScore);
+    if (kind === 'failed') return t('evaluations.failed');
+    return kind === 'not_assessable'
+      ? t('evaluations.notAssessableOverall.title')
+      : t('evaluations.insufficient.title');
+  }
 
   if (history.length < 2) {
     return (

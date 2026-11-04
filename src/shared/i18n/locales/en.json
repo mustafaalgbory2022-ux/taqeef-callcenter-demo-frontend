@@ -199,7 +199,8 @@
       "duration": "Duration",
       "status": "Status",
       "score": "Score",
-      "noScore": "No score"
+      "noScore": "No score",
+      "noScoreNotAssessable": "No score — not assessable"
     },
     "status": {
       "uploaded": "Uploaded",

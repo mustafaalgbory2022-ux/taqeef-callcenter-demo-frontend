@@ -1,6 +1,6 @@
 /// <reference types="vitest/config" />
 import { fileURLToPath, URL } from 'node:url';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 /**
@@ -25,21 +25,36 @@ export const CONTENT_SECURITY_POLICY = [
 // Dev-only proxy for VITE_API_MODE=live against a local FastAPI on 127.0.0.1:8000.
 const apiTarget = process.env.VITE_DEV_PROXY_TARGET ?? 'http://127.0.0.1:8000';
 
-export default defineConfig({
-  plugins: [react()],
-  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
-  server: { host: '127.0.0.1', proxy: { '/api': { target: apiTarget, changeOrigin: true } } },
-  preview: { host: '127.0.0.1', headers: { 'Content-Security-Policy': CONTENT_SECURITY_POLICY } },
-  build: {
-    target: 'es2022',
-    sourcemap: true,
-    // No inline polyfill script, so the build works under script-src 'self'.
-    modulePreload: { polyfill: false },
-  },
-  test: {
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
-    include: ['src/**/*.test.{ts,tsx}'],
-    css: { modules: { classNameStrategy: 'non-scoped' } },
-  },
+export default defineConfig(({ mode }) => {
+  // Build-time data source: live builds resolve the runtime to the fetch-only module, so the
+  // simulated backend and synthetic data never enter the live bundle
+  // (verified by src/test/liveBundle.test.ts).
+  const live =
+    (process.env.VITE_API_MODE ?? loadEnv(mode, process.cwd(), 'VITE_').VITE_API_MODE) === 'live';
+  const runtimeFile = fileURLToPath(
+    new URL(`./src/shared/api/runtime/${live ? 'live' : 'index'}.ts`, import.meta.url),
+  );
+  return {
+    plugins: [react()],
+    resolve: {
+      alias: [
+        { find: /^@\/shared\/api\/runtime$/, replacement: runtimeFile },
+        { find: '@', replacement: fileURLToPath(new URL('./src', import.meta.url)) },
+      ],
+    },
+    server: { host: '127.0.0.1', proxy: { '/api': { target: apiTarget, changeOrigin: true } } },
+    preview: { host: '127.0.0.1', headers: { 'Content-Security-Policy': CONTENT_SECURITY_POLICY } },
+    build: {
+      target: 'es2022',
+      sourcemap: true,
+      // No inline polyfill script, so the build works under script-src 'self'.
+      modulePreload: { polyfill: false },
+    },
+    test: {
+      environment: 'jsdom',
+      setupFiles: ['./src/test/setup.ts'],
+      include: ['src/**/*.test.{ts,tsx}'],
+      css: { modules: { classNameStrategy: 'non-scoped' } },
+    },
+  };
 });

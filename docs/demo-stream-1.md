@@ -246,6 +246,37 @@ audio shortcuts are covered by the unchanged tests.
 4. Launch-code location (query vs fragment), CSRF header/cookie names and all routes remain
    provisional and **unchanged** pending confirmation.
 
+## Task 5 — integration readiness for Local Claude
+
+**Scope.** Audit of the API adapter boundary, outcome presentation and synthetic-data
+usability. No endpoints, schemas, backend, database or AI engine were created or changed.
+The full integration handoff is in `docs/demo-integration-handoff.md`.
+
+**Defects found and fixed (independently verifiable).**
+
+1. **Live build bundled the mock backend.** `VITE_API_MODE=live` builds still contained the
+   simulated backend and synthetic fixtures (`taqeef.mock.db`, "Synthetic administrator",
+   `DEMO-001`). The runtime is now selected at build time (`src/shared/api/runtime/`, Vite alias
+   in `vite.config.ts`); a lint rule forbids importing the mock outside the runtime, and
+   `src/test/liveBundle.test.ts` builds both modes and asserts the live bundle and its source
+   maps contain no mock code.
+2. **Failed runs were labelled "No score" in the evaluation history.** Failed, not assessable,
+   insufficient evidence and scored runs now have distinct labels
+   (`EvaluationHistory.tsx`, via `resultPresentation`).
+3. **The calls list showed one generic "No score" for both no-score kinds.** A not-assessable
+   call now reads "No score — not assessable" (`CallsTable.tsx`, new key
+   `calls.table.noScoreNotAssessable` in EN/AR); insufficient evidence keeps its own label.
+
+**Outcome distinctness (confirmed).** Scored → points and score; insufficient evidence
+(1–5 assessable points) → "Insufficient evidence — No score"; not assessable (0 assessable
+points) → "Not assessable — No score"; failed → "Failed", never a score. No path renders a
+0 or an estimated score for a no-score outcome; failed runs are excluded from current results.
+
+**Validation.** `npm run check` (typecheck, lint, format, 87 unit tests incl. the live/mock
+bundle test) and `npm run test:e2e` (56 passed: desktop + mobile, EN/AR × light/dark with axe,
+transcript search incl. Arabic variants, evidence highlighting, audio shortcuts, upload flow
+with the new not-assessable list label).
+
 ## Proposed next tasks (prioritized, client-only unless noted)
 
 1. On approval: launch code in the URL fragment (Task 3a finding 9).

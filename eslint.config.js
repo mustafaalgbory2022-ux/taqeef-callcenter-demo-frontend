@@ -48,4 +48,31 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // Only the mock runtime (and the simulated backend itself / tests) may import it, so live
+    // builds can exclude it completely (see vite.config.ts and src/test/liveBundle.test.ts).
+    files: ['src/**/*.{ts,tsx}'],
+    ignores: ['src/shared/api/mock/**', 'src/shared/api/runtime/mock.ts', 'src/**/*.test.{ts,tsx}'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                '**/api/mock',
+                '**/api/mock/**',
+                '../mock',
+                '../mock/**',
+                './mock/**',
+                '**/runtime/mock',
+              ],
+              message:
+                'Use @/shared/api/runtime; the simulated backend must stay out of live builds.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 );
