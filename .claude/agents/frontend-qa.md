@@ -28,3 +28,6 @@ Do NOT edit files or install packages.
 
 Output: a concise ranked list (blocker / major / minor) with file:line, failure scenario and
 suggested fix, followed by a one-line test/build status summary.
+
+Demo stream: review only the diff of the named task on the demo branch, stay within the
+task's 60-minute box, and never review or touch `feature/taqeef-full-frontend`.

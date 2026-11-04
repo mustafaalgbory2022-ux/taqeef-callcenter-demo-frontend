@@ -1,15 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import type { TranscriptSegment } from '@/shared/types/domain';
-import { findActiveSegment } from './transcript';
+import {
+  findActiveSegment,
+  findTranscriptMatches,
+  normalizeForSearch,
+  stepMatch,
+} from './transcript';
 import { validateUpload } from './upload';
 
-const seg = (id: string, startMs: number, endMs: number): TranscriptSegment => ({
+const seg = (id: string, startMs: number, endMs: number, text = id): TranscriptSegment => ({
   id,
   startMs,
   endMs,
   speaker: 'agent',
   language: 'ar',
-  text: id,
+  text,
 });
 
 describe('findActiveSegment', () => {
@@ -46,5 +51,34 @@ describe('validateUpload', () => {
     expect(
       validateUpload({ file: audio, title: 'Test', agentId: 'a', confirmSynthetic: true }),
     ).toEqual({});
+  });
+});
+
+describe('transcript search', () => {
+  const segs = [
+    seg('s1', 0, 5, 'هلا بيك، شلون أقدر أساعدك؟'),
+    seg('s2', 6, 10, 'عندي سؤال عن الفاتورة'),
+    seg('s3', 11, 15, 'Your invoice is ready'),
+    seg('s4', 16, 20, 'الفاتوره وصلت'),
+  ];
+
+  it('ignores case, diacritics and alef/taa marbuta forms', () => {
+    expect(normalizeForSearch('  أَقدرُ   ')).toBe('اقدر');
+    expect(findTranscriptMatches(segs, 'الفاتورة')).toEqual(['s2', 's4']);
+    expect(findTranscriptMatches(segs, 'اقدر')).toEqual(['s1']);
+    expect(findTranscriptMatches(segs, 'INVOICE')).toEqual(['s3']);
+  });
+
+  it('needs at least two characters and returns nothing for no match', () => {
+    expect(findTranscriptMatches(segs, 'ا')).toEqual([]);
+    expect(findTranscriptMatches(segs, 'refund')).toEqual([]);
+  });
+
+  it('steps through matches with wrap-around', () => {
+    expect(stepMatch(-1, 3, 1)).toBe(0);
+    expect(stepMatch(-1, 3, -1)).toBe(2);
+    expect(stepMatch(2, 3, 1)).toBe(0);
+    expect(stepMatch(0, 3, -1)).toBe(2);
+    expect(stepMatch(0, 0, 1)).toBe(-1);
   });
 });

@@ -247,7 +247,14 @@
       "customer": "Customer",
       "pending": "The transcript will appear when processing reaches this stage.",
       "count": "{n} transcript segments",
-      "unresolved": "Speaker unresolved"
+      "unresolved": "Speaker unresolved",
+      "search": "Search transcript",
+      "previousMatch": "Previous match",
+      "nextMatch": "Next match",
+      "noMatches": "No matches",
+      "matchCount": "{n} matching lines",
+      "matchPosition": "Match {n} of {total}",
+      "matchLabel": "Matches search."
     },
     "upload": {
       "open": "Upload call",

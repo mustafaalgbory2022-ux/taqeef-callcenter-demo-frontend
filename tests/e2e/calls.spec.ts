@@ -79,3 +79,33 @@ test('uploads a synthetic file and shows simulated processing', async ({ page })
   await expect(page.getByTestId('overall-score')).toContainText('Insufficient evidence — No score');
   await expect(page.locator('[data-segment-id="s1"]')).toContainText('Speaker unresolved');
 });
+
+test('transcript search finds Arabic spelling variants and steps through matches', async ({
+  page,
+}) => {
+  await openSession(page, { path: '/calls/DEMO-001' });
+  const status = page.getByTestId('transcript-search-status');
+  const search = page.getByRole('searchbox', { name: 'Search transcript' });
+  // Taa marbuta written as haa still matches "فاتورة" in the synthetic transcript.
+  await search.fill('فاتوره');
+  const matches = page.locator('[data-segment-id][data-match]');
+  await expect(matches.first()).toBeVisible();
+  const n = await matches.count();
+  await expect(status).toHaveText(`${n} matching lines`);
+  await page.getByRole('button', { name: 'Next match' }).click();
+  await expect(status).toHaveText(`Match 1 of ${n}`);
+  await expect(page.getByLabel('Follow playback')).not.toBeChecked();
+  await search.press('Shift+Enter');
+  await expect(status).toHaveText(n > 1 ? `Match ${n} of ${n}` : `Match 1 of 1`);
+
+  await search.fill('zzzz');
+  await expect(status).toHaveText('No matches');
+  await expect(page.getByRole('button', { name: 'Next match' })).toBeDisabled();
+  await expect(matches).toHaveCount(0);
+});
+
+test('transcript search is available in Arabic', async ({ page }) => {
+  await openSession(page, { path: '/calls/DEMO-001', lang: 'ar' });
+  await page.getByRole('searchbox', { name: 'بحث في النص' }).fill('فاتورة');
+  await expect(page.getByTestId('transcript-search-status')).toContainText('سطور مطابقة');
+});

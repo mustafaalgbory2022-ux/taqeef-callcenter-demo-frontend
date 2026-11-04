@@ -26,3 +26,6 @@ Do NOT edit files, install packages or access the network beyond the local previ
 Output: a concise list of findings ranked by severity (blocker / major / minor), each with
 file:line, the WCAG criterion or rule, the user impact, and a specific fix. If nothing is
 wrong, say so in one line.
+
+Demo stream: review only the diff of the named task on the demo branch, stay within the
+task's 60-minute box, and never review or touch `feature/taqeef-full-frontend`.

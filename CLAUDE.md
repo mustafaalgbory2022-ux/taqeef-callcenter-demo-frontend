@@ -3,6 +3,24 @@
 Standalone management-demo frontend. Later integrated into the local Taqeef Call Center AI
 system (FastAPI backend, ORD-0035 frontend). This repo is frontend-only.
 
+## Cloud Demo Stream 1 (this branch: `demo/ord-0035-cloud-stream-1`)
+
+- **Scope: the five-call ORD-0035 management demo only.** Branched from the preserved demo
+  baseline `860ffa9`. The full-system frontend (`feature/taqeef-full-frontend`) is a separate,
+  completed product — never copy Phase A–D modules here and never modify that branch.
+- **Git ownership.** Cloud commits and pushes only to `demo/ord-0035-cloud-stream-1`. Never
+  modify `main`, `claude/affectionate-ritchie-cr40s7` (original demo) or
+  `feature/taqeef-full-frontend`. Never merge; Local Claude owns integration and merges.
+- **Ownership split.** Local Claude owns Windows, the database, AI execution, backend/API
+  contracts and final integration. Cloud owns the demo frontend and explicitly assigned,
+  isolated frontend-side components. Do not invent API routes: new work must use existing
+  `ApiClient` methods or be purely client-side.
+- **60-minute task limit.** Each assigned task is time-boxed to 60 minutes. Work in small,
+  independently testable steps; stop at a safe checkpoint (checks green, committed, pushed).
+- **Handoff convention.** Every task ends with a handoff entry in `docs/demo-stream-1.md`:
+  branch, commit, files changed, tests run with counts, API impact ("none" if client-only),
+  and integration notes for Local Claude.
+
 ## Hard rules
 
 - **Synthetic data only.** No real recordings, customer data, PBX exports, credentials or
@@ -61,3 +79,4 @@ frontend-testing · fastapi-contract. Load the relevant one before working in it
 ## Review agents (.claude/agents)
 
 `a11y-reviewer` and `frontend-qa` — read-only, run sequentially at the end of a phase only.
+Within a 60-minute task, review only that task's diff and keep each review time-boxed.

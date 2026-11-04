@@ -247,7 +247,14 @@
       "customer": "العميل",
       "pending": "سيظهر النص عند وصول المعالجة إلى هذه المرحلة.",
       "count": "{n} مقاطع نصية",
-      "unresolved": "المتحدث غير محدد"
+      "unresolved": "المتحدث غير محدد",
+      "search": "بحث في النص",
+      "previousMatch": "التطابق السابق",
+      "nextMatch": "التطابق التالي",
+      "noMatches": "لا توجد تطابقات",
+      "matchCount": "{n} سطور مطابقة",
+      "matchPosition": "التطابق {n} من {total}",
+      "matchLabel": "يطابق البحث."
     },
     "upload": {
       "open": "رفع مكالمة",
