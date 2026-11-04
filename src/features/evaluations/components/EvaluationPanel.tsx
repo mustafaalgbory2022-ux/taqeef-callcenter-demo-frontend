@@ -14,6 +14,7 @@ import { versionOf } from '../model/versions';
 import { currentEvaluations, historyByCall } from '../model/current';
 import { useEvaluations, useRescore } from '../hooks/useEvaluationData';
 import { CriterionResults, ProhibitedHits, type CriterionResultsProps } from './CriterionResults';
+import { resultPresentation } from '../model/outcome';
 import { NoScoreBadge, OverallValue } from './ResultValue';
 import styles from './Evaluation.module.css';
 
@@ -98,6 +99,15 @@ export function EvaluationPanel({ callId, canRescore, onEvidence }: EvaluationPa
               <div className={styles.overall} data-testid="overall-score">
                 {latest.status === 'failed' ? (
                   <OverallValue evaluation={latest} />
+                ) : resultPresentation(latest) === 'not_assessable' ? (
+                  <>
+                    <NoScoreBadge kind="not_assessable" />
+                    <span className={styles.summary}>
+                      {t('evaluations.notAssessableOverall.body', {
+                        minimum: fmt.integer(latest.minimumAssessablePoints),
+                      })}
+                    </span>
+                  </>
                 ) : latest.outcome === 'insufficient_evidence' || latest.overallScore === null ? (
                   <>
                     <NoScoreBadge />

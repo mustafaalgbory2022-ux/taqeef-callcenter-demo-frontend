@@ -12,7 +12,6 @@ import { EmptyState, QueryView } from '@/shared/ui/States';
 import type { Agent } from '@/shared/types/domain';
 import { CriteriaPerformance } from '../components/CriteriaPerformance';
 import { KpiRow } from '../components/KpiRow';
-import { PbxPanel } from '../components/PbxPanel';
 import { SampleNotice, VersionNotice } from '../components/SampleNotice';
 import { usePerformance } from '../hooks/usePerformance';
 import { VersionFilter } from '../components/VersionFilter';
@@ -123,7 +122,6 @@ function AgentDashboard({
       <VersionNotice versions={derived.summary.scorecardVersions} />
       <div className={layout.split}>
         <CriteriaPerformance summary={derived.summary} />
-        <PbxPanel />
       </div>
       <CallsCard
         agentId={agent.id}

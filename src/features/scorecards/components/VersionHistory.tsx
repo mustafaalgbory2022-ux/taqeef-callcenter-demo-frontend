@@ -45,15 +45,21 @@ export function VersionHistory({ versions }: { versions: readonly ScorecardVersi
               </ul>
               <p>
                 {v.prohibitedPenalty.points > 0
-                  ? t('scorecards.history.penaltyActive', {
-                      points: v.prohibitedPenalty.points,
-                      criterion: pick(
-                        v.criteria.find((c) => c.id === v.prohibitedPenalty.criterionId)?.label ?? {
-                          en: '—',
-                          ar: '—',
-                        },
-                      ),
-                    })
+                  ? t(
+                      v.prohibitedPenalty.points === 1
+                        ? 'scorecards.history.penaltyActiveOne'
+                        : 'scorecards.history.penaltyActive',
+                      {
+                        points: v.prohibitedPenalty.points,
+                        criterion: pick(
+                          v.criteria.find((c) => c.id === v.prohibitedPenalty.criterionId)
+                            ?.label ?? {
+                            en: '—',
+                            ar: '—',
+                          },
+                        ),
+                      },
+                    )
                   : t('scorecards.history.penaltyNone')}
               </p>
               {v.prohibitedExpressions.length > 0 && (

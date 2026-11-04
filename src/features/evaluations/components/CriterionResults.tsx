@@ -41,10 +41,21 @@ export function CriterionResults({ evaluation, version, onEvidence }: CriterionR
             <span className={styles.label}>{labelOf(c.criterionId)}</span>
             <ResultValue result={c} />
           </div>
-          {c.rationale && (
-            <p className={styles.rationale} dir="auto">
-              {c.rationale}
-            </p>
+          {c.rationale ? (
+            <div className={styles.aiExplanation}>
+              <span className={styles.aiLabel}>
+                <Icon name="info" size={12} />
+                {t('evaluations.aiLabel')}
+              </span>
+              {/* AI output is rendered as plain text only, never as HTML. */}
+              <p className={styles.rationale} dir="auto">
+                {c.rationale}
+              </p>
+            </div>
+          ) : (
+            c.result !== 'scored' && (
+              <p className={styles.rationale}>{t('evaluations.reasonMissing')}</p>
+            )
           )}
           {c.evidence.length > 0 && (
             <div className={styles.evidence}>
@@ -115,7 +126,12 @@ export function ProhibitedHits({
               <Badge>{t(`evaluations.speaker.${h.speaker}`)}</Badge>
               {h.disposition === 'penalty_applied' ? (
                 <Badge tone="danger" icon="minus">
-                  {t('evaluations.prohibited.penaltyApplied', { n: fmt.integer(h.penaltyPoints) })}
+                  {t(
+                    h.penaltyPoints === 1
+                      ? 'evaluations.prohibited.penaltyAppliedOne'
+                      : 'evaluations.prohibited.penaltyApplied',
+                    { n: fmt.integer(h.penaltyPoints) },
+                  )}
                 </Badge>
               ) : (
                 <Badge tone="warning" icon="flag">

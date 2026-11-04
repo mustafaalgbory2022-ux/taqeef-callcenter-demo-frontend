@@ -8,7 +8,6 @@ import { QueryView } from '@/shared/ui/States';
 import { AgentBreakdown } from '../components/AgentBreakdown';
 import { CriteriaPerformance } from '../components/CriteriaPerformance';
 import { KpiRow } from '../components/KpiRow';
-import { PbxPanel } from '../components/PbxPanel';
 import { SampleNotice, VersionNotice } from '../components/SampleNotice';
 import { usePerformance } from '../hooks/usePerformance';
 import { VersionFilter } from '../components/VersionFilter';
@@ -71,7 +70,6 @@ export function OverviewPage() {
               )}
               <div className={layout.split}>
                 <CriteriaPerformance summary={derived.summary} />
-                <PbxPanel />
               </div>
             </div>
           )

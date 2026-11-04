@@ -67,8 +67,8 @@ test('an approved penalty rule deducts points only for reliably attributed agent
   await page.goto('/calls/DEMO-005');
   await page.getByRole('button', { name: 'Re-score with latest scorecard' }).click();
   const hits = page.getByRole('region', { name: 'Prohibited expressions' });
-  await expect(hits).toContainText('Penalty applied: −1 pt');
-  await expect(page.getByTestId('criterion-c-language')).toContainText('0 / 2 pts');
+  await expect(hits).toContainText('Penalty applied: 1 point deducted');
+  await expect(page.getByTestId('criterion-c-language')).toContainText('0 of 2 points');
   await expect(page.getByTestId('overall-score')).toContainText('4.00'); // 4 of 10 points
 });
 

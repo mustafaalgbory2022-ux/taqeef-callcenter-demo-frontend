@@ -4,7 +4,7 @@ import { clickNav, openSession, syntheticWav } from './helpers';
 
 test('evidence and transcript lines seek the synthetic recording', async ({ page }) => {
   await openSession(page, { path: '/calls/DEMO-003' });
-  await expect(page.getByTestId('criterion-c-language')).toContainText('0 / 2 pts');
+  await expect(page.getByTestId('criterion-c-language')).toContainText('0 of 2 points');
   await page.getByTestId('criterion-c-language').getByRole('button').first().click();
   await expect(page.locator('[data-segment-id="s5"]')).toHaveAttribute('aria-current', 'true');
   const time = await page.locator('audio').evaluate((a: HTMLAudioElement) => a.currentTime);
@@ -18,7 +18,7 @@ test('below 6 assessable points the evaluation has no score', async ({ page }) =
   await expect(page.getByTestId('overall-score')).toContainText('Insufficient evidence — No score');
   await expect(page.getByTestId('overall-score')).toContainText('4 of 10 points could be assessed');
   await expect(page.getByTestId('criterion-c-closing')).toContainText('Insufficient evidence');
-  await expect(page.getByTestId('criterion-c-greeting')).toContainText('1 / 1 pts');
+  await expect(page.getByTestId('criterion-c-greeting')).toContainText('1 of 1 point');
 });
 
 test('prohibited expressions are flagged for review without an approved penalty rule', async ({
@@ -75,9 +75,11 @@ test('uploads a synthetic file and shows simulated processing', async ({ page })
   await expect(row.getByText('Scored')).toBeVisible({ timeout: 15_000 });
   await row.getByRole('link').first().click();
   await expect(page.getByTestId('overall-score')).toBeVisible({ timeout: 15_000 });
-  // Uploads are a single mixed channel: speakers unresolved, too little assessable.
+  // Uploads are a single mixed channel: speakers unresolved, so no criterion is assessable.
+  // Zero assessable points is "Not assessable — No score" (handoff §7), never a 0 score.
   await expect(page.getByTestId('mixed-channel')).toBeVisible();
-  await expect(page.getByTestId('overall-score')).toContainText('Insufficient evidence — No score');
+  await expect(page.getByTestId('overall-score')).toContainText('Not assessable — No score');
+  await expect(page.getByTestId('overall-score')).not.toContainText('/ 10');
   await expect(page.locator('[data-segment-id="s1"]')).toContainText('Speaker unresolved');
 });
 
@@ -205,4 +207,22 @@ test('audio shortcuts announce in Arabic and keep evidence highlighting', async 
   await page.keyboard.press('KeyL');
   await expect(page.getByTestId('player-announcement')).toContainText('الموضع');
   await expect(page.locator('[data-segment-id][data-evidence]')).toHaveCount(1);
+});
+
+test('AI explanations carry a visible advisory label and points read naturally', async ({
+  page,
+}) => {
+  await openSession(page, { path: '/calls/DEMO-001' });
+  const criterion = page.getByTestId('criterion-c-resolution');
+  await expect(criterion).toContainText('AI-generated, preliminary, advisory');
+  await expect(criterion).toContainText(/\d of 3 points/);
+  await expect(page.getByTestId('criterion-c-greeting')).toContainText(/\d of 1 point(?!s)/);
+});
+
+test('Arabic shows the advisory label, readable points and 24-hour times', async ({ page }) => {
+  await openSession(page, { path: '/calls/DEMO-001', lang: 'ar' });
+  const criterion = page.getByTestId('criterion-c-resolution');
+  await expect(criterion).toContainText('مُولَّد بالذكاء الاصطناعي، أوّلي، استشاري');
+  await expect(criterion).toContainText(/النقاط: \d من 3/);
+  await expect(page.getByRole('main')).not.toContainText(/\d{1,2}:\d{2}\s?[صم](\s|$)/);
 });

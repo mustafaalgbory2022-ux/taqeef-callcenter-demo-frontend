@@ -170,8 +170,84 @@ shortcut change is limited to the `calls` feature and locale strings, with no de
 route or contract change. Please answer findings 1–6 and 9 (frontend-only, ready to implement
 on approval) and confirm the evidence shape and transcript revision reference above.
 
+## Task 4 — confirmed frontend mismatches from the handoff review
+
+Implements the frontend-only items from Task 3a (findings 1, 2, 5 and 6, plus the
+presentation part of 3). Nothing backend-dependent, no new API fields, no dependency change.
+
+**Completed fixes**
+
+1. **24-hour time** in English and Arabic: `hourCycle: 'h23'` in the shared date-time formatter
+   (Arabic previously showed "3:30 م").
+2. **PBX metrics removed** from the overview and agent pages (incoming, missed, abandoned, SLA
+   panel, its strings and styles). Nothing is derived from recordings. The future-scope text in
+   the "planned areas" list still mentions PBX ingestion as a later production area.
+3. **Readable points**: "2 of 3 points" / "1 of 1 point", "Penalty applied: 1 point deducted",
+   "+1 point" deltas, "deduct 2 points from …" in scorecard history. Arabic avoids
+   number-agreement errors by putting the count after a label, e.g. "النقاط: 2 من 3",
+   "طُبّق خصم — النقاط المخصومة: 1", "فرق النقاط: +1".
+4. **AI label**: every criterion explanation shows a visible text label "AI-generated,
+   preliminary, advisory" / "مُولَّد بالذكاء الاصطناعي، أوّلي، استشاري" (icon + bordered
+   text, not colour only). Explanations remain plain text. A non-scored criterion without an
+   explanation shows "No reason was provided for this result." instead of nothing.
+5. **No-score presentation** (from existing fields only, `src/features/evaluations/model/outcome.ts`):
+
+   | Situation (existing data)                                  | Shown as                                                                                           |
+   | ---------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+   | `outcome = scored`, score present                          | "x.xx / 10" (truncated)                                                                            |
+   | `outcome = insufficient_evidence`, `assessable_points` > 0 | "Insufficient evidence — No score" with "N of M points could be assessed; at least K are required" |
+   | `outcome = insufficient_evidence`, `assessable_points` = 0 | "Not assessable — No score" with "No criterion could be assessed"                                  |
+   | `status = failed`                                          | "Failed — no result"                                                                               |
+   | Criterion `not_assessable`                                 | "Not assessable" badge plus the stated reason (or "No reason was provided")                        |
+   | Criterion `insufficient_evidence`                          | "Insufficient evidence" badge                                                                      |
+
+   No score is assigned or estimated. All no-score evaluations stay excluded from averages and
+   low-score counts (unchanged). The list view keeps a single "No score" badge.
+
+**Files changed**
+
+- `src/shared/i18n/format.ts`
+- `src/features/dashboard/pages/OverviewPage.tsx`, `AgentPerformancePage.tsx`,
+  `components/Dashboard.module.css`; deleted `components/PbxPanel.tsx`
+- `src/features/evaluations/model/outcome.ts` (new), `components/ResultValue.tsx`,
+  `components/EvaluationPanel.tsx`, `components/CriterionResults.tsx`,
+  `components/Evaluation.module.css`, `index.ts`
+- `src/features/scorecards/components/VersionHistory.tsx`
+- `src/shared/i18n/locales/{en,ar}.json`
+- Tests: `src/features/evaluations/model/outcome.test.ts` (new),
+  `src/features/evaluations/components/ResultValue.test.tsx` (new),
+  `src/shared/i18n/translate.test.ts`, `tests/e2e/{dashboard,admin,calls}.spec.ts`
+
+**Tests.** `npm run check` (typecheck, lint, format, **84 unit tests**) passes; `npm run build`
+succeeds; `npm run test:e2e` **56 passed, 0 failed** (desktop + mobile; axe on all demo pages, EN/AR × light/dark). Transcript search, evidence highlighting and the
+audio shortcuts are covered by the unchanged tests.
+
+**Limitations.**
+
+- "Not assessable — No score" is covered in the browser by the synthetic upload flow (a
+  mixed-channel recording with zero assessable points, previously labelled "Insufficient
+  evidence"), plus unit and component tests. DEMO-004 still shows "Insufficient evidence — No
+  score" (4 of 10 points assessable).
+- "Not assessable" is inferred from `assessable_points = 0`. When the contract adds an explicit
+  outcome value, the mapping in `outcome.ts` should use it instead.
+- Arabic point phrasing is deliberately label-first; a native reviewer should confirm wording.
+
+**Contract questions for Local Claude (unchanged items left as they are)**
+
+1. **Evidence must reference a transcript revision.** Each evaluation run (or each evidence
+   item) needs the id of the immutable transcript revision its segment ids belong to; otherwise
+   evidence can point at the wrong text after re-transcription.
+2. **Evidence may arrive as segment ids only.** After the contract is final, the API adapter
+   (`src/shared/api/wire/evaluations.ts`) can enrich each id with `start_ms`, `end_ms` and the
+   segment text from that revision. No ids, timestamps, quotes or fields have been invented; the
+   current provisional wire shape is unchanged.
+3. Exact wire values for "Not assessable — no score" and for criterion states
+   (`met` / `partially_met` / `not_met` / `not_assessable`).
+4. Launch-code location (query vs fragment), CSRF header/cookie names and all routes remain
+   provisional and **unchanged** pending confirmation.
+
 ## Proposed next tasks (prioritized, client-only unless noted)
 
-1. On approval: frontend-only findings 1, 2, 5, 6 and 9 from Task 3a.
+1. On approval: launch code in the URL fragment (Task 3a finding 9).
 2. Print-friendly call review layout (CSS `@media print`), for management handouts.
 3. Needs Local Claude: confirmed transcript/segment fields before any speaker-correction UI.

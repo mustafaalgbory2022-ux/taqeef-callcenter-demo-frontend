@@ -28,3 +28,14 @@ describe('i18n dictionaries', () => {
     }
   });
 });
+
+describe('date and time formatting', () => {
+  it('uses a 24-hour clock in English and Arabic', async () => {
+    const { createFormatters } = await import('./format');
+    const iso = '2026-11-04T15:05:00';
+    expect(createFormatters('en').dateTime(iso)).toContain('15:05');
+    const ar = createFormatters('ar').dateTime(iso);
+    expect(ar).toContain('15:05');
+    expect(ar).not.toMatch(/[صم]$/);
+  });
+});

@@ -114,18 +114,6 @@
       "low": "Below threshold",
       "noScore": "No score (insufficient evidence)"
     },
-    "pbx": {
-      "title": "Call handling (PBX)",
-      "caption": "Kept separate from quality scores",
-      "unavailable": "Not available — awaiting PBX data",
-      "unavailableBody": "These figures come only from Yeastar PBX metadata. They are never estimated from recordings.",
-      "notAvailable": "Not available",
-      "incoming": "Total incoming",
-      "missed": "Missed",
-      "abandoned": "Abandoned",
-      "sla": "SLA",
-      "formula": "SLA % = (Total incoming − Missed) ÷ Total incoming × 100. Abandoned calls are reported separately."
-    },
     "versionFilter": {
       "label": "Scorecard",
       "all": "All versions"
@@ -341,7 +329,8 @@
       "none": "None detected.",
       "note": "Expressions affect the score only under the scorecard's approved penalty rule and when reliably attributed to the agent; otherwise they are flagged for review.",
       "flagged": "Flagged for review",
-      "penaltyApplied": "Penalty applied: −{n} pt"
+      "penaltyApplied": "Penalty applied: {n} points deducted",
+      "penaltyAppliedOne": "Penalty applied: {n} point deducted"
     },
     "history": {
       "title": "Evaluation history",
@@ -373,9 +362,9 @@
       "rescoresOnly": "Re-scores only"
     },
     "latestFailed": "The latest re-score attempt failed. The previous evaluation is still current.",
-    "points": "{awarded} / {possible} pts",
+    "points": "{awarded} of {possible} points",
     "pointsTitle": "Actual points awarded",
-    "penaltyNote": "includes −{n} penalty",
+    "penaltyNote": "includes a {n}-point penalty",
     "noScore": "No score",
     "insufficient": {
       "title": "Insufficient evidence — No score",
@@ -388,7 +377,15 @@
       "unresolved": "Speaker unresolved"
     },
     "failed": "Failed — no result",
-    "pointsDelta": "{sign}{n} pt"
+    "pointsDelta": "{sign}{n} points",
+    "pointsOne": "{awarded} of {possible} point",
+    "pointsDeltaOne": "{sign}{n} point",
+    "aiLabel": "AI-generated, preliminary, advisory",
+    "reasonMissing": "No reason was provided for this result.",
+    "notAssessableOverall": {
+      "title": "Not assessable — No score",
+      "body": "No criterion could be assessed, so no score is given. At least {minimum} assessable points are required. Excluded from scored averages and low-score counts."
+    }
   },
   "scorecards": {
     "page": {
@@ -466,7 +463,8 @@
       "threshold": "Threshold {value}",
       "counts": "{criteria} criteria · {points} points · minimum {minimum} assessable · {expressions} prohibited expressions",
       "penaltyNone": "Prohibited expressions: flag for review only",
-      "penaltyActive": "Prohibited expressions: −{points} pt from “{criterion}” when reliably attributed to the agent"
+      "penaltyActive": "Prohibited expressions: deduct {points} points from “{criterion}” when reliably attributed to the agent",
+      "penaltyActiveOne": "Prohibited expressions: deduct {points} point from “{criterion}” when reliably attributed to the agent"
     },
     "penalty": {
       "title": "Prohibited-expression penalty rule",

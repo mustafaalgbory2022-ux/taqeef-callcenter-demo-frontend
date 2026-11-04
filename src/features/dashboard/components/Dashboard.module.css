@@ -25,36 +25,6 @@
   list-style: none;
 }
 
-.pbx {
-  display: grid;
-  gap: var(--space-4);
-}
-
-.pbxGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
-  gap: var(--space-3);
-  margin: 0;
-}
-
-.pbxItem {
-  padding: var(--space-3) var(--space-4);
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-md);
-}
-
-.pbxItem dt {
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-}
-
-.pbxItem dd {
-  margin: var(--space-1) 0 0;
-  font-size: var(--text-lg);
-  font-weight: var(--weight-semibold);
-  color: var(--color-text-subtle);
-}
-
 .formula {
   font-size: var(--text-sm);
   color: var(--color-text-muted);

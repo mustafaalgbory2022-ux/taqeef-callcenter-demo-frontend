@@ -4,10 +4,11 @@ import { Badge } from '@/shared/ui/Badge';
 import { Icon } from '@/shared/ui/Icon';
 import { ScoreValue } from '@/shared/ui/ScoreValue';
 import { floorTo2 } from '@/shared/utils/score';
+import { resultPresentation } from '../model/outcome';
 import styles from './Evaluation.module.css';
 
 /**
- * ACTUAL points awarded for a criterion ("2 / 3 pts"), or a clearly distinct
+ * ACTUAL points awarded for a criterion ("2 of 3 points"), or a clearly distinct
  * "Not assessable" / "Insufficient evidence" state. Never shown on the 0–10 scale.
  */
 export function ResultValue({ result }: { result: CriterionEvaluation | null }) {
@@ -17,7 +18,7 @@ export function ResultValue({ result }: { result: CriterionEvaluation | null }) 
     return (
       <span className={styles.points} title={t('evaluations.pointsTitle')}>
         <bdi>
-          {t('evaluations.points', {
+          {t(result.possiblePoints === 1 ? 'evaluations.pointsOne' : 'evaluations.points', {
             awarded: fmt.integer(result.awardedPoints),
             possible: fmt.integer(result.possiblePoints),
           })}
@@ -39,10 +40,19 @@ export function ResultValue({ result }: { result: CriterionEvaluation | null }) 
   );
 }
 
-/** "Insufficient evidence — No score" badge for a whole evaluation. */
-export function NoScoreBadge() {
+/**
+ * Whole-evaluation "No score" badge: "Insufficient evidence — No score" (too few assessable
+ * points) or "Not assessable — No score" (none at all). Never shown as a 0 score.
+ */
+export function NoScoreBadge({
+  kind = 'insufficient_evidence',
+}: {
+  kind?: 'insufficient_evidence' | 'not_assessable';
+}) {
   const { t } = useI18n();
-  return (
+  return kind === 'not_assessable' ? (
+    <Badge icon="minus">{t('evaluations.notAssessableOverall.title')}</Badge>
+  ) : (
     <Badge tone="warning" icon="alert">
       {t('evaluations.insufficient.title')}
     </Badge>
@@ -53,20 +63,21 @@ export function NoScoreBadge() {
 export function OverallValue({
   evaluation,
 }: {
-  evaluation: Pick<Evaluation, 'status' | 'overallScore'>;
+  evaluation: Pick<Evaluation, 'status' | 'outcome' | 'overallScore' | 'assessablePoints'>;
 }) {
   const { t } = useI18n();
-  if (evaluation.status === 'failed') {
+  const kind = resultPresentation(evaluation);
+  if (kind === 'failed') {
     return (
       <Badge tone="danger" icon="alert">
         {t('evaluations.failed')}
       </Badge>
     );
   }
-  return evaluation.overallScore === null ? (
-    <NoScoreBadge />
-  ) : (
+  return kind === 'scored' && evaluation.overallScore !== null ? (
     <ScoreValue score={evaluation.overallScore} />
+  ) : (
+    <NoScoreBadge kind={kind === 'not_assessable' ? 'not_assessable' : 'insufficient_evidence'} />
   );
 }
 
@@ -94,7 +105,7 @@ export function Delta({ from, to }: { from: number | null; to: number | null }) 
   return <DeltaView d={floorTo2(to) - floorTo2(from)} text={fmt.scoreDelta(from, to)} />;
 }
 
-/** Signed change in ACTUAL criterion points, e.g. "+1 pt"; none when the maximum changed. */
+/** Signed change in ACTUAL criterion points, e.g. "+1 point"; none when the maximum changed. */
 export function PointsDelta({
   delta,
   possibleFrom,
@@ -120,7 +131,10 @@ export function PointsDelta({
   return (
     <DeltaView
       d={delta}
-      text={t('evaluations.pointsDelta', { sign, n: fmt.integer(Math.abs(delta)) })}
+      text={t(Math.abs(delta) === 1 ? 'evaluations.pointsDeltaOne' : 'evaluations.pointsDelta', {
+        sign,
+        n: fmt.integer(Math.abs(delta)),
+      })}
     />
   );
 }

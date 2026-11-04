@@ -23,6 +23,8 @@ export function createFormatters(lang: Language) {
     numberingSystem: NUMBERING_SYSTEM,
     dateStyle: 'medium',
     timeStyle: 'short',
+    // 24-hour clock in both languages (Arabic locales default to 12-hour with ص/م).
+    hourCycle: 'h23',
   });
 
   return {

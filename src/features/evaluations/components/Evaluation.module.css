@@ -145,3 +145,21 @@
   align-items: center;
   gap: var(--space-2);
 }
+
+.aiExplanation {
+  display: grid;
+  gap: var(--space-1);
+}
+
+/* Visible text label (not colour-only) marking AI output as advisory. */
+.aiLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  justify-self: start;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}

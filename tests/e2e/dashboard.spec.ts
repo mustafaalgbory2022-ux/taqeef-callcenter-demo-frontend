@@ -13,7 +13,9 @@ test('overall dashboard pools per call and labels the sample', async ({ page }) 
   await expect(page.getByTestId('kpi-low')).toContainText('2');
   const names = page.getByRole('region', { name: 'Agents (sample)' }).getByRole('link');
   await expect(names).toHaveText(['Agent A', 'Agent B', 'Agent C', 'Agent D']);
-  await expect(page.getByTestId('pbx-panel')).toContainText('Not available — awaiting PBX data');
+  // Five-call demo: no PBX/SLA/missed/abandoned figures are shown or derived from recordings.
+  await expect(page.getByTestId('pbx-panel')).toHaveCount(0);
+  await expect(page.getByRole('main')).not.toContainText(/SLA|Missed|Abandoned/);
 
   // Compare like with like: one scorecard version only.
   await page.getByRole('combobox', { name: 'Scorecard' }).selectOption('1');
