@@ -105,7 +105,7 @@ VITE_API_MODE=live npm run build     # live build for FastAPI (same-origin /api)
 npm run test:e2e                     # Playwright desktop + mobile, axe WCAG 2.2 AA, under the CSP
 ```
 
-Phase D results (simulated backend only): typecheck, lint and format clean; **141 unit tests**
+Phase D results (simulated backend only): typecheck, lint and format clean; **144 unit tests** (incl. the live-bundle guard)
 pass; the Playwright suite (functional flows on desktop and mobile plus axe on 26 pages ×
 EN/AR × light/dark) passes — **290 passed, 0 failed** (210 in the accessibility spec). The production build
 succeeds (it is part of the e2e run). Optional: `VITE_ROUTER_MODE=hash` if FastAPI cannot
@@ -174,7 +174,7 @@ Repository and build
 
 - [ ] Exact commit checked out into a local feature branch (not `main`); `npm ci`, `npm run check`, `npm run build` pass offline on Node 24.
 - [ ] Only `src/shared/api/` (endpoints, wire decoders, config) changed to match the confirmed contract; `VITE_API_MODE=live` build used.
-- [ ] **Known issue:** the `VITE_API_MODE=live` bundle still contains the simulated backend (`src/shared/api/ApiProvider.tsx` imports `mock/server` statically; it is never executed in live mode). Move it behind `import()` in mock mode, or exclude it, before production.
+- [ ] `VITE_API_MODE=live` build used; `npm run test` includes `src/test/liveBundle.test.ts`, which builds the live bundle and fails if any simulated-backend module or synthetic data is present.
 - [ ] Data-source badge shows "Live backend"; no "Simulated" labels on live data.
 
 Security

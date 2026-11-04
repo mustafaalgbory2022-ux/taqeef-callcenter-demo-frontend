@@ -1,0 +1,20 @@
+import type { ApiMode } from '../config';
+import type { Transport } from '../transport';
+
+/** Tools that only exist for the simulated backend (demo launch codes, data reset). */
+export interface DemoTools {
+  issueLaunchCode(): string;
+  resetData(): void;
+}
+
+/**
+ * The data source the app runs against. Selected at BUILD time (see vite.config.ts):
+ * `@/shared/api/runtime` resolves to `live.ts` when VITE_API_MODE=live, so the simulated
+ * backend and its synthetic datasets are not part of the live module graph at all.
+ */
+export interface ApiRuntime {
+  mode: ApiMode;
+  createTransport(): Transport;
+  /** null in live builds. */
+  demoTools: DemoTools | null;
+}

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useApiClient } from '@/shared/api/ApiProvider';
 import { ApiError } from '@/shared/api/errors';
-import { issueSyntheticLaunchCode } from '@/shared/api/mock/server';
+import { runtime } from '@/shared/api/runtime';
 import { useBranding } from '@/shared/branding/BrandingProvider';
 import { describeError } from '@/shared/i18n/errorMessage';
 import { useI18n } from '@/shared/i18n/I18nProvider';
@@ -22,9 +22,7 @@ export function LaunchScreen({ initialCode, loadError, onOpened }: LaunchScreenP
   const { t, pick } = useI18n();
   const api = useApiClient();
   const branding = useBranding();
-  const [code, setCode] = useState(
-    initialCode ?? (api.mode === 'mock' ? issueSyntheticLaunchCode() : ''),
-  );
+  const [code, setCode] = useState(initialCode ?? runtime.demoTools?.issueLaunchCode() ?? '');
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const autoSubmitted = useRef(false);

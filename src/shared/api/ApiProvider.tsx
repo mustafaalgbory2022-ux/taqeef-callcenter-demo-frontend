@@ -1,9 +1,7 @@
 import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { createApiClient, type ApiClient } from './client';
-import { apiMode } from './config';
-import { createMockTransport } from './mock/server';
 import { QueryStore } from './queryStore';
-import { createFetchTransport } from './transport';
+import { runtime } from '@/shared/api/runtime';
 
 interface ApiContextValue {
   client: ApiClient;
@@ -12,10 +10,9 @@ interface ApiContextValue {
 
 const ApiContext = createContext<ApiContextValue | null>(null);
 
+/** Client for the build's runtime (mock or live, chosen at build time). */
 export function createDefaultClient(): ApiClient {
-  return apiMode === 'live'
-    ? createApiClient(createFetchTransport(), 'live')
-    : createApiClient(createMockTransport(), 'mock');
+  return createApiClient(runtime.createTransport(), runtime.mode);
 }
 
 export function ApiProvider({ client, children }: { client?: ApiClient; children: ReactNode }) {

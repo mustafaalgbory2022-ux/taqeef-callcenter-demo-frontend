@@ -131,5 +131,6 @@ available, so no production behaviour is claimed as verified.
 - Confirmed unchanged: scoring (awarded ÷ assessable × 10, minimum 6, two decimals rounded
   down), SLA formula, pooled averages; MFA screens never produce secrets/codes; backups and
   restores always simulated; no permanent-deletion path.
-- Open: live bundle includes the simulated backend module; production sign-in screen and all
+- Resolved after Phase D: the live bundle no longer includes the simulated backend (build-time
+  runtime selection, lint rule and bundle regression test). Open: production sign-in screen and all
   backend enforcement (see `docs/handoff.md` §5, §9–10). Development paused pending authorization.

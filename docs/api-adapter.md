@@ -120,7 +120,9 @@ revision (see `src/shared/api/wire/{session,agents,branding}.ts`).
 ## Mock vs live
 
 The simulated backend (`src/shared/api/mock/`) implements the same transport and wire
-format, always labelled as simulated. The real backend performs transcription, scoring,
+format, always labelled as simulated. The mode is chosen at build time: `@/shared/api/runtime`
+resolves to `runtime/live.ts` (fetch transport only) when `VITE_API_MODE=live`, so mock code
+and synthetic data are not part of the live bundle (guarded by `src/test/liveBundle.test.ts`). The real backend performs transcription, scoring,
 re-scoring and persistence.
 
 ## Aligning with the confirmed contract

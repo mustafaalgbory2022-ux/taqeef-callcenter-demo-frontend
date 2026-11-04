@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApiClient } from '@/shared/api/ApiProvider';
-import { resetMockData } from '@/shared/api/mock/server';
+import { runtime } from '@/shared/api/runtime';
 import { usePermission } from '@/shared/hooks/usePermission';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import { Button } from '@/shared/ui/Button';
@@ -15,7 +15,8 @@ export function DemoDataSettings() {
   const api = useApiClient();
   const allowed = usePermission('settings.manage');
   const [confirming, setConfirming] = useState(false);
-  if (api.mode !== 'mock') return null;
+  const tools = runtime.demoTools;
+  if (api.mode !== 'mock' || !tools) return null;
 
   return (
     <Card title={t('settings.demo.title')} caption={t('settings.demo.caption')}>
@@ -37,7 +38,7 @@ export function DemoDataSettings() {
             <Button
               variant="danger"
               onClick={() => {
-                resetMockData();
+                tools.resetData();
                 window.location.reload();
               }}
             >
