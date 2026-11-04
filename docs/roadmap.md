@@ -112,3 +112,24 @@ MFA secret, recovery code, verified email, successful backup or restore.
 - ✅ General and branding (`/admin/general`): versioned application defaults and branding
   (local `/brand/` assets, contrast-checked colours, approval reference) served at runtime via
   `GET /branding`; neutral placeholder by default.
+
+## Phase D checkpoint (final frontend QA and handoff)
+
+Final implementation commit `f91a92ac103f7266a6bcea9034ad68e6df92b105`; handoff in
+`docs/handoff.md`. Verified against the **simulated backend only** — no live backend was
+available, so no production behaviour is claimed as verified.
+
+- Verification: `npm run typecheck`, `lint`, `format:check` clean; **141 unit tests** pass;
+  **290 Playwright tests pass, 0 fail** (desktop + mobile; 210 accessibility checks — axe
+  WCAG 2.2 AA on 26 pages × EN/AR × light/dark, no horizontal overflow, no CSP/console errors);
+  mock and live production builds succeed.
+- Fixed (major): saved default language/theme now applied at startup for users without a
+  personal choice; logo URL guard bypass (`/\host`); upload page permission gate; error notices
+  announced (`role="alert"`); focus to the first invalid field after failed submits; loading
+  buttons keep focus; restore wizard focus per step; RTL-correct, spoken before/after arrows;
+  LTR-isolated paths inside `<option>`.
+- Confirmed unchanged: scoring (awarded ÷ assessable × 10, minimum 6, two decimals rounded
+  down), SLA formula, pooled averages; MFA screens never produce secrets/codes; backups and
+  restores always simulated; no permanent-deletion path.
+- Open: live bundle includes the simulated backend module; production sign-in screen and all
+  backend enforcement (see `docs/handoff.md` §5, §9–10). Development paused pending authorization.
