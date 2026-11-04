@@ -13,14 +13,14 @@ import { useToast } from '@/shared/ui/Toaster';
 import { versionOf } from '../model/versions';
 import { currentEvaluations, historyByCall } from '../model/current';
 import { useEvaluations, useRescore } from '../hooks/useEvaluationData';
-import { CriterionResults, ProhibitedHits } from './CriterionResults';
+import { CriterionResults, ProhibitedHits, type CriterionResultsProps } from './CriterionResults';
 import { NoScoreBadge, OverallValue } from './ResultValue';
 import styles from './Evaluation.module.css';
 
 export interface EvaluationPanelProps {
   callId: string;
   canRescore: boolean;
-  onEvidence: (startMs: number, segmentIds: readonly string[]) => void;
+  onEvidence: CriterionResultsProps['onEvidence'];
 }
 
 /** Current evaluation, evidence, re-scoring and history for one call. */

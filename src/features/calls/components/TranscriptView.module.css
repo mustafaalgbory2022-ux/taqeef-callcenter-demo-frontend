@@ -104,3 +104,48 @@
 .currentMatch {
   outline-style: solid;
 }
+
+/* Located evidence: thick outline plus hidden label and <mark> — never colour alone. */
+.evidence {
+  outline: 3px solid var(--color-warning);
+  outline-offset: -3px;
+}
+
+.evidenceMark {
+  background: var(--color-warning-soft);
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.evidenceStatus:empty {
+  display: none;
+}
+
+.evidenceBar {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-block-end: 1px solid var(--color-border);
+  background: var(--color-surface-sunken);
+  font-size: var(--text-sm);
+}
+
+.evidenceUnavailable {
+  border-inline-start: 4px solid var(--color-warning);
+}
+
+.evidenceText {
+  margin: 0;
+}
+
+.evidenceQuote {
+  font-style: italic;
+}
+
+.evidenceActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}

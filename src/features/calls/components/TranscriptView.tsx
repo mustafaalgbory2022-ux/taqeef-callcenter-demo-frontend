@@ -18,6 +18,8 @@ export interface TranscriptViewProps {
   currentMs: number;
   /** Segment ids to emphasise (e.g. evidence for a selected criterion). */
   highlightIds?: ReadonlySet<string> | undefined;
+  /** The located evidence line and, when known, the quoted character range in it. */
+  evidence?: { segmentId: string; range: readonly [number, number] | null; key: number } | null;
   onSeek: (ms: number) => void;
 }
 
@@ -25,7 +27,13 @@ export interface TranscriptViewProps {
  * Timestamped transcript synced to playback. Each segment is a button that seeks.
  * Client-side search (no API) highlights matching lines and steps through them.
  */
-export function TranscriptView({ segments, currentMs, highlightIds, onSeek }: TranscriptViewProps) {
+export function TranscriptView({
+  segments,
+  currentMs,
+  highlightIds,
+  evidence,
+  onSeek,
+}: TranscriptViewProps) {
   const { t, fmt } = useI18n();
   const [follow, setFollow] = useState(true);
   const active = findActiveSegment(segments, currentMs);
@@ -38,6 +46,16 @@ export function TranscriptView({ segments, currentMs, highlightIds, onSeek }: Tr
   const matchSet = useMemo(() => new Set(matches), [matches]);
   const searching = normalizeForSearch(query).length >= MIN_SEARCH_LENGTH;
   const currentMatch = matchIndex >= 0 ? matches[matchIndex] : undefined;
+
+  // Bring the located evidence line into view (also when re-selected), even if follow is off.
+  const evidenceKey = evidence?.key;
+  const evidenceId = evidence?.segmentId;
+  useEffect(() => {
+    if (!evidenceId) return;
+    listRef.current
+      ?.querySelector<HTMLElement>(`[data-segment-id="${CSS.escape(evidenceId)}"]`)
+      ?.scrollIntoView?.({ block: 'nearest' });
+  }, [evidenceId, evidenceKey]);
 
   function goTo(delta: 1 | -1) {
     const next = stepMatch(matchIndex, matches.length, delta);
@@ -119,6 +137,7 @@ export function TranscriptView({ segments, currentMs, highlightIds, onSeek }: Tr
             highlightIds?.has(seg.id) ? styles.highlight : '',
             matchSet.has(seg.id) ? styles.match : '',
             seg.id === currentMatch ? styles.currentMatch : '',
+            seg.id === evidenceId ? styles.evidence : '',
           ]
             .join(' ')
             .trim();
@@ -130,6 +149,7 @@ export function TranscriptView({ segments, currentMs, highlightIds, onSeek }: Tr
                 className={cls}
                 aria-current={isActive ? 'true' : undefined}
                 data-match={matchSet.has(seg.id) || undefined}
+                data-evidence={seg.id === evidenceId || undefined}
                 data-segment-id={seg.id}
                 onClick={() => onSeek(seg.startMs)}
               >
@@ -139,6 +159,9 @@ export function TranscriptView({ segments, currentMs, highlightIds, onSeek }: Tr
                 </span>
                 <span>
                   <span className={styles.speaker}>{t(`calls.transcript.${seg.speaker}`)}</span>
+                  {seg.id === evidenceId && (
+                    <span className="visually-hidden">{t('calls.evidence.lineLabel')} </span>
+                  )}
                   {matchSet.has(seg.id) && (
                     <span className="visually-hidden">{t('calls.transcript.matchLabel')} </span>
                   )}
@@ -147,7 +170,19 @@ export function TranscriptView({ segments, currentMs, highlightIds, onSeek }: Tr
                     lang={seg.language}
                     dir={seg.language === 'ar' ? 'rtl' : 'ltr'}
                   >
-                    {seg.text}
+                    {seg.id === evidenceId && evidence?.range ? (
+                      <>
+                        {seg.text.slice(0, evidence.range[0])}
+                        <span className="visually-hidden">{t('calls.evidence.quoteStart')} </span>
+                        <mark className={styles.evidenceMark}>
+                          {seg.text.slice(evidence.range[0], evidence.range[1])}
+                        </mark>
+                        <span className="visually-hidden"> {t('calls.evidence.quoteEnd')}</span>
+                        {seg.text.slice(evidence.range[1])}
+                      </>
+                    ) : (
+                      seg.text
+                    )}
                   </span>
                 </span>
               </button>

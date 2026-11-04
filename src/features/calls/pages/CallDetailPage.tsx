@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { useAgents } from '@/features/agents';
-import { EvaluationHistoryPanel, EvaluationPanel } from '@/features/evaluations';
+import {
+  EvaluationHistoryPanel,
+  EvaluationPanel,
+  type EvidenceSelection,
+} from '@/features/evaluations';
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import { Badge, SyntheticBadge } from '@/shared/ui/Badge';
@@ -13,7 +17,9 @@ import type { Call } from '@/shared/types/domain';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { CallStatusBadge } from '../components/CallStatusBadge';
 import { ProcessingStatus } from '../components/ProcessingStatus';
+import { EvidenceStatus } from '../components/EvidenceStatus';
 import { TranscriptView } from '../components/TranscriptView';
+import { locateEvidence, type EvidenceLocation } from '../model/transcript';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { useCall, useTranscript } from '../hooks/useCallData';
 import styles from './CallDetail.module.css';
@@ -36,6 +42,12 @@ function CallDetail({ call }: { call: Call }) {
   const transcript = useTranscript(call.id, hasTranscript);
   const player = useAudioPlayer(call.audioUrl, call.durationMs);
   const [highlight, setHighlight] = useState<ReadonlySet<string>>(new Set());
+  const [selection, setSelection] = useState<{
+    evidence: EvidenceSelection;
+    location: EvidenceLocation;
+    key: number;
+  } | null>(null);
+  const segments = transcript.data?.segments;
 
   // Deep link: /calls/:id?t=<ms> starts at an evidence timestamp.
   const initialMs = Number(params.get('t'));
@@ -44,13 +56,29 @@ function CallDetail({ call }: { call: Call }) {
     if (initialMs > 0) seek(initialMs);
   }, [initialMs, seek]);
 
+  // Locate the selected evidence in the loaded transcript; play only when it was located.
   const onEvidence = useCallback(
-    (startMs: number, segmentIds: readonly string[]) => {
-      setHighlight(new Set(segmentIds));
-      seek(startMs, true);
+    (evidence: EvidenceSelection, group: readonly string[]) => {
+      const location: EvidenceLocation = segments
+        ? locateEvidence(segments, evidence)
+        : { status: 'unavailable', reason: 'segment_missing' };
+      setSelection((prev) => ({ evidence, location, key: (prev?.key ?? 0) + 1 }));
+      setHighlight(location.status === 'located' ? new Set(group) : new Set());
+      if (location.status === 'located') seek(location.startMs, true);
     },
-    [seek],
+    [seek, segments],
   );
+
+  const showLine = useCallback((segmentId: string) => {
+    document.querySelector<HTMLElement>(`[data-segment-id="${CSS.escape(segmentId)}"]`)?.focus();
+  }, []);
+
+  const clearEvidence = useCallback(() => {
+    setSelection(null);
+    setHighlight(new Set());
+  }, []);
+
+  const located = selection?.location.status === 'located' ? selection.location : null;
 
   return (
     <>
@@ -94,12 +122,29 @@ function CallDetail({ call }: { call: Call }) {
             {hasTranscript ? (
               <QueryView query={transcript}>
                 {(data) => (
-                  <TranscriptView
-                    segments={data.segments}
-                    currentMs={player.currentMs}
-                    highlightIds={highlight}
-                    onSeek={(ms) => seek(ms, true)}
-                  />
+                  <>
+                    <EvidenceStatus
+                      selection={selection}
+                      onPlay={(ms) => seek(ms, true)}
+                      onShowLine={showLine}
+                      onClear={clearEvidence}
+                    />
+                    <TranscriptView
+                      segments={data.segments}
+                      currentMs={player.currentMs}
+                      highlightIds={highlight}
+                      evidence={
+                        located && selection
+                          ? {
+                              segmentId: located.segmentId,
+                              range: located.range,
+                              key: selection.key,
+                            }
+                          : null
+                      }
+                      onSeek={(ms) => seek(ms, true)}
+                    />
+                  </>
                 )}
               </QueryView>
             ) : (

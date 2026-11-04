@@ -1,3 +1,4 @@
+import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
 import { clickNav, openSession, syntheticWav } from './helpers';
 
@@ -108,4 +109,46 @@ test('transcript search is available in Arabic', async ({ page }) => {
   await openSession(page, { path: '/calls/DEMO-001', lang: 'ar' });
   await page.getByRole('searchbox', { name: 'بحث في النص' }).fill('فاتورة');
   await expect(page.getByTestId('transcript-search-status')).toContainText('سطور مطابقة');
+});
+
+test('evidence quotes are located, marked in the transcript and playable by keyboard', async ({
+  page,
+}) => {
+  await openSession(page, { path: '/calls/DEMO-003' });
+  const evidenceButton = page.getByTestId('criterion-c-language').getByRole('button').first();
+  await evidenceButton.focus();
+  await page.keyboard.press('Enter');
+  const status = page.getByTestId('evidence-status');
+  await expect(status).toContainText('Evidence located at');
+  const line = page.locator('[data-segment-id][data-evidence]');
+  await expect(line).toHaveCount(1);
+  await expect(line).toHaveAttribute('data-segment-id', 's5');
+  // The quote shown in the evaluation is the text marked in the transcript line.
+  const quote = (await evidenceButton.locator('[dir="auto"]').innerText()).trim();
+  await expect(line.locator('mark')).toHaveText(quote);
+  await expect(line).toHaveAttribute('aria-current', 'true');
+
+  await page.locator('[data-segment-id="s1"]').click();
+  await status.getByRole('button', { name: /^Play from/ }).click();
+  await expect(line).toHaveAttribute('aria-current', 'true');
+  await status.getByRole('button', { name: 'Go to transcript line' }).click();
+  await expect(line).toBeFocused();
+
+  // Search and its navigation still work alongside the evidence mark.
+  await page.getByRole('searchbox', { name: 'Search transcript' }).fill(quote.slice(0, 6));
+  await expect(page.getByTestId('transcript-search-status')).toContainText('matching line');
+  await status.getByRole('button', { name: 'Clear evidence' }).click();
+  await expect(page.locator('[data-segment-id][data-evidence]')).toHaveCount(0);
+  await expect(status).toBeEmpty();
+});
+
+test('evidence location feedback is available in Arabic', async ({ page }) => {
+  await openSession(page, { path: '/calls/DEMO-003', lang: 'ar', theme: 'dark' });
+  await page.getByTestId('criterion-c-language').getByRole('button').first().click();
+  await expect(page.getByTestId('evidence-status')).toContainText('تم تحديد موضع الدليل');
+  await expect(page.locator('[data-segment-id][data-evidence] mark')).toBeVisible();
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
+    .analyze();
+  expect(results.violations).toEqual([]);
 });

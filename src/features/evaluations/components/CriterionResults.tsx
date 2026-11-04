@@ -6,10 +6,20 @@ import { formatDuration } from '@/shared/utils/time';
 import { ResultValue } from './ResultValue';
 import styles from './Evaluation.module.css';
 
+/** The existing evaluation fields identifying one evidence item (no new data). */
+export interface EvidenceSelection {
+  segmentId: string;
+  startMs: number;
+  /** Prohibited-expression hits have no end time. */
+  endMs: number | null;
+  quote: string;
+}
+
 export interface CriterionResultsProps {
   evaluation: Evaluation;
   version: ScorecardVersion | undefined;
-  onEvidence: (startMs: number, segmentIds: readonly string[]) => void;
+  /** `group` = all segment ids cited for the same criterion (shown as related lines). */
+  onEvidence: (evidence: EvidenceSelection, group: readonly string[]) => void;
 }
 
 /** Criterion-level results with rationale and evidence that seeks the recording. */
@@ -45,7 +55,12 @@ export function CriterionResults({ evaluation, version, onEvidence }: CriterionR
                   className={styles.evidenceButton}
                   onClick={() =>
                     onEvidence(
-                      e.startMs,
+                      {
+                        segmentId: e.segmentId,
+                        startMs: e.startMs,
+                        endMs: e.endMs,
+                        quote: e.quote,
+                      },
                       c.evidence.map((x) => x.segmentId),
                     )
                   }
@@ -86,7 +101,12 @@ export function ProhibitedHits({
               <button
                 type="button"
                 className={styles.evidenceButton}
-                onClick={() => onEvidence(h.startMs, [h.segmentId])}
+                onClick={() =>
+                  onEvidence(
+                    { segmentId: h.segmentId, startMs: h.startMs, endMs: null, quote: h.quote },
+                    [h.segmentId],
+                  )
+                }
               >
                 <Icon name="flag" size={12} />
                 <span className={styles.ts}>{formatDuration(h.startMs)}</span>

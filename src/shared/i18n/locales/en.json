@@ -283,6 +283,21 @@
     "channel": {
       "mixedTitle": "Mixed channel — speakers unresolved",
       "mixedBody": "Speaker labels and agent attribution are not assumed until supported by evidence. Behaviour criteria may be insufficient and prohibited expressions are only flagged for review."
+    },
+    "evidence": {
+      "located": "Evidence located at {time}:",
+      "lineOnly": "(the exact quote is not in the line text; the whole line is marked)",
+      "play": "Play from {time}",
+      "showLine": "Go to transcript line",
+      "clear": "Clear evidence",
+      "unavailable": "Evidence location unavailable.",
+      "reasons": {
+        "segment_missing": "The cited transcript line was not found.",
+        "mismatch": "The quote and time do not match the cited transcript line."
+      },
+      "quoteStart": "Evidence quote:",
+      "quoteEnd": "End of evidence quote.",
+      "lineLabel": "Evidence line."
     }
   },
   "evaluations": {
