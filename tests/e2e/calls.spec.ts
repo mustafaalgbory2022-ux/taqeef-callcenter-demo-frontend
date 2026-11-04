@@ -152,3 +152,57 @@ test('evidence location feedback is available in Arabic', async ({ page }) => {
     .analyze();
   expect(results.violations).toEqual([]);
 });
+
+test('audio keyboard shortcuts play, seek and focus the player but never fire while typing', async ({
+  page,
+}) => {
+  await openSession(page, { path: '/calls/DEMO-003' });
+  const audio = page.locator('audio');
+  const paused = () => audio.evaluate((a: HTMLAudioElement) => a.paused);
+  const time = () => audio.evaluate((a: HTMLAudioElement) => a.currentTime);
+  const announce = page.getByTestId('player-announcement');
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toHaveAttribute(
+    'aria-keyshortcuts',
+    'K',
+  );
+
+  await page.locator('body').click({ position: { x: 1, y: 1 } });
+  await page.keyboard.press('KeyL');
+  await expect(announce).toHaveText('Position 0:05');
+  await expect.poll(time).toBeGreaterThanOrEqual(5);
+  await page.keyboard.press('KeyJ');
+  await expect(announce).toHaveText('Position 0:00');
+  await page.keyboard.press('KeyK');
+  await expect(announce).toContainText('Playing from');
+  await expect.poll(paused).toBe(false);
+  await page.keyboard.press('KeyK');
+  await expect.poll(paused).toBe(true);
+
+  // Typing in transcript search is never captured; modified keys are left to the browser.
+  const search = page.getByRole('searchbox', { name: 'Search transcript' });
+  await search.fill('');
+  await search.press('KeyK');
+  await search.press('KeyL');
+  await expect(search).toHaveValue('kl');
+  expect(await paused()).toBe(true);
+  await page.locator('body').click({ position: { x: 1, y: 1 } });
+  await page.keyboard.press('Shift+KeyK');
+  expect(await paused()).toBe(true);
+
+  await page.keyboard.press('KeyP');
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeFocused();
+  await page.getByText('Keyboard shortcuts').click();
+  await expect(page.getByTestId('player-shortcuts')).toContainText('Move focus to the player');
+});
+
+test('audio shortcuts announce in Arabic and keep evidence highlighting', async ({ page }) => {
+  await openSession(page, { path: '/calls/DEMO-003', lang: 'ar' });
+  await page.getByTestId('criterion-c-language').getByRole('button').first().click();
+  await expect(page.locator('[data-segment-id][data-evidence]')).toHaveCount(1);
+  await page.locator('body').click({ position: { x: 1, y: 1 } });
+  await page.keyboard.press('KeyK');
+  await expect(page.getByTestId('player-announcement')).toContainText('إيقاف مؤقت عند');
+  await page.keyboard.press('KeyL');
+  await expect(page.getByTestId('player-announcement')).toContainText('الموضع');
+  await expect(page.locator('[data-segment-id][data-evidence]')).toHaveCount(1);
+});

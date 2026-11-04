@@ -236,7 +236,18 @@
       "syntheticAudio": "Synthetic audio generated for the demo (tones aligned to the transcript). No real recording.",
       "unavailable": "Audio is not available",
       "unavailableBody": "Uploaded audio is kept in this browser tab only and is not stored by the simulated backend.",
-      "error": "The recording could not be played."
+      "error": "The recording could not be played.",
+      "announcePlaying": "Playing from {time}",
+      "announcePaused": "Paused at {time}",
+      "announcePosition": "Position {time}",
+      "shortcuts": {
+        "title": "Keyboard shortcuts",
+        "toggle": "Play or pause",
+        "back": "Back 5 seconds",
+        "forward": "Forward 5 seconds",
+        "focus": "Move focus to the player",
+        "note": "Shortcuts work anywhere on this page except while typing, such as in transcript search. Keys refer to their position on the keyboard, so they also work with an Arabic layout."
+      }
     },
     "transcript": {
       "title": "Transcript",

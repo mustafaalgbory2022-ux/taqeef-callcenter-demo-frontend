@@ -91,8 +91,87 @@ your worktree by hand); the change is limited to the `calls` and `evaluations` f
 locale strings. No dependency, CSP, route or contract change. Confirm the evidence fields
 (`segment_id`, `start_ms`, `end_ms`, `quote`) in the final contract.
 
+## Task 3a — review of `cloud-frontend-interface-v1.md` (Local Claude, 2026-11-04)
+
+Compared against this branch at `132280e`. Labels follow the handoff: only **CONFIRMED** items
+are treated as fixed; DESIGNED/PROVISIONAL/UNKNOWN items are recorded, not built against.
+Nothing below was implemented in Task 3; each item waits for Local Claude's decision.
+
+### Evidence fields (the specific question)
+
+| Handoff (§6, DESIGNED)                                      | Demo frontend today                                                                                       | Finding                                                                                                                                                                                                                       |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Criterion results carry "evidence segment IDs"              | Evidence objects `{segment_id, start_ms, end_ms, quote}`; prohibited hits `{segment_id, start_ms, quote}` | **Mismatch.** Only segment IDs are promised; `start_ms`, `end_ms` and `quote` are not.                                                                                                                                        |
+| Segment IDs `seg-0001…` in an immutable transcript revision | Opaque `s1…` ids, one transcript per call                                                                 | IDs are treated as opaque strings, so the format is fine. **Gap:** an evaluation run must name the transcript revision its segment IDs belong to, otherwise re-transcription could make evidence point at the wrong revision. |
+| Evidence quotes keep the original Arabic (§2, CONFIRMED)    | Quote is shown as given; matching uses search normalization only for locating                             | Compatible.                                                                                                                                                                                                                   |
+
+Effect on Task 2 (`locateEvidence`): if only segment IDs arrive, the adapter should build each
+evidence item from the referenced segment of **the evaluated revision** (`start_ms`/`end_ms` from
+the segment, `quote` = segment text). The locator then marks the whole line or the quote;
+an ID that is missing from that revision shows "Evidence location unavailable". No UI change is
+needed — only the wire mapper in `src/shared/api/wire/evaluations.ts`, once the contract is final.
+
+### Other differences for Local Claude to decide
+
+| #   | Area               | Handoff                                                                                                 | Demo today                                                                                           | Label                                                                                              |
+| --- | ------------------ | ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| 1   | Time format        | 24-hour (§2)                                                                                            | Arabic dates render 12-hour ("3:30 م"); English is 24-hour                                           | CONFIRMED → **frontend fix ready on approval** (`hourCycle: 'h23'` in `src/shared/i18n/format.ts`) |
+| 2   | Dashboard          | No SLA, missed, abandoned (§8)                                                                          | Overview and agent pages show a PBX panel with Incoming/Missed/Abandoned/SLA as "Not available"      | CONFIRMED → remove the panel on approval                                                           |
+| 3   | Score outcomes     | Scored / Insufficient evidence / **Not assessable — no score** (§7)                                     | `scored` / `insufficient_evidence` (+ failed); zero assessable points shows as insufficient evidence | CONFIRMED rule; wire value UNKNOWN                                                                 |
+| 4   | Criterion result   | `met` / `partially_met` / `not_met` / `not_assessable`; points from app code (§6)                       | `scored` / `not_assessable` / `insufficient_evidence` with awarded points                            | DESIGNED                                                                                           |
+| 5   | Per-criterion text | "2 of 3 points" (§7)                                                                                    | "2 / 3 pts"                                                                                          | CONFIRMED wording → string change on approval                                                      |
+| 6   | AI label           | "AI-generated, preliminary, advisory" on AI text (§7)                                                   | Rationale shown as plain text without that label                                                     | CONFIRMED → add label on approval                                                                  |
+| 7   | Speakers           | `agent` / `customer` / `unknown` + reliability                                                          | `agent` / `customer` / `unresolved`; reliability via `channel_layout: dual\|mixed`                   | DESIGNED                                                                                           |
+| 8   | Channel map        | `left_agent` / `right_agent` / `none` on upload                                                         | Not collected on upload                                                                              | DESIGNED                                                                                           |
+| 9   | Launch code        | One-time code in the **URL fragment** (§4)                                                              | Read from the query string `?launch_code=` and removed before routing                                | DESIGNED → small change in `src/app/session/launchCode.ts` on approval                             |
+| 10  | CSRF               | CSRF header on state-changing requests                                                                  | Sends `X-CSRF-Token` from cookie `csrf_token` (names provisional)                                    | DESIGNED; names UNKNOWN                                                                            |
+| 11  | Job states         | queued, probing, transcribing, evaluating, scored, failed, not-assessable                               | uploaded, transcribing, scoring, scored, failed                                                      | DESIGNED                                                                                           |
+| 12  | Scorecard          | Rule text, enabled flag, speaker-roles flag, partial-credit levels; enabled total = 10; Save & Activate | Name/description/points/partial-credit boolean; each save creates a version                          | DESIGNED                                                                                           |
+| 13  | Privacy            | Spoken digits masked in transcripts (§8)                                                                | Synthetic transcripts already avoid real digits; no masking logic in the UI                          | CONFIRMED → backend masks; UI must not unmask                                                      |
+| 14  | API                | Resource groups only; paths/payloads UNKNOWN (§5)                                                       | Provisional adapter (`endpoints.ts`, `wire/*`)                                                       | No change until M4                                                                                 |
+
+Already consistent: stack and no new packages; strict CSP and no external resources; "Open local
+demo session" wording; truncated "x.xx / 10"; low score strictly below 7.00; minimum 6 of 10
+assessable points; average = mean of per-call scores; no rankings; masked caller numbers; AI text
+rendered as plain text; no invisible or bidi control characters in `src/` or `tests/`.
+
+## Task 3b — audio-player keyboard shortcuts (call review)
+
+**Behaviour.**
+
+- **K** play/pause · **J** back 5 s · **L** forward 5 s · **P** move focus to the play button.
+- Matched on the physical key (`KeyboardEvent.code`), so they work on Arabic keyboard layouts.
+  J/L follow the media timeline, which stays left-to-right in both languages.
+- Not triggered with Ctrl, Meta, Alt or Shift (browser and screen-reader shortcuts, and
+  Alt+Shift language switching on Windows); not triggered while typing (inputs incl. transcript
+  search, textareas, selects, contenteditable) or inside dialogs; holding K does not repeat.
+  The seek slider and buttons keep their native keys.
+- Feedback: polite live region ("Playing from 0:27", "Paused at 0:27", "Position 0:32");
+  `aria-keyshortcuts` on the controls; the play button is described by the shortcut list.
+- Instructions: a compact "Keyboard shortcuts" disclosure under the player (English/Arabic).
+- Transcript search, evidence highlighting, seeking and follow playback are unchanged.
+
+**API impact: none.**
+
+**Files changed**
+
+- `src/features/calls/model/shortcuts.ts` (new) — key mapping and typing/dialog guard
+- `src/features/calls/components/AudioPlayer.tsx`, `AudioPlayer.module.css` — listener,
+  announcements, `aria-keyshortcuts`, shortcut guide
+- `src/shared/i18n/locales/{en,ar}.json` — `calls.player.*` shortcut strings
+- Tests: `src/features/calls/model/shortcuts.test.ts` (new), `tests/e2e/calls.spec.ts`
+- `docs/demo-stream-1.md`
+
+**Tests.** `npm run check` (typecheck, lint, format, **79 unit tests**) passes; `npm run build`
+succeeds; `npm run test:e2e` **52 passed, 0 failed** (desktop + mobile; axe on all demo pages, EN/AR × light/dark).
+
+**Handoff for Local Claude.** Pull `demo/ord-0035-cloud-stream-1`; do not hand-copy files. The
+shortcut change is limited to the `calls` feature and locale strings, with no dependency, CSP,
+route or contract change. Please answer findings 1–6 and 9 (frontend-only, ready to implement
+on approval) and confirm the evidence shape and transcript revision reference above.
+
 ## Proposed next tasks (prioritized, client-only unless noted)
 
-1. Keyboard shortcuts for the audio player (space, ←/→ 5 s) with an on-screen hint.
+1. On approval: frontend-only findings 1, 2, 5, 6 and 9 from Task 3a.
 2. Print-friendly call review layout (CSS `@media print`), for management handouts.
 3. Needs Local Claude: confirmed transcript/segment fields before any speaker-correction UI.
