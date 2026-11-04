@@ -27,3 +27,21 @@ backend must perform them for production. Contract details: `docs/api-adapter.md
 | System health           | Collect service health, CPU/RAM/GPU/disk metrics, worker heartbeats and structured, sanitized error records with correlation IDs.                                                                                                                     | Polls simulated metrics; redacts messages again on display.                                                                            |
 | Audit log               | Store append-only, tamper-evident entries with result and correlation ID; filter server-side; audit exports; never record passwords, secrets, one-time codes or recording content.                                                                    | Read-only view and Excel export.                                                                                                       |
 | General and branding    | Store versioned application settings and branding; serve approved local assets under `/brand/`; apply default language/theme for users without preferences.                                                                                           | Validates paths and colour contrast; applies branding at runtime.                                                                      |
+
+## Enforcement that only the backend can provide
+
+The frontend hides or disables actions by permission and asks for confirmation, but these are
+conveniences. For production the backend must:
+
+1. Authorize every request by permission (see the matrix in `docs/handoff.md` §6) and reject
+   missing `confirm: true` on destructive or scope-changing requests with 409.
+2. Enforce self-protection (own role/status, own MFA reset), the last-active-administrator rule
+   and four-eyes reviews (dictionary corrections, MFA reset by another administrator).
+3. Implement production sign-in (password + mandatory TOTP), lockout, session idle/maximum
+   limits, CSRF validation and revocation.
+4. Keep all secrets write-only and out of responses, logs and audit entries; sanitize error text.
+5. Report PBX, AI, email, backup and restore outcomes only for operations actually performed —
+   the frontend labels everything from the simulated backend as simulated and never claims
+   success for them.
+6. Never delete permanently without an approved retention policy; the frontend offers no
+   permanent-deletion action.

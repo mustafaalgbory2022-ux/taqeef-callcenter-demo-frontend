@@ -230,3 +230,19 @@ versions, `simulated` flags). Additional rules:
 | POST       | `/system/errors/{id}/acknowledge`                                              | —                                                                                                                                                                                   | `SystemError` (audited)                                                                                          |
 | GET / PUT  | `/settings/application` (+ `/versions`)                                        | `{ default_language, default_theme, timezone, support_contact, login_notice{en, ar}, change_note }`                                                                                 | `AppSettings`                                                                                                    |
 | GET / PUT  | `/settings/branding` (+ `/versions`)                                           | `{ product_name, organization_name, logo_light_path, logo_dark_path, light_primary, dark_primary, approval_reference, change_note }`                                                | `BrandingSettings`; `GET /branding` serves the latest                                                            |
+
+## Phase D notes (integration)
+
+Nothing in this document is a final contract; it records what the frontend currently sends and
+expects so the backend team can confirm or change it in one place (`src/shared/api/`).
+
+- `GET /settings/application` must be readable by **every** signed-in user (not only
+  administrators): the app applies `default_language` / `default_theme` for users without a
+  personal choice (`src/app/session/OrganizationDefaults.tsx`). A 403 simply keeps the
+  built-in defaults (English, system theme).
+- `GET /branding` must be readable by every signed-in user and return same-origin logo paths;
+  the frontend rejects remote, protocol-relative, backslash or encoded-separator URLs.
+- Permissions in `Session.permissions` drive UI gating only; each route must return 403 when the
+  permission is missing. The frontend shows `errors.forbidden` for 403.
+- A production sign-in contract (password, TOTP challenge, enrollment, reset) is **not** defined
+  here; it must be agreed with the backend before a login screen is added.

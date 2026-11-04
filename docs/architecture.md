@@ -102,6 +102,20 @@ Page → feature hook (useApiQuery / useApiMutation) → ApiClient (domain types
 | Scorecard validation, new immutable version per save                                                                                                                                               | `features/scorecards/model/draft.ts`                                             |
 | Sample-size warning always shown; PBX metrics never estimated                                                                                                                                      | `features/dashboard/components/SampleNotice.tsx`, `PbxPanel.tsx`                 |
 
+## Shared administration building blocks
+
+| Building block                 | Where                                                 | Purpose                                                                      |
+| ------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------------- |
+| Typed adapters                 | `shared/api/adapters/*`                               | One replaceable API surface per area                                         |
+| `ConfirmDialog`                | `shared/ui/ConfirmDialog.tsx`                         | Destructive/high-risk confirmation with acknowledgement; errors shown inside |
+| `AuditTrail` + `useAdminAudit` | `shared/ui`, `shared/hooks`                           | Read-only, append-only history per resource                                  |
+| `UsageMeter`                   | `shared/ui/UsageMeter.tsx`                            | Capacity meter (ARIA meter with text value)                                  |
+| `ChangeArrow`                  | `shared/ui/ChangeArrow.tsx`                           | Before→after separator that mirrors in RTL and is spoken                     |
+| `focusFirstInvalid`            | `shared/ui/focusInvalid.ts`                           | Moves focus to the first invalid field after a failed submit                 |
+| `layout`                       | `shared/ui/layout.ts`                                 | Shared form/panel classes                                                    |
+| Rule modules                   | `shared/utils/*Rules.ts`, `color`, `redact`, `arabic` | Validation shared by forms and the simulated backend                         |
+| `OrganizationDefaults`         | `app/session/OrganizationDefaults.tsx`                | Applies default language/theme unless the user chose their own               |
+
 ## Cross-cutting concerns
 
 - **i18n:** all strings in `shared/i18n/locales/{en,ar}.json`; keys are type-checked
@@ -118,7 +132,7 @@ Page → feature hook (useApiQuery / useApiMutation) → ApiClient (domain types
   CSSOM only, no `dangerouslySetInnerHTML`. The launch code is removed from the URL _before_
   the router is created (so navigation can never reintroduce it). Runtime logo URLs must be
   same-origin paths or inline images. Scores are range-checked (0–10) when decoded.
-- **Accessibility:** native elements first, labelled controls, focus moves to the page
+- **Accessibility:** danger notices are `role="alert"`; loading buttons use `aria-disabled` (keep focus); multi-step dialogs move focus to the new step. Native elements first, labelled controls, focus moves to the page
   heading on navigation, native `<dialog>` for modals, meters with text values, never
   colour-only status.
 
