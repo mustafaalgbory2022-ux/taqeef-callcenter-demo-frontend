@@ -104,17 +104,18 @@ Page → feature hook (useApiQuery / useApiMutation) → ApiClient (domain types
 
 ## Shared administration building blocks
 
-| Building block                 | Where                                                 | Purpose                                                                      |
-| ------------------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------------- |
-| Typed adapters                 | `shared/api/adapters/*`                               | One replaceable API surface per area                                         |
-| `ConfirmDialog`                | `shared/ui/ConfirmDialog.tsx`                         | Destructive/high-risk confirmation with acknowledgement; errors shown inside |
-| `AuditTrail` + `useAdminAudit` | `shared/ui`, `shared/hooks`                           | Read-only, append-only history per resource                                  |
-| `UsageMeter`                   | `shared/ui/UsageMeter.tsx`                            | Capacity meter (ARIA meter with text value)                                  |
-| `ChangeArrow`                  | `shared/ui/ChangeArrow.tsx`                           | Before→after separator that mirrors in RTL and is spoken                     |
-| `focusFirstInvalid`            | `shared/ui/focusInvalid.ts`                           | Moves focus to the first invalid field after a failed submit                 |
-| `layout`                       | `shared/ui/layout.ts`                                 | Shared form/panel classes                                                    |
-| Rule modules                   | `shared/utils/*Rules.ts`, `color`, `redact`, `arabic` | Validation shared by forms and the simulated backend                         |
-| `OrganizationDefaults`         | `app/session/OrganizationDefaults.tsx`                | Applies default language/theme unless the user chose their own               |
+| Building block                 | Where                                                 | Purpose                                                                                                                                                                                 |
+| ------------------------------ | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Typed adapters                 | `shared/api/adapters/*`                               | One replaceable API surface per area                                                                                                                                                    |
+| `ConfirmDialog`                | `shared/ui/ConfirmDialog.tsx`                         | Destructive/high-risk confirmation with acknowledgement; errors shown inside                                                                                                            |
+| `AuditTrail` + `useAdminAudit` | `shared/ui`, `shared/hooks`                           | Read-only, append-only history per resource                                                                                                                                             |
+| `UsageMeter`                   | `shared/ui/UsageMeter.tsx`                            | Capacity meter (ARIA meter with text value)                                                                                                                                             |
+| `ChangeArrow`                  | `shared/ui/ChangeArrow.tsx`                           | Before→after separator that mirrors in RTL and is spoken                                                                                                                                |
+| `focusFirstInvalid`            | `shared/ui/focusInvalid.ts`                           | Moves focus to the first invalid field after a failed submit                                                                                                                            |
+| `layout`                       | `shared/ui/layout.ts`                                 | Shared form/panel classes                                                                                                                                                               |
+| Rule modules                   | `shared/utils/*Rules.ts`, `color`, `redact`, `arabic` | Validation shared by forms and the simulated backend                                                                                                                                    |
+| `@/shared/api/runtime`         | `shared/api/runtime/{index,mock,live}.ts`             | Build-time data source: live builds resolve it to `live.ts` (fetch only), excluding the simulated backend and synthetic data; enforced by a lint rule and `src/test/liveBundle.test.ts` |
+| `OrganizationDefaults`         | `app/session/OrganizationDefaults.tsx`                | Applies default language/theme unless the user chose their own                                                                                                                          |
 
 ## Cross-cutting concerns
 
