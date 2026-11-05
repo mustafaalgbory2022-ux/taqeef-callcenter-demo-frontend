@@ -9,6 +9,8 @@ export interface ApiRequest {
   query?: Readonly<Record<string, string | undefined>> | undefined;
   /** JSON-serialisable value or FormData (multipart upload). */
   body?: unknown;
+  /** Set by the ApiClient (e.g. the CSRF header). */
+  headers?: Readonly<Record<string, string>> | undefined;
 }
 
 export interface ApiResponse {
@@ -28,25 +30,19 @@ export function buildUrl(baseUrl: string, path: string, query?: ApiRequest['quer
   return `${baseUrl.replace(/\/$/, '')}${path}${qs ? `?${qs}` : ''}`;
 }
 
-function readCookie(name: string): string | null {
-  const match = document.cookie.split('; ').find((part) => part.startsWith(`${name}=`));
-  return match ? decodeURIComponent(match.slice(name.length + 1)) : null;
-}
-
-/** Same-origin fetch with session cookies and a CSRF header on state-changing requests. */
+/**
+ * Same-origin fetch. The session cookie is HttpOnly and sent by the browser; this code never
+ * reads cookies. Headers (CSRF) come from the ApiClient, which holds the token in memory.
+ */
 export function createFetchTransport(fetchImpl: typeof fetch = fetch): Transport {
-  return async ({ method, path, query, body }) => {
-    const headers = new Headers({ Accept: 'application/json' });
+  return async ({ method, path, query, body, headers: extra }) => {
+    const headers = new Headers({ Accept: 'application/json', ...extra });
     let payload: BodyInit | undefined;
     if (body instanceof FormData) {
       payload = body;
     } else if (body !== undefined) {
       headers.set('Content-Type', 'application/json');
       payload = JSON.stringify(body);
-    }
-    if (method !== 'GET') {
-      const token = readCookie(apiConfig.csrfCookieName);
-      if (token) headers.set(apiConfig.csrfHeaderName, token);
     }
 
     let res: Response;
@@ -56,6 +52,7 @@ export function createFetchTransport(fetchImpl: typeof fetch = fetch): Transport
         headers,
         body: payload ?? null,
         credentials: 'same-origin',
+        cache: 'no-store',
       });
     } catch {
       throw new ApiError('network_error', 0, 'Network error');

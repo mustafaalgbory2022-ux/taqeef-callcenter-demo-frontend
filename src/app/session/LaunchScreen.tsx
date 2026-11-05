@@ -15,10 +15,17 @@ import styles from './LaunchScreen.module.css';
 export interface LaunchScreenProps {
   initialCode: string | null;
   loadError: unknown;
+  /** The backend ended the previous session (401): it can only be reopened from the launcher. */
+  sessionEnded?: boolean;
   onOpened: () => void;
 }
 
-export function LaunchScreen({ initialCode, loadError, onOpened }: LaunchScreenProps) {
+export function LaunchScreen({
+  initialCode,
+  loadError,
+  sessionEnded = false,
+  onOpened,
+}: LaunchScreenProps) {
   const { t, pick } = useI18n();
   const api = useApiClient();
   const branding = useBranding();
@@ -35,7 +42,8 @@ export function LaunchScreen({ initialCode, loadError, onOpened }: LaunchScreenP
       onOpened();
     } catch (err) {
       const rejected =
-        err instanceof ApiError && (err.code === 'unauthorized' || err.code === 'validation_error');
+        err instanceof ApiError &&
+        (err.code === 'unauthorized' || err.code === 'validation_error' || err.status === 400);
       setError(rejected ? t('session.codeRejected') : describeError(err, t));
       setPending(false);
     }
@@ -69,6 +77,9 @@ export function LaunchScreen({ initialCode, loadError, onOpened }: LaunchScreenP
             <h1 className={styles.title}>{pick(branding.productName)}</h1>
           </div>
         </div>
+        {sessionEnded && (
+          <Notice tone="warning" title={t('session.ended')} testId="session-ended" />
+        )}
         <p className={styles.body}>{t('session.body')}</p>
         <form className={styles.form} onSubmit={submit}>
           <Field

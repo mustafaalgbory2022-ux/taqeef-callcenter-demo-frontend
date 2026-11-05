@@ -25,11 +25,23 @@ export async function openSession(
     [lang, theme] as const,
   );
   const code = `SYN-${Math.random().toString(36).slice(2, 8).toUpperCase()}-E2E`;
-  const sep = path.includes('?') ? '&' : '?';
-  await page.goto(`${path}${sep}launch_code=${code}`);
+  // The launch code travels in the URL fragment only (demo API contract 1.1).
+  await page.goto(`${path}#c=${code}`);
   await expect(page.locator('#main')).toBeVisible();
-  await expect(page).not.toHaveURL(/launch_code/);
+  await expect(page).not.toHaveURL(/#c=|launch_code/);
   return errors;
+}
+
+/**
+ * Navigate inside the open session without reloading the page: the session (and its CSRF
+ * token) lives in memory only, so a reload correctly requires a new launch code.
+ */
+export async function gotoInApp(page: Page, path: string) {
+  await page.evaluate((p) => {
+    window.history.pushState({}, '', p);
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  }, path);
+  await expect(page).toHaveURL(new RegExp(`${path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`));
 }
 
 /** Navigate with the main menu, opening the mobile menu first when it is collapsed. */

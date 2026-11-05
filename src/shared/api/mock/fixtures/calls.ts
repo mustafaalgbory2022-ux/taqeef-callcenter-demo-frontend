@@ -1,3 +1,4 @@
+import { syntheticSegmentId } from '../ids';
 import type { Judgment, WireCall, WireSegment } from '../types';
 
 /**
@@ -10,6 +11,9 @@ export interface CallFixture {
   judgments: Judgment[];
 }
 
+/** Fixture lines are written as s1, s2, …; served as the confirmed `seg-0001` format. */
+const segId = (short: string) => syntheticSegmentId(Number(short.slice(1)));
+
 const s = (
   id: string,
   start: number,
@@ -17,7 +21,14 @@ const s = (
   speaker: WireSegment['speaker'],
   language: WireSegment['language'],
   text: string,
-): WireSegment => ({ id, start_ms: start * 1000, end_ms: end * 1000, speaker, language, text });
+): WireSegment => ({
+  segment_id: segId(id),
+  start_ms: start * 1000,
+  end_ms: end * 1000,
+  speaker,
+  language,
+  text,
+});
 
 /** Simulated model judgment in ACTUAL points (see the approved default scorecard). */
 const j = (
@@ -26,7 +37,13 @@ const j = (
   rationale: string,
   segmentIds: string[],
   result: Judgment['result'] = 'scored',
-): Judgment => ({ criterionId, result, awardedPoints, rationale, segmentIds });
+): Judgment => ({
+  criterionId,
+  result,
+  awardedPoints,
+  rationale,
+  segmentIds: segmentIds.map(segId),
+});
 
 const call = (
   id: string,
@@ -45,7 +62,8 @@ const call = (
   duration_ms: durationSec * 1000,
   recorded_at: recordedAt,
   status: 'scored',
-  audio_url: null,
+  // Set from the seeded transcript revision (see ../db.ts).
+  current_transcript_revision_id: null,
   synthetic: true,
   simulated: true,
   source: 'fixture',
@@ -273,10 +291,10 @@ export const callFixtures: CallFixture[] = [
  * MIXED channel, so speakers stay unresolved (no evidence supports attribution).
  */
 export const uploadTranscriptTemplate: WireSegment[] = [
-  s('s1', 0.5, 6, 'unresolved', 'ar', 'هلا بيك، خدمة العملاء وياك. المكالمة مسجلة لأغراض الجودة.'),
-  s('s2', 7, 14, 'unresolved', 'ar', 'عندي استفسار عن خدمة مفعلة على حسابي.'),
-  s('s3', 15, 22, 'unresolved', 'ar', 'تدلل، ممكن تأكد لي رقم الحساب؟'),
-  s('s4', 23, 27, 'unresolved', 'ar', 'ينتهي بـ 0000.'),
-  s('s5', 28, 44, 'unresolved', 'ar', 'الخدمة مفعلة من بداية الشهر، وأقدر ألغيها إذا تحب.'),
-  s('s6', 45, 58, 'unresolved', 'ar', 'أكو شي ثاني أقدر أساعدك بيه؟ شكراً لاتصالك.'),
+  s('s1', 0.5, 6, 'unknown', 'ar', 'هلا بيك، خدمة العملاء وياك. المكالمة مسجلة لأغراض الجودة.'),
+  s('s2', 7, 14, 'unknown', 'ar', 'عندي استفسار عن خدمة مفعلة على حسابي.'),
+  s('s3', 15, 22, 'unknown', 'ar', 'تدلل، ممكن تأكد لي رقم الحساب؟'),
+  s('s4', 23, 27, 'unknown', 'ar', 'ينتهي بـ 0000.'),
+  s('s5', 28, 44, 'unknown', 'ar', 'الخدمة مفعلة من بداية الشهر، وأقدر ألغيها إذا تحب.'),
+  s('s6', 45, 58, 'unknown', 'ar', 'أكو شي ثاني أقدر أساعدك بيه؟ شكراً لاتصالك.'),
 ];

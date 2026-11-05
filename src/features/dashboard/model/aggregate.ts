@@ -1,9 +1,14 @@
 import type { Agent, Evaluation, LocalizedText, ScorecardVersion } from '@/shared/types/domain';
-import { DEFAULT_LOW_SCORE_THRESHOLD, isLowScore, normalizeToTen } from '@/shared/utils/score';
+import {
+  DEFAULT_LOW_SCORE_THRESHOLD,
+  isAssessed,
+  isLowScore,
+  normalizeToTen,
+} from '@/shared/utils/score';
 import { isScored } from '@/features/evaluations/model';
 
 // Re-exported so dashboard consumers have one model entry point.
-export { currentEvaluations, isEligible, isScored } from '@/features/evaluations/model';
+export { currentEvaluations, isScored } from '@/features/evaluations/model';
 
 export function versionLookup(versions: readonly ScorecardVersion[]) {
   const map = new Map(versions.map((v) => [`${v.scorecardId}@${v.version}`, v]));
@@ -79,12 +84,12 @@ export function summarize(
     for (const e of scored) {
       const r = e.criteria.find((c) => c.criterionId === criterionId);
       if (!r) continue;
-      if (r.result === 'scored' && r.awardedPoints !== null) {
+      if (isAssessed(r)) {
         row.awardedPoints += r.awardedPoints;
         row.possiblePoints += r.possiblePoints;
         row.scoredCount += 1;
-      } else if (r.result === 'not_assessable') row.notAssessableCount += 1;
-      else row.insufficientCount += 1;
+      } else if (r.aiDeclaredReason === 'insufficient_evidence') row.insufficientCount += 1;
+      else row.notAssessableCount += 1;
     }
     row.normalized = normalizeToTen(row.awardedPoints, row.possiblePoints);
     return row;

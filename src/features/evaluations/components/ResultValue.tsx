@@ -3,20 +3,29 @@ import type { CriterionEvaluation, Evaluation } from '@/shared/types/domain';
 import { Badge } from '@/shared/ui/Badge';
 import { Icon } from '@/shared/ui/Icon';
 import { ScoreValue } from '@/shared/ui/ScoreValue';
-import { floorTo2 } from '@/shared/utils/score';
+import { floorTo2, isAssessed } from '@/shared/utils/score';
 import { resultPresentation } from '../model/outcome';
 import styles from './Evaluation.module.css';
 
 /**
- * ACTUAL points awarded for a criterion ("2 of 3 points"), or a clearly distinct
- * "Not assessable" / "Insufficient evidence" state. Never shown on the 0–10 scale.
+ * ACTUAL points awarded for a criterion ("2 of 3 points") with its result (met, partially
+ * met, not met), or a clearly distinct "Not assessable" state with its reason code. When the
+ * AI declared insufficient evidence, that is shown as "Insufficient evidence". Never shown on
+ * the 0–10 scale.
  */
 export function ResultValue({ result }: { result: CriterionEvaluation | null }) {
   const { t, fmt } = useI18n();
   if (!result) return <span className={styles.same}>{t('evaluations.result.absent')}</span>;
-  if (result.result === 'scored' && result.awardedPoints !== null) {
+  if (isAssessed(result)) {
     return (
-      <span className={styles.points} title={t('evaluations.pointsTitle')}>
+      <span
+        className={styles.points}
+        title={t('evaluations.pointsTitle')}
+        data-result={result.result}
+      >
+        {result.result !== 'not_assessable' && (
+          <span className="visually-hidden">{t(`evaluations.result.${result.result}`)}: </span>
+        )}
         <bdi>
           {t(result.possiblePoints === 1 ? 'evaluations.pointsOne' : 'evaluations.points', {
             awarded: fmt.integer(result.awardedPoints),
@@ -31,12 +40,27 @@ export function ResultValue({ result }: { result: CriterionEvaluation | null }) 
       </span>
     );
   }
-  if (result.result === 'not_assessable')
-    return <Badge icon="minus">{t('evaluations.result.notAssessable')}</Badge>;
+  const reason = result.reasonCode ? (
+    <span className={styles.reason} data-testid="na-reason">
+      {result.reasonCode === 'ai_declared' && result.aiDeclaredReason
+        ? t(`evaluations.reason.aiDeclared.${result.aiDeclaredReason}`)
+        : t(`evaluations.reason.code.${result.reasonCode}`)}
+    </span>
+  ) : null;
+  if (result.aiDeclaredReason === 'insufficient_evidence')
+    return (
+      <span className={styles.points} data-result={result.result}>
+        <Badge tone="warning" icon="alert">
+          {t('evaluations.result.insufficient')}
+        </Badge>
+        {reason}
+      </span>
+    );
   return (
-    <Badge tone="warning" icon="alert">
-      {t('evaluations.result.insufficient')}
-    </Badge>
+    <span className={styles.points} data-result={result.result}>
+      <Badge icon="minus">{t('evaluations.result.notAssessable')}</Badge>
+      {reason}
+    </span>
   );
 }
 
@@ -59,21 +83,13 @@ export function NoScoreBadge({
   );
 }
 
-/** Overall result of one evaluation: score, "No score" (insufficient evidence) or "Failed". */
+/** Overall result of one run: score, or the explicit no-score outcome. */
 export function OverallValue({
   evaluation,
 }: {
-  evaluation: Pick<Evaluation, 'status' | 'outcome' | 'overallScore' | 'assessablePoints'>;
+  evaluation: Pick<Evaluation, 'outcome' | 'overallScore'>;
 }) {
-  const { t } = useI18n();
   const kind = resultPresentation(evaluation);
-  if (kind === 'failed') {
-    return (
-      <Badge tone="danger" icon="alert">
-        {t('evaluations.failed')}
-      </Badge>
-    );
-  }
   return kind === 'scored' && evaluation.overallScore !== null ? (
     <ScoreValue score={evaluation.overallScore} />
   ) : (

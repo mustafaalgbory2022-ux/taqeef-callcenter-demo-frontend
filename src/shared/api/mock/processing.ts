@@ -1,4 +1,5 @@
 import { nextId } from './db';
+import { syntheticRevisionId } from './ids';
 import { uploadTranscriptTemplate } from './fixtures/calls';
 import { simulateEvaluation, syntheticUploadJudgments } from './scoring';
 import type { MockState, WireCall } from './types';
@@ -28,7 +29,17 @@ export function refreshUpload(state: MockState, call: WireCall, now = Date.now()
   if (stage === call.status) return false;
 
   if (stage === 'scoring' || stage === 'scored') {
-    state.transcripts[call.id] ??= { call_id: call.id, segments: uploadTranscriptTemplate };
+    if (!state.transcripts[call.id]) {
+      state.seq += 1;
+      state.transcripts[call.id] = {
+        call_id: call.id,
+        transcript_revision_id: syntheticRevisionId(state.seq),
+        revision_no: 0,
+        segments: uploadTranscriptTemplate,
+      };
+    }
+    call.current_transcript_revision_id =
+      state.transcripts[call.id]?.transcript_revision_id ?? null;
     call.duration_ms ??= 60_000;
   }
   if (stage === 'scored') {
@@ -40,6 +51,7 @@ export function refreshUpload(state: MockState, call: WireCall, now = Date.now()
         id: nextId(state, 'ev'),
         call,
         segments: uploadTranscriptTemplate,
+        transcriptRevisionId: call.current_transcript_revision_id ?? '',
         judgments,
         scorecard,
         trigger: 'initial',

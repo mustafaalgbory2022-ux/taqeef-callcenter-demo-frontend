@@ -1,100 +1,67 @@
 # Five-call demo frontend — integration handoff for Local Claude
 
-Status: ready to integrate against the **provisional** contract. Nothing here creates or
-freezes an endpoint or schema; every route and wire field below is a proposal awaiting
-Local Claude's decision.
+Status: aligned with the Local Claude **frontend change list v0.2** and **demo API contract
+v0.1** (the only contract document received; v0.2 itself, including its "item C" call-status
+list, was not received). Nothing here creates or freezes an endpoint or schema.
 
 ## 1. Where it is
 
 - Repository: `mustafaalgbory2022-ux/taqeef-callcenter-demo-frontend`
 - Branch: `demo/ord-0035-cloud-stream-1` (dedicated demo branch; never merged into `main`)
-- Commit: the commit that adds this file —
-  `git log -1 --format=%H -- docs/demo-integration-handoff.md`. The exact hash is reported
-  in the Stream 5 summary. Previous stream tip: `9037849`.
-- Untouched by this work: `main`, the preserved original demo branch, and the completed
-  full-system frontend branch `feature/taqeef-full-frontend`.
+- Commit: the commit that last changed this file —
+  `git log -1 --format=%H -- docs/demo-integration-handoff.md`; the exact hash is in the
+  Stream 6 report. Previous checkpoint: `bb0dd283`.
+- Untouched: `main`, the preserved original demo branch, `feature/taqeef-full-frontend`.
 
 ## 2. How to run
 
-Node 24. `npm ci`, then:
+Node 24. `npm ci`, then `npm run dev` (mock), `VITE_API_MODE=live npm run build` (live),
+`npm run check`, `npm run test:e2e`. The mock backend and synthetic data are excluded from live
+builds (`src/test/liveBundle.test.ts`).
 
-| Purpose             | Command                            |
-| ------------------- | ---------------------------------- |
-| Mock demo (default) | `npm run dev`                      |
-| Live build          | `VITE_API_MODE=live npm run build` |
-| Pre-commit checks   | `npm run check`                    |
-| Browser tests       | `npm run test:e2e`                 |
+## 3. Implemented in Stream 6 (CONFIRMED rules from change list v0.2)
 
-`VITE_API_MODE` only selects the transport at build time (mock vs `fetch`). In live mode the
-mock backend and all synthetic fixtures are excluded from the bundle (enforced by
-`src/test/liveBundle.test.ts` and a lint rule). The live client calls `apiConfig.baseUrl`
-(`/api`) on the same origin; no remote origins (strict CSP).
+| #   | Rule                                                                                     | Frontend behaviour                                                                                                                                                            | Files                                                                                   |
+| --- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| 1   | Launch code in `#c=`                                                                     | Read from the fragment only (a `?launch_code=` is ignored), `POST /api/session/exchange {"code"}`, fragment removed with `history.replaceState`; `/launch` is replaced by `/` | `src/app/session/launchCode.ts`, `src/shared/api/config.ts`, `src/shared/api/client.ts` |
+| 2   | CSRF `X-Taqeef-CSRF` on every `/api` request, GET included                               | Token from the exchange response, held in ApiClient memory only; no cookie read; exchange sent without it; `<audio>` does not send it                                         | `src/shared/api/client.ts`, `src/shared/api/transport.ts`                               |
+| —   | Session end (contract 1.6, PROPOSED)                                                     | Any 401 drops token and cached data and shows "Session ended — reopen the demo from the launcher"; no silent re-exchange; a reload needs a new code                           | `src/app/session/SessionGate.tsx`, `LaunchScreen.tsx`                                   |
+| 3   | Explicit `not_assessable` run outcome                                                    | Decoded and presented as-is, never inferred from points; failed evaluations have no run (failure is shown from the call status)                                               | `src/shared/api/wire/evaluations.ts`, `src/features/evaluations/model/outcome.ts`       |
+| 4   | Criterion `met`/`partially_met`/`not_met`/`not_assessable` + `reason_code` + `na_reason` | Consistency enforced in the decoder; reason labels in EN/AR; AI-declared "insufficient evidence" shown as such                                                                | `wire/evaluations.ts`, `ResultValue.tsx`, `locales/{en,ar}.json`                        |
+| 5   | `transcript_revision_id` on transcripts and runs                                         | Revision id (lowercase UUIDv7) and `seg-NNNN` ids validated; transcript fetched by revision                                                                                   | `src/shared/api/wire/ids.ts`, `wire/calls.ts`, `endpoints.ts`                           |
+| 6   | Evidence = `segment_id` only                                                             | Time and text come only from the run's own revision; a different revision is reported "unavailable", never resolved; `quote`/`start_ms` removed from wire types               | `src/features/calls/model/transcript.ts`, `CriterionResults.tsx`, `CallDetailPage.tsx`  |
+| 7   | `unresolved` → `unknown`                                                                 | Speaker enum renamed in wire, domain, mock and UI                                                                                                                             | `wire/calls.ts`, `wire/evaluations.ts`, `domain.ts`                                     |
+| 9   | Audio from `GET /api/calls/{call_id}/audio`                                              | `audio_url` removed; URL built from the call id; `cache: 'no-store'` on API fetches; no download control                                                                      | `client.ts` (`audioSrc`), `endpoints.ts`, `CallDetailPage.tsx`                          |
+| 10  | Upload `display_name`, optional `channel_map`, agent from a list                         | WAV only, ≤ 100 MB, 1–200 characters, client `request_id`; response `202 {call_id, status, job_id}`                                                                           | `client.ts`, `wire/calls.ts`, `src/features/calls/model/upload.ts`, `UploadForm.tsx`    |
 
-## 3. Adapter boundary
+## 4. Not done, or unresolved — decisions for Local Claude
 
-All data access goes through `ApiClient` (`src/shared/api/client.ts`). Wire shapes are
-decoded and mapped to domain types only in `src/shared/api/wire/*.ts`; routes exist only in
-`src/shared/api/endpoints.ts`; names for the session cookie/header and launch parameter only in
-`src/shared/api/config.ts`. Components never see wire data. Changing the contract therefore
-touches the files in §5, plus mock handlers in `src/shared/api/mock/` that mirror it.
+| Item                                                                                                       | Status                                                                                                                                                                       | Files affected when decided                                                                                      |
+| ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Call status list (v0.2 "item C", 12 values, incl. `evaluation_failed`, `rejected`)                         | Not received; the five-value provisional list is unchanged                                                                                                                   | `wire/calls.ts`, `domain.ts` (`CallStatus`), `CallStatusBadge.tsx`, `ProcessingStatus.tsx`, mock `processing.ts` |
+| Remove `queues` and `branding` routes (item 11)                                                            | Not done: agent queue assignment and runtime branding still call them; needs a UI decision (and conflicts with the repo rule that branding arrives from `GET /api/branding`) | `endpoints.ts`, `client.ts`, `BrandingProvider`, agents feature                                                  |
+| Run role resolution replacing `channel_layout` (item 7, contract 2.4)                                      | Shape not defined; `channel_layout` and per-segment `speaker` kept as PROVISIONAL                                                                                            | `wire/calls.ts`, `wire/evaluations.ts`, `TranscriptView.tsx`, `CallDetailPage.tsx`                               |
+| Evidence word span                                                                                         | Field names not defined; not decoded                                                                                                                                         | `wire/evaluations.ts`, `model/transcript.ts`                                                                     |
+| `display_hundredths`, `points_*_sum`, `unit`, `below_threshold`, `threshold_hundredths` (contract 3.4–3.7) | Not in the change list; the float `overall_score` and points fields are unchanged                                                                                            | `wire/evaluations.ts`, `domain.ts`, `src/shared/i18n/format.ts`                                                  |
+| Upload agent field                                                                                         | Contract §7 item 3 is OPEN; `agent_id` is sent from a selection list only (no new schema assumed)                                                                            | `client.ts` (`uploadCall`)                                                                                       |
+| Re-score as `202 {job_id}` and job polling                                                                 | PROPOSED routes; the synchronous provisional response is unchanged                                                                                                           | `client.ts`, `useCallData.ts`                                                                                    |
+| Error envelope `{"error": {...}}` (contract 5.4)                                                           | PROPOSED; the FastAPI `detail` mapping is unchanged                                                                                                                          | `src/shared/api/errors.ts`, `fieldIssues.ts`                                                                     |
+| All other routes and field names                                                                           | PROVISIONAL (contract §5)                                                                                                                                                    | `endpoints.ts`, `wire/*.ts`                                                                                      |
+| Overall "Not assessable — no score (<main reason>)"                                                        | Main-reason rule not defined; the outcome is shown without a reason                                                                                                          | `EvaluationPanel.tsx`                                                                                            |
 
-## 4. Contract-gap matrix
+## 5. Mock mode
 
-### Confirmed requirements (implemented; do not change without a new decision)
+The simulated backend mirrors the confirmed rules: one-time codes, CSRF on every
+non-exempt route (403 otherwise), in-memory session, revision-linked runs, explicit outcomes,
+reason codes and WAV-only uploads. Its scoring rule (0 assessable points → not assessable)
+is a simulation only; real outcomes come from the API. All data stays synthetic and labelled.
 
-| Requirement                                                                                | Frontend location                                                        |
-| ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
-| Six criteria 1/1/2/3/2/1; overall = awarded ÷ assessable × 10; actual points shown         | `src/features/evaluations/model/`, `src/shared/utils/score.ts`           |
-| Below 6 assessable points → "Insufficient evidence — No score"; excluded from averages     | `model/outcome.ts`, `currentEvaluations`                                 |
-| 0 assessable points → "Not assessable — No score"; failed → "Failed"; never a fabricated 0 | `model/outcome.ts`, `EvaluationPanel`, `EvaluationHistory`, `CallsTable` |
-| Overall metrics pooled per call; sample-size warnings; no rankings                         | `src/features/dashboard/model/`                                          |
-| No PBX SLA/missed/abandoned in the demo (not estimated from recordings)                    | dashboard (removed in Stream 4)                                          |
-| Mixed-channel speakers stay unresolved                                                     | transcript components, `wire/calls.ts` (`channel_layout`)                |
-| AI text plain only, labelled "AI-generated, preliminary, advisory"                         | evaluation components                                                    |
-| 24-hour times, EN/AR, RTL, light/dark                                                      | `src/shared/i18n/format.ts` (`hourCycle: 'h23'`)                         |
-| Masked phone numbers only; synthetic data labelled; mock vs live visible                   | `DataSourceBadge`, fixtures `synthetic: true`                            |
+## 6. Acceptance checklist
 
-### Provisional assumptions (in code today, awaiting confirmation)
-
-| Assumption                                                                                                                                                | Where it lives                               |
-| --------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------- |
-| Routes under `/api`: session, session/launch, branding, queues, agents (+history), calls (+transcript, rescore), evaluations, scorecards current/versions | `src/shared/api/endpoints.ts`, `config.ts`   |
-| Upload is `POST /calls` multipart (`file`, `title`, `agent_id`)                                                                                           | `client.ts` (`uploadCall`)                   |
-| Launch code in query parameter `launch_code`, removed from the address bar before use                                                                     | `config.ts`, `src/app/session/launchCode.ts` |
-| CSRF cookie `csrf_token`, header `X-CSRF-Token`                                                                                                           | `config.ts`, `transport.ts`                  |
-| Durations/offsets in milliseconds (`WIRE_TIME_UNIT = 'ms'`); timestamps are ISO 8601 strings                                                              | `wire/common.ts`, `wire/calls.ts`            |
-| IDs are opaque strings, URL-encoded in paths                                                                                                              | `endpoints.ts`                               |
-| Evaluation `outcome`: `scored` \| `insufficient_evidence` \| null; "not assessable" inferred from `assessable_points = 0`                                 | `wire/evaluations.ts`, `model/outcome.ts`    |
-| Criterion result: `scored` \| `not_assessable` \| `insufficient_evidence`                                                                                 | `wire/evaluations.ts`                        |
-| Evaluation run status incl. `failed`; failed runs excluded from current results                                                                           | `wire/evaluations.ts`, `model/`              |
-| Call status `uploaded` → `transcribing` → `scoring` → `scored` \| `failed` (polled)                                                                       | `wire/calls.ts`, calls hooks                 |
-| Evidence `{segment_id, start_ms, end_ms, quote}`; prohibited hits `{segment_id, start_ms, quote}`                                                         | `wire/evaluations.ts`, `locateEvidence`      |
-| Speaker `agent` \| `customer` \| `unresolved`; no transcript revision id                                                                                  | `wire/calls.ts` (transcript)                 |
-
-### Decisions Local Claude must finalize, and the exact files each one affects
-
-| #   | Decision                                                                                   | Files to change                                                                                                                |
-| --- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| 1   | Final routes, base path and upload shape                                                   | `src/shared/api/endpoints.ts`, `src/shared/api/config.ts`, `src/shared/api/client.ts`, mock handlers in `src/shared/api/mock/` |
-| 2   | Launch-code location (query vs URL fragment) and exchange body                             | `src/shared/api/config.ts`, `src/app/session/launchCode.ts`, `src/shared/api/wire/session.ts`, `tests/e2e/session.spec.ts`     |
-| 3   | CSRF cookie/header names and session payload                                               | `src/shared/api/config.ts`, `src/shared/api/transport.ts`, `src/shared/api/wire/session.ts`                                    |
-| 4   | Time unit (ms vs s) and timestamp format/time zone                                         | `src/shared/api/wire/common.ts` (one constant), `src/shared/i18n/format.ts` if a zone must be fixed                            |
-| 5   | Explicit wire value for "not assessable" overall outcome                                   | `src/shared/api/wire/evaluations.ts`, `src/features/evaluations/model/outcome.ts`, `src/shared/types/domain.ts`                |
-| 6   | Criterion state vocabulary (e.g. met / partially met / not met / not assessable)           | `src/shared/api/wire/evaluations.ts`, `src/shared/types/domain.ts`, evaluation components, `locales/{en,ar}.json`              |
-| 7   | Transcript revision id on transcripts and on each evaluation (or evidence item)            | `src/shared/api/wire/calls.ts`, `src/shared/api/wire/evaluations.ts`, `src/shared/types/domain.ts`, `locateEvidence`           |
-| 8   | Evidence as segment ids only: adapter enriches `start_ms`/`end_ms`/text from that revision | `src/shared/api/wire/evaluations.ts` (mapping), `src/shared/api/client.ts` (transcript lookup)                                 |
-| 9   | Error envelope and field-issue format                                                      | `src/shared/api/errors.ts`, `src/shared/api/fieldIssues.ts`                                                                    |
-| 10  | Audio delivery (`audio_url` same-origin path, range requests) and call/agent ID formats    | `src/shared/api/wire/calls.ts`, `src/shared/api/endpoints.ts`                                                                  |
-
-Until each decision is made, the current provisional value stays as it is; no speculative
-mapping has been added.
-
-## 5. Acceptance checklist for integration
-
-- [ ] `npm run check` and `npm run test:e2e` pass on the integrated branch.
-- [ ] Live build shows the live data-source badge and contains no synthetic markers
-      (`src/test/liveBundle.test.ts`).
-- [ ] Scored, insufficient evidence, not assessable and failed results each display their own
-      label against real responses; none shows a score it did not receive.
-- [ ] Evidence highlights the referenced segment of the same transcript revision.
-- [ ] Session launch code is exchanged once and never left in the address bar or logs.
+- [ ] `npm run check` and `npm run test:e2e` pass.
+- [ ] Live build contains no synthetic markers.
+- [ ] `/launch#c=<code>` opens the session; the code never appears in a request or the address bar.
+- [ ] Every `/api` request except the exchange, health and audio carries `X-Taqeef-CSRF`.
+- [ ] A 401 returns to the launch screen with the session-ended notice.
+- [ ] Scored, insufficient evidence and not assessable runs each show their own label; none shows a score it did not receive.
+- [ ] Evidence highlights the referenced segment of the run's own transcript revision only.

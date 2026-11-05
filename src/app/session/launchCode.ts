@@ -1,15 +1,20 @@
 import { apiConfig } from '@/shared/api/config';
 
 /**
- * Remove the one-time launch code from the address bar and return it. Must run BEFORE the
- * router is created, otherwise the router keeps the original query string and later
- * navigations (e.g. changing a filter) would put the code back into the URL.
+ * Remove the one-time launch code from the address bar and return it. The code arrives in
+ * the URL fragment (`/launch#c=<code>`, demo API contract 1.1) so it never reaches a request,
+ * a log or a Referer. Must run BEFORE the router is created so later navigations never put it
+ * back. The `/launch` entry path is replaced with the app root.
  */
 export function takeLaunchCodeFromUrl(): string | null {
   const url = new URL(window.location.href);
-  const code = url.searchParams.get(apiConfig.launchCodeParam);
+  const params = new URLSearchParams(url.hash.replace(/^#/, ''));
+  const code = params.get(apiConfig.launchFragmentKey);
   if (!code) return null;
-  url.searchParams.delete(apiConfig.launchCodeParam);
+  params.delete(apiConfig.launchFragmentKey);
+  const rest = params.toString();
+  url.hash = rest;
+  if (url.pathname === '/launch') url.pathname = '/';
   window.history.replaceState(window.history.state, '', url.toString());
   return code;
 }

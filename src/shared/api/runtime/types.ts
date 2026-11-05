@@ -1,6 +1,12 @@
 import type { ApiMode } from '../config';
 import type { Transport } from '../transport';
 
+export interface Backend {
+  transport: Transport;
+  /** Mock only: in-browser synthetic audio; live builds use the protected audio route. */
+  audioSrc?: (callId: string) => string | null;
+}
+
 /** Tools that only exist for the simulated backend (demo launch codes, data reset). */
 export interface DemoTools {
   issueLaunchCode(): string;
@@ -14,7 +20,7 @@ export interface DemoTools {
  */
 export interface ApiRuntime {
   mode: ApiMode;
-  createTransport(): Transport;
+  createBackend(): Backend;
   /** null in live builds. */
   demoTools: DemoTools | null;
 }

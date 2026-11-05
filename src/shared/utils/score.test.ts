@@ -20,7 +20,9 @@ const card: Criterion[] = [
 
 const scored = (criterionId: string, awardedPoints: number): CriterionEvaluation => ({
   criterionId,
-  result: 'scored',
+  result: 'partially_met',
+  reasonCode: null,
+  aiDeclaredReason: null,
   awardedPoints,
   possiblePoints: 0,
   penaltyPoints: 0,
@@ -29,10 +31,12 @@ const scored = (criterionId: string, awardedPoints: number): CriterionEvaluation
 });
 const notScored = (
   criterionId: string,
-  result: 'not_assessable' | 'insufficient_evidence',
+  kind: 'not_assessable' | 'insufficient_evidence',
 ): CriterionEvaluation => ({
   ...scored(criterionId, 0),
-  result,
+  result: 'not_assessable',
+  reasonCode: 'ai_declared',
+  aiDeclaredReason: kind === 'insufficient_evidence' ? 'insufficient_evidence' : 'not_applicable',
   awardedPoints: null,
 });
 

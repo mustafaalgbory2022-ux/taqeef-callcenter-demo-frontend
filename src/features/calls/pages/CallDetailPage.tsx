@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { useAgents } from '@/features/agents';
 import {
   EvaluationHistoryPanel,
   EvaluationPanel,
   type EvidenceSelection,
+  type ResolvedSegment,
 } from '@/features/evaluations';
+import { useApiClient } from '@/shared/api/ApiProvider';
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import { Badge, SyntheticBadge } from '@/shared/ui/Badge';
@@ -33,21 +35,26 @@ export function CallDetailPage() {
 
 function CallDetail({ call }: { call: Call }) {
   const { t } = useI18n();
+  const api = useApiClient();
   useDocumentTitle(`${call.id} · ${call.title}`, t('app.title'));
   const [params] = useSearchParams();
   const agents = useAgents();
   const agent =
     agents.status === 'success' ? agents.data.find((a) => a.id === call.agentId) : undefined;
-  const hasTranscript = call.status === 'scoring' || call.status === 'scored';
-  const transcript = useTranscript(call.id, hasTranscript);
-  const player = useAudioPlayer(call.audioUrl, call.durationMs);
+  // The call's current revision. A run's evidence is resolved only against the revision that
+  // run evaluated; a mismatch is reported, never resolved against other text.
+  const revisionId = call.currentTranscriptRevisionId;
+  const hasTranscript = revisionId !== null;
+  const transcript = useTranscript(revisionId ?? '', hasTranscript);
+  const audioSrc = useMemo(() => api.audioSrc(call.id), [api, call.id]);
+  const player = useAudioPlayer(audioSrc, call.durationMs);
   const [highlight, setHighlight] = useState<ReadonlySet<string>>(new Set());
   const [selection, setSelection] = useState<{
     evidence: EvidenceSelection;
     location: EvidenceLocation;
     key: number;
   } | null>(null);
-  const segments = transcript.data?.segments;
+  const loaded = transcript.data;
 
   // Deep link: /calls/:id?t=<ms> starts at an evidence timestamp.
   const initialMs = Number(params.get('t'));
@@ -59,14 +66,25 @@ function CallDetail({ call }: { call: Call }) {
   // Locate the selected evidence in the loaded transcript; play only when it was located.
   const onEvidence = useCallback(
     (evidence: EvidenceSelection, group: readonly string[]) => {
-      const location: EvidenceLocation = segments
-        ? locateEvidence(segments, evidence)
+      const location: EvidenceLocation = loaded
+        ? locateEvidence(loaded, evidence)
         : { status: 'unavailable', reason: 'segment_missing' };
       setSelection((prev) => ({ evidence, location, key: (prev?.key ?? 0) + 1 }));
       setHighlight(location.status === 'located' ? new Set(group) : new Set());
       if (location.status === 'located') seek(location.startMs, true);
     },
-    [seek, segments],
+    [seek, loaded],
+  );
+
+  const resolveEvidence = useCallback(
+    (evidence: EvidenceSelection): ResolvedSegment | null => {
+      if (!loaded) return null;
+      const location = locateEvidence(loaded, evidence);
+      return location.status === 'located'
+        ? { startMs: location.startMs, text: location.text }
+        : null;
+    },
+    [loaded],
   );
 
   const showLine = useCallback((segmentId: string) => {
@@ -116,7 +134,7 @@ function CallDetail({ call }: { call: Call }) {
       <div className={styles.layout}>
         <div className={styles.column}>
           <Card title={t('calls.player.title')} flush>
-            <AudioPlayer src={call.audioUrl} player={player} simulated={call.simulated} />
+            <AudioPlayer src={audioSrc} player={player} simulated={call.simulated} />
           </Card>
           <Card title={t('calls.transcript.title')} caption={t('calls.transcript.caption')} flush>
             {hasTranscript ? (
@@ -137,7 +155,6 @@ function CallDetail({ call }: { call: Call }) {
                         located && selection
                           ? {
                               segmentId: located.segmentId,
-                              range: located.range,
                               key: selection.key,
                             }
                           : null
@@ -158,6 +175,7 @@ function CallDetail({ call }: { call: Call }) {
               callId={call.id}
               canRescore={call.status === 'scored'}
               onEvidence={onEvidence}
+              resolveEvidence={resolveEvidence}
             />
           )}
         </div>

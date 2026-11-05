@@ -47,8 +47,10 @@ export function useCall(id: string) {
   return query;
 }
 
-export const useTranscript = (callId: string, enabled: boolean) =>
-  useApiQuery(['calls', 'transcript', callId], (api) => api.getTranscript(callId), { enabled });
+export const useTranscript = (revisionId: string, enabled: boolean) =>
+  useApiQuery(['calls', 'transcript', revisionId], (api) => api.getTranscript(revisionId), {
+    enabled,
+  });
 
 export const useUploadCall = () =>
   useApiMutation((api, upload: CallUpload) => api.uploadCall(upload), ['calls', 'evaluations']);

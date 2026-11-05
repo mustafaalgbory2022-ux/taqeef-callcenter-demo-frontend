@@ -17,11 +17,15 @@ export type Permission =
   | 'evaluations.rescore'
   | 'settings.manage';
 
+/**
+ * A local demo session opened by exchanging a one-time launch code. The CSRF token from the
+ * exchange is held by the ApiClient in memory only and is never part of this object.
+ */
 export interface Session {
   mode: 'mock' | 'live';
-  displayName: string;
   permissions: readonly Permission[];
-  expiresAt: string | null;
+  idleTimeoutS: number;
+  absoluteTimeoutS: number;
 }
 
 export interface Queue {
@@ -76,7 +80,8 @@ export interface Call {
   durationMs: number | null;
   recordedAt: string;
   status: CallStatus;
-  audioUrl: string | null;
+  /** Current transcript revision; null until transcription has produced one. */
+  currentTranscriptRevisionId: string | null;
   synthetic: boolean;
   /** True when processing was simulated by the mock backend. */
   simulated: boolean;
@@ -88,14 +93,23 @@ export interface Call {
   channelLayout: 'dual' | 'mixed';
 }
 
+/** Channel map for an upload; null = the server's global default. */
+export type ChannelMap = 'left_agent' | 'right_agent' | 'none';
+
 export interface CallUpload {
   file: File;
-  title: string;
+  displayName: string;
   agentId: string;
+  channelMap: ChannelMap | null;
 }
 
-/** 'unresolved' until speaker attribution is supported by evidence (e.g. mixed channel). */
-export type Speaker = 'agent' | 'customer' | 'unresolved';
+export interface UploadAccepted {
+  callId: string;
+  jobId: string;
+}
+
+/** 'unknown' until speaker attribution is supported by evidence (e.g. mixed channel). */
+export type Speaker = 'agent' | 'customer' | 'unknown';
 
 export interface TranscriptSegment {
   id: string;
@@ -106,8 +120,11 @@ export interface TranscriptSegment {
   text: string;
 }
 
+/** One immutable transcript revision. Segment ids are unique within a revision only. */
 export interface Transcript {
   callId: string;
+  revisionId: string;
+  revisionNo: number;
   segments: readonly TranscriptSegment[];
 }
 
@@ -164,19 +181,34 @@ export type ScorecardDraft = Pick<
   | 'changeNote'
 >;
 
-export type CriterionResultKind = 'scored' | 'not_assessable' | 'insufficient_evidence';
+export type CriterionResultKind = 'met' | 'partially_met' | 'not_met' | 'not_assessable';
 
+/** Why a criterion was not assessable (set exactly when the result is not_assessable). */
+export type NotAssessableReason =
+  | 'roles_unreliable'
+  | 'no_transcript'
+  | 'too_long'
+  | 'no_evidence'
+  | 'low_confidence_evidence'
+  | 'ai_declared';
+
+/** The AI's declared reason, set exactly when the reason code is ai_declared. */
+export type AiDeclaredReason = 'insufficient_evidence' | 'not_applicable';
+
+/**
+ * Evidence is a reference to a segment of the evaluation's own transcript revision. Times and
+ * text are always taken from that revision, never from model output.
+ */
 export interface Evidence {
   segmentId: string;
-  startMs: number;
-  endMs: number;
-  quote: string;
 }
 
 export interface CriterionEvaluation {
   criterionId: string;
   result: CriterionResultKind;
-  /** Actual points awarded (after any penalty) when `result === 'scored'`, otherwise null. */
+  reasonCode: NotAssessableReason | null;
+  aiDeclaredReason: AiDeclaredReason | null;
+  /** Actual points awarded (after any penalty) when assessed, otherwise null. */
   awardedPoints: number | null;
   /** Points available for the criterion in the evaluating scorecard version. */
   possiblePoints: number;
@@ -190,13 +222,13 @@ export interface ProhibitedHit {
   expressionId: string;
   phrase: string;
   segmentId: string;
-  startMs: number;
-  quote: string;
   speaker: Speaker;
   /** Penalty only under the active rule with reliable agent attribution; otherwise review. */
   disposition: 'penalty_applied' | 'flagged_for_review';
   penaltyPoints: number;
 }
+
+export type EvaluationOutcome = 'scored' | 'insufficient_evidence' | 'not_assessable';
 
 export interface Evaluation {
   id: string;
@@ -204,12 +236,13 @@ export interface Evaluation {
   agentId: string | null;
   scorecardId: string;
   scorecardVersion: number;
-  status: 'completed' | 'failed';
+  /** The transcript revision this run evaluated; its evidence refers to that revision. */
+  transcriptRevisionId: string;
   /**
-   * 'insufficient_evidence' = fewer assessable points than the minimum: no score.
-   * null when the evaluation failed (a processing failure, not an evidence result).
+   * Explicit run outcome from the backend. A failed evaluation creates no run: failures are
+   * reported by the call status.
    */
-  outcome: 'scored' | 'insufficient_evidence' | null;
+  outcome: EvaluationOutcome;
   /** Points awarded across assessable criteria. */
   awardedPoints: number;
   /** Points of criteria that could be assessed (scored), i.e. the denominator. */

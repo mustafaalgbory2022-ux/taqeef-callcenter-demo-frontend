@@ -2,7 +2,6 @@ import { Suspense, useState } from 'react';
 import { NavLink, Outlet, useSearchParams } from 'react-router';
 import { useApiClient } from '@/shared/api/ApiProvider';
 import { useBranding } from '@/shared/branding/BrandingProvider';
-import { useSession } from '@/shared/hooks/useSession';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import { Button } from '@/shared/ui/Button';
 import { DataSourceBadge } from '@/shared/ui/DataSourceBadge';
@@ -15,7 +14,6 @@ import styles from './AppShell.module.css';
 export function AppShell() {
   const { t, pick } = useI18n();
   const api = useApiClient();
-  const session = useSession();
   const branding = useBranding();
   const [params] = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -55,7 +53,7 @@ export function AppShell() {
         </Button>
         <DataSourceBadge mode={api.mode} />
         <span className={styles.spacer} />
-        <span className={styles.user}>{session.displayName}</span>
+        <span className={styles.user}>{t('session.localName')}</span>
         <PreferenceControls />
       </header>
 

@@ -25,9 +25,8 @@ export function EvidenceStatus({ selection, onPlay, onShowLine, onClear }: Evide
           <p className={styles.evidenceText}>
             {t('calls.evidence.located', { time: formatDuration(location.startMs) })}{' '}
             <q className={styles.evidenceQuote} dir="auto">
-              {selection.evidence.quote}
+              {location.text}
             </q>
-            {!location.range && <span> {t('calls.evidence.lineOnly')}</span>}
           </p>
           <div className={styles.evidenceActions}>
             <Button size="sm" icon="play" onClick={() => onPlay(location.startMs)}>

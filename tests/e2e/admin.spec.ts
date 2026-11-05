@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { expectNoHorizontalOverflow, openSession } from './helpers';
+import { expectNoHorizontalOverflow, openSession, gotoInApp } from './helpers';
 
 async function addAgent(page: Page, name: string, ext: string) {
   await page.getByRole('button', { name: 'Add agent' }).click();
@@ -40,7 +40,7 @@ test('validates, adds, disables and audits agents', async ({ page }) => {
 test('supports at least seven agents without layout breakage', async ({ page }) => {
   await openSession(page, { path: '/admin/agents' });
   for (const n of [5, 6, 7, 8]) await addAgent(page, `Agent ${'EFGH'[n - 5]}`, `SYN-10${n}`);
-  await page.goto('/');
+  await gotoInApp(page, '/');
   const rows = page.getByRole('region', { name: 'Agents (sample)' }).getByRole('row');
   await expect(rows).toHaveCount(9); // header + 8 agents
   await expect(
@@ -64,7 +64,7 @@ test('an approved penalty rule deducts points only for reliably attributed agent
   await page.getByRole('button', { name: 'Save as v3' }).click();
   await expect(page.getByRole('status').getByText('Scorecard saved as version v3.')).toBeVisible();
 
-  await page.goto('/calls/DEMO-005');
+  await gotoInApp(page, '/calls/DEMO-005');
   await page.getByRole('button', { name: 'Re-score with latest scorecard' }).click();
   const hits = page.getByRole('region', { name: 'Prohibited expressions' });
   await expect(hits).toContainText('Penalty applied: 1 point deducted');

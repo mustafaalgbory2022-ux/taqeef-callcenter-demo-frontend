@@ -6,11 +6,17 @@ test('evidence and transcript lines seek the synthetic recording', async ({ page
   await openSession(page, { path: '/calls/DEMO-003' });
   await expect(page.getByTestId('criterion-c-language')).toContainText('0 of 2 points');
   await page.getByTestId('criterion-c-language').getByRole('button').first().click();
-  await expect(page.locator('[data-segment-id="s5"]')).toHaveAttribute('aria-current', 'true');
+  await expect(page.locator('[data-segment-id="seg-0005"]')).toHaveAttribute(
+    'aria-current',
+    'true',
+  );
   const time = await page.locator('audio').evaluate((a: HTMLAudioElement) => a.currentTime);
   expect(time).toBeGreaterThanOrEqual(27);
-  await page.locator('[data-segment-id="s7"]').click();
-  await expect(page.locator('[data-segment-id="s7"]')).toHaveAttribute('aria-current', 'true');
+  await page.locator('[data-segment-id="seg-0007"]').click();
+  await expect(page.locator('[data-segment-id="seg-0007"]')).toHaveAttribute(
+    'aria-current',
+    'true',
+  );
 });
 
 test('below 6 assessable points the evaluation has no score', async ({ page }) => {
@@ -56,7 +62,7 @@ test('uploads a synthetic file and shows simulated processing', async ({ page })
   await page
     .getByLabel('Audio file')
     .setInputFiles({ name: 'synthetic.wav', mimeType: 'audio/wav', buffer: syntheticWav() });
-  await page.getByLabel('Title').fill('Synthetic upload test');
+  await page.getByLabel('Display name').fill('Synthetic upload test');
   await page
     .getByRole('combobox', { name: 'Agent', exact: true })
     .selectOption({ label: 'Agent B · SYN-102' });
@@ -75,14 +81,16 @@ test('uploads a synthetic file and shows simulated processing', async ({ page })
   await expect(row.getByText('Scored')).toBeVisible({ timeout: 15_000 });
   // The list keeps the no-score kind distinct: not assessable, never a generic or 0 score.
   await expect(row.getByText('No score — not assessable')).toBeVisible();
+  // Not assessable criteria show their reason code (roles unreliable on a mixed channel).
   await row.getByRole('link').first().click();
   await expect(page.getByTestId('overall-score')).toBeVisible({ timeout: 15_000 });
-  // Uploads are a single mixed channel: speakers unresolved, so no criterion is assessable.
+  // Uploads are a single mixed channel: speakers unknown, so no criterion is assessable.
   // Zero assessable points is "Not assessable — No score" (handoff §7), never a 0 score.
   await expect(page.getByTestId('mixed-channel')).toBeVisible();
   await expect(page.getByTestId('overall-score')).toContainText('Not assessable — No score');
   await expect(page.getByTestId('overall-score')).not.toContainText('/ 10');
-  await expect(page.locator('[data-segment-id="s1"]')).toContainText('Speaker unresolved');
+  await expect(page.locator('[data-segment-id="seg-0001"]')).toContainText('Speaker unknown');
+  await expect(page.getByTestId('criterion-c-greeting')).toContainText('Speaker roles unreliable');
 });
 
 test('transcript search finds Arabic spelling variants and steps through matches', async ({
@@ -115,7 +123,7 @@ test('transcript search is available in Arabic', async ({ page }) => {
   await expect(page.getByTestId('transcript-search-status')).toContainText('سطور مطابقة');
 });
 
-test('evidence quotes are located, marked in the transcript and playable by keyboard', async ({
+test('evidence segments are located in the run revision, marked and playable by keyboard', async ({
   page,
 }) => {
   await openSession(page, { path: '/calls/DEMO-003' });
@@ -126,13 +134,14 @@ test('evidence quotes are located, marked in the transcript and playable by keyb
   await expect(status).toContainText('Evidence located at');
   const line = page.locator('[data-segment-id][data-evidence]');
   await expect(line).toHaveCount(1);
-  await expect(line).toHaveAttribute('data-segment-id', 's5');
-  // The quote shown in the evaluation is the text marked in the transcript line.
+  await expect(line).toHaveAttribute('data-segment-id', 'seg-0005');
+  // The text shown for the evidence is the referenced line of the transcript revision.
   const quote = (await evidenceButton.locator('[dir="auto"]').innerText()).trim();
-  await expect(line.locator('mark')).toHaveText(quote);
+  await expect(line).toContainText(quote);
+  await expect(status).toContainText(quote);
   await expect(line).toHaveAttribute('aria-current', 'true');
 
-  await page.locator('[data-segment-id="s1"]').click();
+  await page.locator('[data-segment-id="seg-0001"]').click();
   await status.getByRole('button', { name: /^Play from/ }).click();
   await expect(line).toHaveAttribute('aria-current', 'true');
   await status.getByRole('button', { name: 'Go to transcript line' }).click();
@@ -150,7 +159,7 @@ test('evidence location feedback is available in Arabic', async ({ page }) => {
   await openSession(page, { path: '/calls/DEMO-003', lang: 'ar', theme: 'dark' });
   await page.getByTestId('criterion-c-language').getByRole('button').first().click();
   await expect(page.getByTestId('evidence-status')).toContainText('تم تحديد موضع الدليل');
-  await expect(page.locator('[data-segment-id][data-evidence] mark')).toBeVisible();
+  await expect(page.locator('[data-segment-id][data-evidence]')).toBeVisible();
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])
     .analyze();

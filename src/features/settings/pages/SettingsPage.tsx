@@ -34,7 +34,7 @@ export function SettingsPage() {
         <Card title={t('settings.session.title')}>
           <dl className={styles.list}>
             <dt>{t('settings.session.user')}</dt>
-            <dd>{session.displayName}</dd>
+            <dd>{t('session.localName')}</dd>
             <dt>{t('settings.session.mode')}</dt>
             <dd>{t(session.mode === 'mock' ? 'common.mockData' : 'common.liveData')}</dd>
             <dt>{t('settings.session.permissions')}</dt>

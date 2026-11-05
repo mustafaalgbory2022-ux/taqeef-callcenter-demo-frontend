@@ -163,3 +163,8 @@
   color: var(--color-text-muted);
   font-size: var(--text-xs);
 }
+
+.reason {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+}

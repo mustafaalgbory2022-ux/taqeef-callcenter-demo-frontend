@@ -1,24 +1,16 @@
-import { cachedAudioUrl, registerUploadedAudio, synthesizeCallAudio } from '../audio';
+import { registerUploadedAudio } from '../audio';
 import { nextId } from '../db';
 import { refreshUpload } from '../processing';
-import { created, fail, invalid, ok, type Route } from '../router';
+import { fail, invalid, ok, type Route } from '../router';
 import type { MockState, WireCall } from '../types';
 
-export const MAX_UPLOAD_BYTES = 25 * 1024 * 1024;
+/** Contract 5.3 (CONFIRMED): WAV only, at most 100 MB. */
+export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+const CHANNEL_MAPS = ['left_agent', 'right_agent', 'none'];
 
 export function callRoutes(state: MockState, persist: () => void): Route[] {
   const refreshAll = () => {
     if (state.calls.map((c) => refreshUpload(state, c)).some(Boolean)) persist();
-  };
-
-  const withAudio = (call: WireCall): WireCall => {
-    if (call.source === 'upload') return { ...call, audio_url: cachedAudioUrl(call.id) };
-    const transcript = state.transcripts[call.id];
-    const url =
-      transcript && call.duration_ms
-        ? synthesizeCallAudio(call.id, call.duration_ms, transcript.segments)
-        : null;
-    return { ...call, audio_url: url };
   };
 
   return [
@@ -39,17 +31,18 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
       handler: ({ params }) => {
         refreshAll();
         const call = state.calls.find((c) => c.id === params.id);
-        return call ? ok(withAudio(call)) : fail(404, 'Call not found.');
+        return call ? ok(call) : fail(404, 'Call not found.');
       },
     },
     {
       method: 'GET',
-      pattern: '/calls/:id/transcript',
+      pattern: '/transcripts/:revisionId/segments',
       handler: ({ params }) => {
         refreshAll();
-        if (!state.calls.some((c) => c.id === params.id)) return fail(404, 'Call not found.');
-        const transcript = state.transcripts[params.id ?? ''];
-        return transcript ? ok(transcript) : fail(409, 'Transcript is not ready yet.');
+        const transcript = Object.values(state.transcripts).find(
+          (tr) => tr.transcript_revision_id === params.revisionId,
+        );
+        return transcript ? ok(transcript) : fail(404, 'Transcript revision not found.');
       },
     },
     {
@@ -58,14 +51,18 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
       handler: ({ body }) => {
         if (!(body instanceof FormData)) return fail(400, 'Multipart form data expected.');
         const file = body.get('file');
-        const title = String(body.get('title') ?? '').trim();
+        const title = String(body.get('display_name') ?? '').trim();
         const agentId = String(body.get('agent_id') ?? '');
+        const channelMap = body.get('channel_map');
         if (!(file instanceof File)) return invalid('file', 'An audio file is required.');
-        if (!file.type.startsWith('audio/'))
-          return invalid('file', 'Only audio files are accepted.');
-        if (file.size > MAX_UPLOAD_BYTES) return invalid('file', 'File exceeds the 25 MB limit.');
-        if (!title || title.length > 120)
-          return invalid('title', 'Title must be 1–120 characters.');
+        if (file.size > MAX_UPLOAD_BYTES) return fail(413, 'File exceeds the 100 MB limit.');
+        if (!/\.wav$/i.test(file.name) && !/wav/i.test(file.type))
+          return fail(415, 'Only WAV files are accepted.');
+        if (!title || title.length > 200)
+          return invalid('display_name', 'Display name must be 1–200 characters.');
+        if (channelMap !== null && !CHANNEL_MAPS.includes(String(channelMap)))
+          return invalid('channel_map', 'Unknown channel map.');
+        if (!body.get('request_id')) return invalid('request_id', 'A request id is required.');
         const agent = state.agents.find((a) => a.id === agentId);
         if (!agent || agent.status !== 'active')
           return invalid('agent_id', 'Select an active agent.');
@@ -80,18 +77,18 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
           duration_ms: null,
           recorded_at: new Date().toISOString(),
           status: 'uploaded',
-          audio_url: null,
+          current_transcript_revision_id: null,
           synthetic: true,
           simulated: true,
           source: 'upload',
-          // Uploads are treated as a single mixed channel: speakers stay unresolved.
+          // Uploads are treated as a single mixed channel: speakers stay unknown.
           channel_layout: 'mixed',
         };
         state.calls.push(call);
         state.uploads[id] = Date.now();
         registerUploadedAudio(id, file);
         persist();
-        return created(withAudio(call));
+        return { status: 202, body: { call_id: id, status: 'uploaded', job_id: `job-${id}` } };
       },
     },
   ];

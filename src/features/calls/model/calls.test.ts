@@ -35,7 +35,13 @@ describe('validateUpload', () => {
   const audio = new File(['x'], 'call.wav', { type: 'audio/wav' });
   it('requires every field and the synthetic-data confirmation', () => {
     expect(
-      validateUpload({ file: null, title: ' ', agentId: '', confirmSynthetic: false }),
+      validateUpload({
+        file: null,
+        title: ' ',
+        agentId: '',
+        channelMap: '',
+        confirmSynthetic: false,
+      }),
     ).toEqual({
       file: 'calls.upload.errors.fileRequired',
       title: 'calls.upload.errors.titleRequired',
@@ -43,15 +49,24 @@ describe('validateUpload', () => {
       confirmSynthetic: 'calls.upload.errors.confirmRequired',
     });
   });
-  it('rejects non-audio files', () => {
+  it('accepts WAV only (contract 5.3)', () => {
+    const base = { title: 'A', agentId: 'a', channelMap: '' as const, confirmSynthetic: true };
     const pdf = new File(['x'], 'a.pdf', { type: 'application/pdf' });
-    expect(
-      validateUpload({ file: pdf, title: 'A', agentId: 'a', confirmSynthetic: true }).file,
-    ).toBe('calls.upload.errors.fileType');
+    const mp3 = new File(['x'], 'a.mp3', { type: 'audio/mpeg' });
+    expect(validateUpload({ ...base, file: pdf }).file).toBe('calls.upload.errors.fileType');
+    expect(validateUpload({ ...base, file: mp3 }).file).toBe('calls.upload.errors.fileType');
+    const long = { ...base, title: 'x'.repeat(201), file: new File(['x'], 'a.wav') };
+    expect(validateUpload(long).title).toBe('calls.upload.errors.titleTooLong');
   });
   it('accepts a valid synthetic upload', () => {
     expect(
-      validateUpload({ file: audio, title: 'Test', agentId: 'a', confirmSynthetic: true }),
+      validateUpload({
+        file: audio,
+        title: 'Test',
+        agentId: 'a',
+        channelMap: '',
+        confirmSynthetic: true,
+      }),
     ).toEqual({});
   });
 });
@@ -86,16 +101,15 @@ describe('transcript search', () => {
 });
 
 describe('evidence location', () => {
-  const segs = [
-    seg('s1', 0, 5000, 'هلا بيك، شلون أَقدر أساعدك؟'),
-    seg('s2', 6000, 10000, 'Your  invoice is ready now'),
-  ];
-  const ref = (segmentId: string, quote: string, startMs = 0) => ({
-    segmentId,
-    startMs,
-    endMs: null,
-    quote,
-  });
+  const REV = '0193a000-0000-7000-8000-000000000001';
+  const OTHER = '0193a000-0000-7000-8000-000000000002';
+  const transcript = {
+    revisionId: REV,
+    segments: [
+      seg('seg-0001', 0, 5000, 'هلا بيك، شلون أَقدر أساعدك؟'),
+      seg('seg-0002', 6000, 10000, 'Your  invoice is ready now'),
+    ],
+  };
 
   it('maps normalized positions back to the original text', () => {
     const { norm, map } = normalizeWithMap('أَقدر  X');
@@ -103,35 +117,27 @@ describe('evidence location', () => {
     expect(map).toEqual([0, 2, 3, 4, 5, 7]);
   });
 
-  it('highlights the exact quote inside the referenced line (Arabic and English)', () => {
-    const ar = locateEvidence(segs, ref('s1', 'شلون اقدر', 1000));
-    expect(ar).toMatchObject({ status: 'located', segmentId: 's1', startMs: 1000 });
-    if (ar.status !== 'located' || !ar.range) throw new Error('expected range');
-    expect(segs[0]?.text.slice(...ar.range)).toBe('شلون أَقدر');
-    const en = locateEvidence(segs, ref('s2', 'INVOICE IS', 7000));
-    if (en.status !== 'located' || !en.range) throw new Error('expected range');
-    expect(segs[1]?.text.slice(...en.range)).toBe('invoice is');
-  });
-
-  it('locates the whole line when only the timestamp agrees', () => {
-    expect(locateEvidence(segs, ref('s2', 'paraphrased summary', 8000))).toEqual({
+  it('takes time and text from the referenced segment of the same revision', () => {
+    expect(
+      locateEvidence(transcript, { segmentId: 'seg-0002', transcriptRevisionId: REV }),
+    ).toEqual({
       status: 'located',
-      segmentId: 's2',
-      startMs: 8000,
-      range: null,
+      segmentId: 'seg-0002',
+      startMs: 6000,
+      endMs: 10000,
+      text: 'Your  invoice is ready now',
     });
-    // Quote found but timestamp outside the line: play from the line start.
-    expect(locateEvidence(segs, ref('s2', 'ready now', 60_000))).toMatchObject({ startMs: 6000 });
   });
 
-  it('reports unavailable instead of guessing', () => {
-    expect(locateEvidence(segs, ref('s9', 'invoice is ready'))).toEqual({
-      status: 'unavailable',
-      reason: 'segment_missing',
-    });
-    expect(locateEvidence(segs, ref('s1', 'invoice is ready', 8000))).toEqual({
-      status: 'unavailable',
-      reason: 'mismatch',
-    });
+  it('never resolves a segment id against another revision', () => {
+    expect(
+      locateEvidence(transcript, { segmentId: 'seg-0002', transcriptRevisionId: OTHER }),
+    ).toEqual({ status: 'unavailable', reason: 'revision_mismatch' });
+  });
+
+  it('reports a missing segment instead of guessing', () => {
+    expect(
+      locateEvidence(transcript, { segmentId: 'seg-0009', transcriptRevisionId: REV }),
+    ).toEqual({ status: 'unavailable', reason: 'segment_missing' });
   });
 });

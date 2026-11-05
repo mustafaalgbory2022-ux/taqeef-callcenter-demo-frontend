@@ -38,11 +38,18 @@ export function isValidAward(
   return criterion.allowPartialCredit || points === 0 || points === criterion.maxPoints;
 }
 
+/** A criterion counts as assessed (in the denominator) unless it is not assessable. */
+export function isAssessed(
+  r: Pick<CriterionEvaluation, 'result' | 'awardedPoints'>,
+): r is Pick<CriterionEvaluation, 'result'> & { awardedPoints: number } {
+  return r.result !== 'not_assessable' && r.awardedPoints !== null;
+}
+
 export interface EvaluationScore {
   awardedPoints: number;
   assessablePoints: number;
   possiblePoints: number;
-  outcome: 'scored' | 'insufficient_evidence';
+  outcome: 'scored' | 'insufficient_evidence' | 'not_assessable';
   /** awarded / assessable × 10, or null when below the minimum assessable points. */
   overallScore: number | null;
 }
@@ -66,7 +73,7 @@ export function scoreEvaluation(
   for (const criterion of criteria) {
     possiblePoints += criterion.maxPoints;
     const r = byId.get(criterion.id);
-    if (r?.result !== 'scored' || r.awardedPoints === null) continue;
+    if (!r || !isAssessed(r)) continue;
     assessablePoints += criterion.maxPoints;
     awardedPoints += Math.min(criterion.maxPoints, Math.max(0, r.awardedPoints));
   }
@@ -75,7 +82,12 @@ export function scoreEvaluation(
     awardedPoints,
     assessablePoints,
     possiblePoints,
-    outcome: sufficient ? 'scored' : 'insufficient_evidence',
+    // Reference rule used by the SIMULATED backend only; the real outcome comes from the API.
+    outcome: sufficient
+      ? 'scored'
+      : assessablePoints === 0
+        ? 'not_assessable'
+        : 'insufficient_evidence',
     overallScore: sufficient ? normalizeToTen(awardedPoints, assessablePoints) : null,
   };
 }

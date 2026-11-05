@@ -3,6 +3,8 @@ import { createApiClient } from './client';
 import { ApiError } from './errors';
 import { createFetchTransport, type ApiRequest, type Transport } from './transport';
 
+const REV = '0193a000-0000-7000-8000-000000000001';
+
 const wireCall = {
   id: 'DEMO-001',
   title: 'Synthetic',
@@ -12,7 +14,7 @@ const wireCall = {
   duration_ms: 78000,
   recorded_at: '2026-10-20T10:12:00+03:00',
   status: 'scored',
-  audio_url: null,
+  current_transcript_revision_id: '0193a000-0000-7000-8000-000000000001',
   synthetic: true,
   simulated: false,
   source: 'fixture',
@@ -131,14 +133,14 @@ describe('ApiClient over a transport', () => {
     });
   });
 
-  it('decodes failed evaluations without an evidence outcome', async () => {
+  it('rejects a run without an explicit outcome (a failed evaluation creates no run)', async () => {
     const failed = {
       id: 'e',
       call_id: 'c',
       agent_id: null,
       scorecard_id: 's',
       scorecard_version: 1,
-      status: 'failed',
+      transcript_revision_id: REV,
       outcome: null,
       awarded_points: 0,
       assessable_points: 0,
@@ -149,11 +151,37 @@ describe('ApiClient over a transport', () => {
       prohibited_hits: [],
       trigger: 'rescore',
       supersedes_id: null,
-      created_at: '2026-10-01T00:00:00Z',
+      created_at: '2026-10-01T00:00:00.000Z',
       simulated: false,
     };
-    const [e] = await createApiClient(respond(200, [failed]), 'live').listEvaluations();
-    expect(e).toMatchObject({ status: 'failed', outcome: null, overallScore: null });
+    await expect(
+      createApiClient(respond(200, [failed]), 'live').listEvaluations(),
+    ).rejects.toMatchObject({ code: 'contract_mismatch' });
+    const [na] = await createApiClient(
+      respond(200, [{ ...failed, outcome: 'not_assessable' }]),
+      'live',
+    ).listEvaluations();
+    expect(na).toMatchObject({ outcome: 'not_assessable', overallScore: null });
+  });
+
+  it('rejects evidence ids and revision ids outside the confirmed formats', async () => {
+    const api = createApiClient(
+      respond(200, { call_id: 'c', transcript_revision_id: 'rev-1', revision_no: 0, segments: [] }),
+      'live',
+    );
+    await expect(api.getTranscript('rev-1')).rejects.toMatchObject({ code: 'contract_mismatch' });
+    const segApi = createApiClient(
+      respond(200, {
+        call_id: 'c',
+        transcript_revision_id: REV,
+        revision_no: 0,
+        segments: [
+          { segment_id: 's1', start_ms: 0, end_ms: 1, speaker: 'agent', language: 'ar', text: 'x' },
+        ],
+      }),
+      'live',
+    );
+    await expect(segApi.getTranscript(REV)).rejects.toMatchObject({ code: 'contract_mismatch' });
   });
 
   it('maps FastAPI 422 details to field issues', async () => {
@@ -168,28 +196,86 @@ describe('ApiClient over a transport', () => {
     });
   });
 
-  it('treats 401 on GET /session as "no session"', async () => {
-    await expect(
-      createApiClient(respond(401, { detail: 'No session' }), 'live').getSession(),
-    ).resolves.toBeNull();
+  it('has no session until a launch code is exchanged', async () => {
+    const transport = respond(200, {});
+    await expect(createApiClient(transport, 'live').getSession()).resolves.toBeNull();
+    expect(transport).not.toHaveBeenCalled();
+  });
+});
+
+describe('session and CSRF (demo API contract 1.2–1.7)', () => {
+  const exchanged = { csrf_token: 'tok-123', idle_timeout_s: 1800, absolute_timeout_s: 43200 };
+
+  it('exchanges {code}, then sends the CSRF header on every request, GET included', async () => {
+    const transport = vi
+      .fn<Transport>()
+      .mockResolvedValueOnce({ status: 200, body: exchanged })
+      .mockResolvedValue({ status: 200, body: [] });
+    const api = createApiClient(transport, 'live');
+    const session = await api.openSession(' SYN-CODE-0001 ');
+    expect(session).toMatchObject({ mode: 'live', idleTimeoutS: 1800, absoluteTimeoutS: 43200 });
+    await api.listCalls();
+    await api.rescoreCall('c').catch(() => undefined);
+    const [exchange, get, post] = transport.mock.calls.map(([req]) => req);
+    expect(exchange).toMatchObject({
+      method: 'POST',
+      path: '/session/exchange',
+      body: { code: 'SYN-CODE-0001' },
+    });
+    expect(exchange?.headers).toBeUndefined();
+    expect(get?.headers).toEqual({ 'X-Taqeef-CSRF': 'tok-123' });
+    expect(post?.headers).toEqual({ 'X-Taqeef-CSRF': 'tok-123' });
+    expect(post?.body).toMatchObject({ request_id: expect.any(String) });
+    await expect(api.getSession()).resolves.toBe(session);
+  });
+
+  it('ends the session on any 401 and drops the token (no silent re-exchange)', async () => {
+    const transport = vi
+      .fn<Transport>()
+      .mockResolvedValueOnce({ status: 200, body: exchanged })
+      .mockResolvedValueOnce({ status: 401, body: { detail: 'Session expired' } })
+      .mockResolvedValue({ status: 200, body: [] });
+    const api = createApiClient(transport, 'live');
+    const ended = vi.fn();
+    api.onSessionEnded(ended);
+    await api.openSession('SYN-CODE-0001');
+    await expect(api.listCalls()).rejects.toMatchObject({ code: 'unauthorized' });
+    expect(ended).toHaveBeenCalledTimes(1);
+    await expect(api.getSession()).resolves.toBeNull();
+    await api.listCalls();
+    expect(transport.mock.calls[2]?.[0].headers).toBeUndefined();
+    expect(transport).toHaveBeenCalledTimes(3);
+  });
+
+  it('builds the protected audio URL from the call id', () => {
+    expect(createApiClient(respond(200, {}), 'live').audioSrc('DEMO 1')).toBe(
+      '/api/calls/DEMO%201/audio',
+    );
   });
 });
 
 describe('fetch transport', () => {
-  it('uses same-origin credentials and sends the CSRF header on writes only', async () => {
-    document.cookie = 'csrf_token=abc123';
+  it('uses same-origin credentials, no caching, passes headers and never reads cookies', async () => {
+    document.cookie = 'csrf_token=from-cookie';
     const fetchImpl = vi
       .fn<typeof fetch>()
       .mockImplementation(async () => new Response('{}', { status: 200 }));
     const transport = createFetchTransport(fetchImpl);
-    await transport({ method: 'GET', path: '/calls', query: { agent_id: undefined } });
-    await transport({ method: 'POST', path: '/calls/x/rescore' });
+    await transport({
+      method: 'GET',
+      path: '/calls',
+      query: { agent_id: undefined },
+      headers: { 'X-Taqeef-CSRF': 'tok' },
+    });
+    await transport({ method: 'POST', path: '/session/exchange', body: { code: 'x' } });
     const [getUrl, getInit] = fetchImpl.mock.calls[0] ?? [];
     const [, postInit] = fetchImpl.mock.calls[1] ?? [];
     expect(getUrl).toBe('/api/calls');
     expect(getInit?.credentials).toBe('same-origin');
-    expect(new Headers(getInit?.headers).get('X-CSRF-Token')).toBeNull();
-    expect(new Headers(postInit?.headers).get('X-CSRF-Token')).toBe('abc123');
+    expect(getInit?.cache).toBe('no-store');
+    expect(new Headers(getInit?.headers).get('X-Taqeef-CSRF')).toBe('tok');
+    expect(new Headers(postInit?.headers).get('X-Taqeef-CSRF')).toBeNull();
+    expect(new Headers(postInit?.headers).get('X-CSRF-Token')).toBeNull();
   });
 
   it('reports network failures as network_error', async () => {

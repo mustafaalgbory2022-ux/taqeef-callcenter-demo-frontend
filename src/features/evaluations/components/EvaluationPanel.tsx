@@ -6,7 +6,6 @@ import { useI18n } from '@/shared/i18n/I18nProvider';
 import { Badge } from '@/shared/ui/Badge';
 import { Button } from '@/shared/ui/Button';
 import { Card } from '@/shared/ui/Card';
-import { Notice } from '@/shared/ui/Notice';
 import { ScoreFlag, ScoreValue } from '@/shared/ui/ScoreValue';
 import { EmptyState, QueryView } from '@/shared/ui/States';
 import { useToast } from '@/shared/ui/Toaster';
@@ -15,17 +14,23 @@ import { currentEvaluations, historyByCall } from '../model/current';
 import { useEvaluations, useRescore } from '../hooks/useEvaluationData';
 import { CriterionResults, ProhibitedHits, type CriterionResultsProps } from './CriterionResults';
 import { resultPresentation } from '../model/outcome';
-import { NoScoreBadge, OverallValue } from './ResultValue';
+import { NoScoreBadge } from './ResultValue';
 import styles from './Evaluation.module.css';
 
 export interface EvaluationPanelProps {
   callId: string;
   canRescore: boolean;
   onEvidence: CriterionResultsProps['onEvidence'];
+  resolveEvidence: CriterionResultsProps['resolveEvidence'];
 }
 
 /** Current evaluation, evidence, re-scoring and history for one call. */
-export function EvaluationPanel({ callId, canRescore, onEvidence }: EvaluationPanelProps) {
+export function EvaluationPanel({
+  callId,
+  canRescore,
+  onEvidence,
+  resolveEvidence,
+}: EvaluationPanelProps) {
   const { t, fmt } = useI18n();
   const toast = useToast();
   const allowed = usePermission('evaluations.rescore');
@@ -57,10 +62,6 @@ export function EvaluationPanel({ callId, canRescore, onEvidence }: EvaluationPa
         const history = historyByCall(evaluations).get(callId) ?? [];
         // Same rule as dashboards: show the latest eligible evaluation.
         const latest = currentEvaluations(history)[0] ?? history[0];
-        const failedAttempt =
-          history[0] !== undefined &&
-          history[0].id !== latest?.id &&
-          history[0].status === 'failed';
         if (!latest)
           return (
             <Card title={t('evaluations.title')}>
@@ -91,15 +92,8 @@ export function EvaluationPanel({ callId, canRescore, onEvidence }: EvaluationPa
               }
               flush
             >
-              {failedAttempt && (
-                <div className={styles.section}>
-                  <Notice tone="warning" title={t('evaluations.latestFailed')} />
-                </div>
-              )}
               <div className={styles.overall} data-testid="overall-score">
-                {latest.status === 'failed' ? (
-                  <OverallValue evaluation={latest} />
-                ) : resultPresentation(latest) === 'not_assessable' ? (
+                {resultPresentation(latest) === 'not_assessable' ? (
                   <>
                     <NoScoreBadge kind="not_assessable" />
                     <span className={styles.summary}>
@@ -144,8 +138,17 @@ export function EvaluationPanel({ callId, canRescore, onEvidence }: EvaluationPa
                   </span>
                 )}
               </div>
-              <CriterionResults evaluation={latest} version={version} onEvidence={onEvidence} />
-              <ProhibitedHits evaluation={latest} onEvidence={onEvidence} />
+              <CriterionResults
+                evaluation={latest}
+                version={version}
+                resolveEvidence={resolveEvidence}
+                onEvidence={onEvidence}
+              />
+              <ProhibitedHits
+                evaluation={latest}
+                resolveEvidence={resolveEvidence}
+                onEvidence={onEvidence}
+              />
             </Card>
           </>
         );

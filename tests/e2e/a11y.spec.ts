@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { expectNoHorizontalOverflow, openSession } from './helpers';
+import { expectNoHorizontalOverflow, gotoInApp, openSession } from './helpers';
 
 const PAGES = [
   '/',
@@ -20,7 +20,7 @@ for (const lang of ['en', 'ar'] as const) {
       await expect(page.locator('html')).toHaveAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
       await expect(page.locator('html')).toHaveAttribute('data-theme', theme);
       for (const path of PAGES) {
-        await page.goto(path);
+        await gotoInApp(page, path);
         await expect(page.locator('h1')).toBeVisible();
         await page.waitForLoadState('networkidle');
         await expectNoHorizontalOverflow(page);

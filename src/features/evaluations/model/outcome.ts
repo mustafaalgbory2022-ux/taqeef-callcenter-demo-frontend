@@ -1,23 +1,19 @@
 import type { Evaluation } from '@/shared/types/domain';
 
 /**
- * How an evaluation's result is presented (confirmed display rules, interface handoff §7):
+ * How an evaluation run's result is presented. The outcome is the backend's explicit value
+ * (demo API contract 3.1): it is never inferred from points.
  * - scored: "x.xx / 10";
- * - insufficient_evidence: some, but fewer than the minimum, assessable points → "Insufficient
- *   evidence — No score";
- * - not_assessable: no assessable points at all (e.g. speaker roles unknown) → "Not assessable —
- *   No score";
- * - failed: processing failed, no result.
- * Derived only from existing fields. The demo contract has no separate not-assessable outcome
- * yet, so `insufficient_evidence` with zero assessable points is presented as not assessable.
- * No score is ever assigned or estimated.
+ * - insufficient_evidence: "Insufficient evidence — No score";
+ * - not_assessable: "Not assessable — No score".
+ * A failed evaluation creates no run; failures are shown from the call status. No score is
+ * ever assigned or estimated for an unscored run.
  */
-export type ResultPresentation = 'scored' | 'insufficient_evidence' | 'not_assessable' | 'failed';
+export type ResultPresentation = 'scored' | 'insufficient_evidence' | 'not_assessable';
 
 export function resultPresentation(
-  e: Pick<Evaluation, 'status' | 'outcome' | 'overallScore' | 'assessablePoints'>,
+  e: Pick<Evaluation, 'outcome' | 'overallScore'>,
 ): ResultPresentation {
-  if (e.status === 'failed') return 'failed';
-  if (e.outcome === 'scored' && e.overallScore !== null) return 'scored';
-  return e.assessablePoints === 0 ? 'not_assessable' : 'insufficient_evidence';
+  if (e.outcome === 'scored') return e.overallScore !== null ? 'scored' : 'insufficient_evidence';
+  return e.outcome;
 }

@@ -1,4 +1,4 @@
-import type { TranscriptSegment } from '@/shared/types/domain';
+import type { Transcript, TranscriptSegment } from '@/shared/types/domain';
 
 /** The segment playing at `timeMs`, or the last one that started before it (gaps). */
 export function findActiveSegment(
@@ -73,12 +73,13 @@ export function stepMatch(current: number, total: number, delta: 1 | -1): number
   return (current + delta + total) % total;
 }
 
-/** What an evaluation gives us to find its evidence (existing evaluation fields only). */
+/**
+ * An evidence reference: a segment of a specific transcript revision (demo API contract 2.3).
+ * It carries no time or text of its own.
+ */
 export interface EvidenceRef {
   segmentId: string;
-  startMs: number;
-  endMs: number | null;
-  quote: string;
+  transcriptRevisionId: string;
 }
 
 export type EvidenceLocation =
@@ -86,45 +87,31 @@ export type EvidenceLocation =
       status: 'located';
       segmentId: string;
       startMs: number;
-      /** Character range of the quote inside the segment text; null = whole line. */
-      range: readonly [number, number] | null;
+      endMs: number;
+      /** The segment text from the transcript revision (never model output). */
+      text: string;
     }
-  | { status: 'unavailable'; reason: 'segment_missing' | 'mismatch' };
-
-/** Evidence timestamps may differ slightly from segment bounds (rounding, alignment). */
-export const EVIDENCE_TIME_TOLERANCE_MS = 1000;
+  | { status: 'unavailable'; reason: 'segment_missing' | 'revision_mismatch' };
 
 /**
- * Find the transcript line an evidence item refers to — without guessing. The evidence's
- * segment id must exist, and either its quote must occur in that line's text (normalized as in
- * transcript search) or its timestamp must fall within the line. Otherwise it is unavailable.
- * Other lines are never searched for a similar quote.
+ * Resolve an evidence reference against a loaded transcript revision — without guessing.
+ * The revision must be the one the run evaluated (a bare segment id is never resolved
+ * against another revision) and the segment must exist in it. Time and text always come from
+ * that segment.
  */
 export function locateEvidence(
-  segments: readonly TranscriptSegment[],
+  transcript: Pick<Transcript, 'revisionId' | 'segments'>,
   evidence: EvidenceRef,
 ): EvidenceLocation {
-  const seg = segments.find((s) => s.id === evidence.segmentId);
+  if (transcript.revisionId !== evidence.transcriptRevisionId)
+    return { status: 'unavailable', reason: 'revision_mismatch' };
+  const seg = transcript.segments.find((s) => s.id === evidence.segmentId);
   if (!seg) return { status: 'unavailable', reason: 'segment_missing' };
-  const quote = normalizeForSearch(evidence.quote);
-  let range: readonly [number, number] | null = null;
-  if (quote.length >= MIN_SEARCH_LENGTH) {
-    const { norm, map } = normalizeWithMap(seg.text);
-    const at = norm.indexOf(quote);
-    if (at >= 0) {
-      const first = map[at] ?? 0;
-      const last = map[at + quote.length - 1] ?? first;
-      range = [first, last + 1];
-    }
-  }
-  const t = EVIDENCE_TIME_TOLERANCE_MS;
-  const inTime = evidence.startMs >= seg.startMs - t && evidence.startMs <= seg.endMs + t;
-  if (!range && !inTime) return { status: 'unavailable', reason: 'mismatch' };
-  // Play from the evidence time when it lies within the line, otherwise from the line start.
   return {
     status: 'located',
     segmentId: seg.id,
-    startMs: inTime ? evidence.startMs : seg.startMs,
-    range,
+    startMs: seg.startMs,
+    endMs: seg.endMs,
+    text: seg.text,
   };
 }

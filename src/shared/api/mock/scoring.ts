@@ -1,11 +1,19 @@
 import { isValidAward, scoreEvaluation } from '@/shared/utils/score';
 import { scorecardVersions } from './fixtures/scorecards';
-import type { Judgment, WireCall, WireEvaluation, WireScorecard, WireSegment } from './types';
+import type {
+  Judgment,
+  WireCall,
+  WireEvaluation,
+  WireReasonCode,
+  WireScorecard,
+  WireSegment,
+} from './types';
 
 export interface SimulateInput {
   id: string;
   call: Pick<WireCall, 'id' | 'agent_id' | 'channel_layout'>;
   segments: readonly WireSegment[];
+  transcriptRevisionId: string;
   judgments: readonly Judgment[];
   scorecard: WireScorecard;
   trigger: WireEvaluation['trigger'];
@@ -63,7 +71,7 @@ function reliablyAgent(call: SimulateInput['call'], seg: WireSegment): boolean {
  */
 export function simulateEvaluation(input: SimulateInput): WireEvaluation {
   const { scorecard, call } = input;
-  const segmentById = new Map(input.segments.map((seg) => [seg.id, seg]));
+  const segmentIds = new Set(input.segments.map((seg) => seg.segment_id));
   const judgmentById = new Map(input.judgments.map((jd) => [jd.criterionId, jd]));
   const rule = scorecard.prohibited_penalty;
   const ruleActive = rule.points > 0 && rule.criterion_id !== null;
@@ -71,16 +79,26 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
   // 1. Criteria from judgments, re-mapped to the active version's points.
   const criteria: WireCriterion[] = scorecard.criteria.map((criterion) => {
     const jd = judgmentById.get(criterion.id);
-    const evidence = (jd?.segmentIds ?? []).flatMap((sid) => {
-      const seg = segmentById.get(sid);
-      return seg
-        ? [{ segment_id: seg.id, start_ms: seg.start_ms, end_ms: seg.end_ms, quote: seg.text }]
-        : [];
-    });
+    // Evidence references segments of the evaluated revision only.
+    const evidence = (jd?.segmentIds ?? [])
+      .filter((sid) => segmentIds.has(sid))
+      .map((sid) => ({ segment_id: sid }));
     if (!jd || jd.result !== 'scored' || jd.awardedPoints === null) {
+      const reason: WireReasonCode = !jd
+        ? 'no_evidence'
+        : jd.result === 'insufficient_evidence'
+          ? 'ai_declared'
+          : (jd.reasonCode ?? 'ai_declared');
       return {
         criterion_id: criterion.id,
-        result: jd?.result === 'not_assessable' ? 'not_assessable' : 'insufficient_evidence',
+        result: 'not_assessable',
+        reason_code: reason,
+        na_reason:
+          reason !== 'ai_declared'
+            ? null
+            : jd?.result === 'insufficient_evidence'
+              ? 'insufficient_evidence'
+              : 'not_applicable',
         awarded_points: null,
         possible_points: criterion.max_points,
         penalty_points: 0,
@@ -90,7 +108,10 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
     }
     return {
       criterion_id: criterion.id,
-      result: 'scored',
+      // Final met / partially met / not met is set after any penalty (below).
+      result: 'met',
+      reason_code: null,
+      na_reason: null,
       awarded_points: remapAward(
         jd.awardedPoints,
         JUDGED_OUT_OF.get(criterion.id) ?? criterion.max_points,
@@ -109,8 +130,7 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
   const target = ruleActive
     ? criteria.find((c) => c.criterion_id === rule.criterion_id)
     : undefined;
-  let capacity =
-    target?.result === 'scored' && target.awarded_points !== null ? target.awarded_points : 0;
+  let capacity = target?.awarded_points ?? 0;
   const hits: WireHit[] = scorecard.prohibited_expressions.flatMap((px) =>
     input.segments
       .filter((seg) => seg.text.toLowerCase().includes(px.phrase.toLowerCase()))
@@ -120,9 +140,7 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
         return {
           expression_id: px.id,
           phrase: px.phrase,
-          segment_id: seg.id,
-          start_ms: seg.start_ms,
-          quote: seg.text,
+          segment_id: seg.segment_id,
           speaker: seg.speaker,
           disposition: deduct > 0 ? ('penalty_applied' as const) : ('flagged_for_review' as const),
           penalty_points: deduct,
@@ -134,6 +152,15 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
     target.awarded_points -= deducted;
     target.penalty_points = deducted;
   }
+  for (const c of criteria) {
+    if (c.awarded_points === null) continue;
+    c.result =
+      c.awarded_points >= c.possible_points
+        ? 'met'
+        : c.awarded_points === 0
+          ? 'not_met'
+          : 'partially_met';
+  }
 
   const score = scoreEvaluation(
     scorecard.criteria.map((c) => ({
@@ -144,6 +171,8 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
     criteria.map((c) => ({
       criterionId: c.criterion_id,
       result: c.result,
+      reasonCode: c.reason_code,
+      aiDeclaredReason: c.na_reason,
       awardedPoints: c.awarded_points,
       possiblePoints: c.possible_points,
       penaltyPoints: c.penalty_points,
@@ -159,7 +188,7 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
     agent_id: call.agent_id,
     scorecard_id: scorecard.scorecard_id,
     scorecard_version: scorecard.version,
-    status: 'completed',
+    transcript_revision_id: input.transcriptRevisionId,
     outcome: score.outcome,
     awarded_points: score.awardedPoints,
     assessable_points: score.assessablePoints,
@@ -177,13 +206,14 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
 
 /**
  * Judgments for uploaded (mixed-channel) files: with speakers unresolved, no criterion
- * describing agent behaviour can be attributed, so every criterion is insufficient
- * evidence and the evaluation has no score — whatever minimum the scorecard sets.
+ * describing agent behaviour can be attributed, so every criterion is not assessable
+ * (roles unreliable) and the evaluation has no score — whatever minimum the scorecard sets.
  */
 export function syntheticUploadJudgments(scorecard: WireScorecard): Judgment[] {
   return scorecard.criteria.map((c) => ({
     criterionId: c.id,
-    result: 'insufficient_evidence',
+    result: 'not_assessable',
+    reasonCode: 'roles_unreliable',
     awardedPoints: null,
     rationale:
       'Mixed channel: speaker attribution unresolved, so agent behaviour cannot be attributed.',

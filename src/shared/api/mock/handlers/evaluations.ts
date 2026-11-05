@@ -38,6 +38,7 @@ export function evaluationRoutes(state: MockState, persist: () => void): Route[]
           id: nextId(state, 'ev'),
           call,
           segments: transcript.segments,
+          transcriptRevisionId: transcript.transcript_revision_id,
           judgments,
           scorecard: latestScorecard(state),
           trigger: 'rescore',

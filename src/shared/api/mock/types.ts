@@ -11,12 +11,16 @@ export type WireCall = Decoded<typeof wireCall>;
 export type WireTranscript = Decoded<typeof wireTranscript>;
 export type WireSegment = WireTranscript['segments'][number];
 export type WireScorecard = Decoded<typeof wireScorecardVersion>;
+export type WireReasonCode = NonNullable<WireEvaluation['criteria'][number]['reason_code']>;
 export type { WireEvaluation };
 
 /** Simulated model output for one criterion of one call (synthetic). */
 export interface Judgment {
   criterionId: string;
+  /** Mock-internal: 'insufficient_evidence' = the AI declared too little evidence. */
   result: 'scored' | 'not_assessable' | 'insufficient_evidence';
+  /** Reason code for not_assessable (defaults to ai_declared / not_applicable). */
+  reasonCode?: WireReasonCode;
   /** Actual points before any prohibited-expression penalty. */
   awardedPoints: number | null;
   rationale: string;

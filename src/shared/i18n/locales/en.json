@@ -57,7 +57,9 @@
     "codeLabel": "One-time launch code",
     "mockHint": "Simulated mode: a synthetic code has been generated for you.",
     "liveHint": "Normally supplied automatically by the launch link.",
-    "codeRejected": "This launch code is invalid, expired or has already been used. Request a new one from the local application."
+    "codeRejected": "This launch code is invalid, expired or has already been used. Request a new one from the local application.",
+    "ended": "Session ended — reopen the demo from the launcher.",
+    "localName": "Local demo session"
   },
   "dashboard": {
     "empty": "No evaluated calls yet.",
@@ -247,14 +249,14 @@
       "customer": "Customer",
       "pending": "The transcript will appear when processing reaches this stage.",
       "count": "{n} transcript segments",
-      "unresolved": "Speaker unresolved",
       "search": "Search transcript",
       "previousMatch": "Previous match",
       "nextMatch": "Next match",
       "noMatches": "No matches",
       "matchCount": "{n} matching lines",
       "matchPosition": "Match {n} of {total}",
-      "matchLabel": "Matches search."
+      "matchLabel": "Matches search.",
+      "unknown": "Speaker unknown"
     },
     "upload": {
       "open": "Upload call",
@@ -264,20 +266,28 @@
       "syntheticTitle": "Synthetic recordings only",
       "syntheticBody": "Do not upload PBX exports or customer recordings. In this demo, processing is simulated and the file stays in your browser.",
       "file": "Audio file",
-      "fileHint": "WAV, MP3, OGG or WebM · up to {mb} MB",
-      "title": "Title",
+      "fileHint": "WAV only · up to {mb} MB",
+      "title": "Display name",
       "selectAgent": "Select an agent",
       "confirm": "I confirm this recording is synthetic and contains no customer data.",
       "submit": "Upload and process",
       "done": "Call {id} uploaded. Processing has started.",
       "errors": {
         "fileRequired": "Choose an audio file.",
-        "fileType": "Only audio files are accepted.",
+        "fileType": "Only WAV files are accepted.",
         "fileSize": "The file is larger than 25 MB.",
-        "titleRequired": "Enter a title.",
-        "titleTooLong": "Use at most 120 characters.",
+        "titleRequired": "Enter a display name.",
+        "titleTooLong": "Use at most 200 characters.",
         "agentRequired": "Select the agent who handled the call.",
         "confirmRequired": "Confirm that the recording is synthetic."
+      },
+      "channelMap": "Channel map",
+      "channelMapHint": "Which stereo channel carries the agent.",
+      "channelMapDefault": "Use the global default",
+      "channelMaps": {
+        "left_agent": "Left channel is the agent",
+        "right_agent": "Right channel is the agent",
+        "none": "No channel map (speakers unknown)"
       }
     },
     "channel": {
@@ -286,17 +296,14 @@
     },
     "evidence": {
       "located": "Evidence located at {time}:",
-      "lineOnly": "(the exact quote is not in the line text; the whole line is marked)",
       "play": "Play from {time}",
       "showLine": "Go to transcript line",
       "clear": "Clear evidence",
       "unavailable": "Evidence location unavailable.",
       "reasons": {
         "segment_missing": "The cited transcript line was not found.",
-        "mismatch": "The quote and time do not match the cited transcript line."
+        "revision_mismatch": "The evidence refers to a different transcript revision than the one shown."
       },
-      "quoteStart": "Evidence quote:",
-      "quoteEnd": "End of evidence quote.",
       "lineLabel": "Evidence line."
     }
   },
@@ -310,7 +317,10 @@
     "result": {
       "notAssessable": "Not assessable",
       "insufficient": "Insufficient evidence",
-      "absent": "Not in this version"
+      "absent": "Not in this version",
+      "met": "Met",
+      "partially_met": "Partially met",
+      "not_met": "Not met"
     },
     "trigger": {
       "initial": "Initial",
@@ -362,7 +372,6 @@
       "logCaption": "{n} evaluations · newest first",
       "rescoresOnly": "Re-scores only"
     },
-    "latestFailed": "The latest re-score attempt failed. The previous evaluation is still current.",
     "points": "{awarded} of {possible} points",
     "pointsTitle": "Actual points awarded",
     "penaltyNote": "includes a {n}-point penalty",
@@ -375,7 +384,7 @@
     "speaker": {
       "agent": "Agent",
       "customer": "Customer",
-      "unresolved": "Speaker unresolved"
+      "unknown": "Speaker unknown"
     },
     "failed": "Failed — no result",
     "pointsDelta": "{sign}{n} points",
@@ -386,7 +395,22 @@
     "notAssessableOverall": {
       "title": "Not assessable — No score",
       "body": "No criterion could be assessed, so no score is given. At least {minimum} assessable points are required. Excluded from scored averages and low-score counts."
-    }
+    },
+    "reason": {
+      "code": {
+        "roles_unreliable": "Speaker roles unreliable",
+        "no_transcript": "No transcript",
+        "too_long": "Call too long to assess",
+        "no_evidence": "No evidence",
+        "low_confidence_evidence": "Evidence transcribed with low confidence",
+        "ai_declared": "Declared by the AI"
+      },
+      "aiDeclared": {
+        "insufficient_evidence": "AI declared: insufficient evidence",
+        "not_applicable": "AI declared: not applicable"
+      }
+    },
+    "evidenceUnresolved": "Line {id} (not in the transcript revision shown)"
   },
   "scorecards": {
     "page": {

@@ -1,10 +1,11 @@
 import { agents, initialAudit, queues } from './fixtures/agents';
 import { callFixtures } from './fixtures/calls';
 import { scorecardVersions } from './fixtures/scorecards';
+import { syntheticRevisionId } from './ids';
 import { simulateEvaluation } from './scoring';
 import type { MockState, WireScorecard } from './types';
 
-const STORAGE_KEY = 'taqeef.mock.db.v2';
+const STORAGE_KEY = 'taqeef.mock.db.v3';
 
 function versionOf(n: number): WireScorecard {
   const v = scorecardVersions.find((sc) => sc.version === n);
@@ -18,9 +19,20 @@ export function createSeedState(): MockState {
     queues: structuredClone(queues),
     agents: structuredClone(agents),
     audit: Object.fromEntries(agents.map((a) => [a.id, initialAudit(a)])),
-    calls: callFixtures.map((f) => structuredClone(f.call)),
+    calls: callFixtures.map((f, i) => ({
+      ...structuredClone(f.call),
+      current_transcript_revision_id: syntheticRevisionId(i + 1),
+    })),
     transcripts: Object.fromEntries(
-      callFixtures.map((f) => [f.call.id, { call_id: f.call.id, segments: f.segments }]),
+      callFixtures.map((f, i) => [
+        f.call.id,
+        {
+          call_id: f.call.id,
+          transcript_revision_id: syntheticRevisionId(i + 1),
+          revision_no: 0,
+          segments: f.segments,
+        },
+      ]),
     ),
     judgments: Object.fromEntries(callFixtures.map((f) => [f.call.id, f.judgments])),
     scorecards: structuredClone(scorecardVersions),
@@ -36,6 +48,7 @@ export function createSeedState(): MockState {
         id: `ev-${String(i + 1).padStart(3, '0')}`,
         call: f.call,
         segments: f.segments,
+        transcriptRevisionId: syntheticRevisionId(i + 1),
         judgments: f.judgments,
         scorecard: versionOf(1),
         trigger: 'initial',
@@ -52,6 +65,7 @@ export function createSeedState(): MockState {
         id: 'ev-006',
         call: dispute.call,
         segments: dispute.segments,
+        transcriptRevisionId: syntheticRevisionId(callFixtures.indexOf(dispute) + 1),
         judgments: dispute.judgments,
         scorecard: versionOf(2),
         trigger: 'rescore',

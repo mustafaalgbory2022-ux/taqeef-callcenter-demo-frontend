@@ -31,7 +31,6 @@ export function EvaluationHistory({
   function outcomeLabel(e: Evaluation): string {
     const kind = resultPresentation(e);
     if (kind === 'scored' && e.overallScore !== null) return fmt.score(e.overallScore);
-    if (kind === 'failed') return t('evaluations.failed');
     return kind === 'not_assessable'
       ? t('evaluations.notAssessableOverall.title')
       : t('evaluations.insufficient.title');

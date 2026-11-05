@@ -3,6 +3,7 @@ import { scorecardVersions } from './fixtures/scorecards';
 import { remapAward, simulateEvaluation, syntheticUploadJudgments } from './scoring';
 import type { Judgment, WireScorecard, WireSegment } from './types';
 
+const REV = '0193a000-0000-7000-8000-000000000001';
 const base = scorecardVersions[0] as WireScorecard;
 const withPenalty: WireScorecard = {
   ...base,
@@ -10,7 +11,14 @@ const withPenalty: WireScorecard = {
 };
 
 const segments: WireSegment[] = [
-  { id: 's1', start_ms: 0, end_ms: 1000, speaker: 'agent', language: 'ar', text: 'هذا مو شغلي' },
+  {
+    segment_id: 'seg-0001',
+    start_ms: 0,
+    end_ms: 1000,
+    speaker: 'agent',
+    language: 'ar',
+    text: 'هذا مو شغلي',
+  },
 ];
 const judgments: Judgment[] = base.criteria.map((c) => ({
   criterionId: c.id,
@@ -27,6 +35,7 @@ const run = (
   simulateEvaluation({
     id: 'e',
     call: { id: 'c', agent_id: 'a', channel_layout: opts.layout ?? 'dual' },
+    transcriptRevisionId: REV,
     segments: segments.map((s) => ({ ...s, speaker: opts.speaker ?? s.speaker })),
     judgments,
     scorecard,
@@ -59,22 +68,23 @@ describe('simulated scoring — prohibited expressions', () => {
     expect(e).toMatchObject({ awarded_points: 9, assessable_points: 10, overall_score: 9 });
   });
 
-  it('never penalises customer speech or unresolved speakers on a mixed channel', () => {
+  it('never penalises customer speech or unknown speakers on a mixed channel', () => {
     expect(run(withPenalty, { speaker: 'customer' }).prohibited_hits[0]?.disposition).toBe(
       'flagged_for_review',
     );
     expect(
-      run(withPenalty, { layout: 'mixed', speaker: 'unresolved' }).prohibited_hits[0]?.disposition,
+      run(withPenalty, { layout: 'mixed', speaker: 'unknown' }).prohibited_hits[0]?.disposition,
     ).toBe('flagged_for_review');
     expect(run(withPenalty, { layout: 'mixed', speaker: 'agent' }).overall_score).toBe(10);
   });
 });
 
 describe('simulated scoring — minimum assessable points', () => {
-  it('gives mixed-channel uploads no score when too little is assessable', () => {
+  it('marks mixed-channel uploads not assessable (roles unreliable), never scored', () => {
     const e = simulateEvaluation({
       id: 'e',
       call: { id: 'u', agent_id: 'a', channel_layout: 'mixed' },
+      transcriptRevisionId: REV,
       segments: [],
       judgments: syntheticUploadJudgments(base),
       scorecard: base,
@@ -83,18 +93,27 @@ describe('simulated scoring — minimum assessable points', () => {
       createdAt: '2026-10-01T00:00:00Z',
     });
     expect(e).toMatchObject({
-      outcome: 'insufficient_evidence',
+      outcome: 'not_assessable',
       assessable_points: 0,
       overall_score: null,
+      transcript_revision_id: REV,
     });
+    expect(e.criteria.every((c) => c.reason_code === 'roles_unreliable')).toBe(true);
   });
 });
 
 describe('simulated scoring — penalty accounting', () => {
   const twoHits: WireSegment[] = [
-    { id: 's1', start_ms: 0, end_ms: 1000, speaker: 'agent', language: 'ar', text: 'مو شغلي' },
     {
-      id: 's2',
+      segment_id: 'seg-0001',
+      start_ms: 0,
+      end_ms: 1000,
+      speaker: 'agent',
+      language: 'ar',
+      text: 'مو شغلي',
+    },
+    {
+      segment_id: 'seg-0002',
       start_ms: 2000,
       end_ms: 3000,
       speaker: 'agent',
@@ -106,6 +125,7 @@ describe('simulated scoring — penalty accounting', () => {
     simulateEvaluation({
       id: 'e',
       call: { id: 'c', agent_id: 'a', channel_layout: 'dual' },
+      transcriptRevisionId: REV,
       segments: twoHits,
       judgments: judgments.map((j) => (j.criterionId === 'c-language' ? language : j)),
       scorecard: withPenalty,
@@ -167,6 +187,7 @@ describe('simulated scoring — configurable points and partial credit', () => {
     const e = simulateEvaluation({
       id: 'e',
       call: { id: 'c', agent_id: 'a', channel_layout: 'dual' },
+      transcriptRevisionId: REV,
       segments: [],
       judgments: [
         {

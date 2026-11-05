@@ -6,24 +6,34 @@ import { formatDuration } from '@/shared/utils/time';
 import { ResultValue } from './ResultValue';
 import styles from './Evaluation.module.css';
 
-/** The existing evaluation fields identifying one evidence item (no new data). */
+/** One evidence reference: a segment of the run's own transcript revision. */
 export interface EvidenceSelection {
   segmentId: string;
+  transcriptRevisionId: string;
+}
+
+/** Time and text of a referenced segment, taken from the transcript revision. */
+export interface ResolvedSegment {
   startMs: number;
-  /** Prohibited-expression hits have no end time. */
-  endMs: number | null;
-  quote: string;
+  text: string;
 }
 
 export interface CriterionResultsProps {
   evaluation: Evaluation;
   version: ScorecardVersion | undefined;
+  /** Look up a reference in the loaded transcript; null when it cannot be resolved. */
+  resolveEvidence: (evidence: EvidenceSelection) => ResolvedSegment | null;
   /** `group` = all segment ids cited for the same criterion (shown as related lines). */
   onEvidence: (evidence: EvidenceSelection, group: readonly string[]) => void;
 }
 
 /** Criterion-level results with rationale and evidence that seeks the recording. */
-export function CriterionResults({ evaluation, version, onEvidence }: CriterionResultsProps) {
+export function CriterionResults({
+  evaluation,
+  version,
+  resolveEvidence,
+  onEvidence,
+}: CriterionResultsProps) {
   const { t, pick } = useI18n();
   const labelOf = (id: string) => {
     const c = version?.criteria.find((x) => x.id === id);
@@ -53,37 +63,48 @@ export function CriterionResults({ evaluation, version, onEvidence }: CriterionR
               </p>
             </div>
           ) : (
-            c.result !== 'scored' && (
+            c.result === 'not_assessable' && (
               <p className={styles.rationale}>{t('evaluations.reasonMissing')}</p>
             )
           )}
           {c.evidence.length > 0 && (
             <div className={styles.evidence}>
-              {c.evidence.map((e) => (
-                <button
-                  key={e.segmentId}
-                  type="button"
-                  className={styles.evidenceButton}
-                  onClick={() =>
-                    onEvidence(
-                      {
-                        segmentId: e.segmentId,
-                        startMs: e.startMs,
-                        endMs: e.endMs,
-                        quote: e.quote,
-                      },
-                      c.evidence.map((x) => x.segmentId),
-                    )
-                  }
-                >
-                  <Icon name="play" size={12} />
-                  <span className="visually-hidden">{t('evaluations.evidenceAt')}</span>
-                  <span className={styles.ts}>{formatDuration(e.startMs)}</span>
-                  <span className={styles.quote} dir="auto">
-                    {e.quote}
-                  </span>
-                </button>
-              ))}
+              {c.evidence.map((e) => {
+                const ref = {
+                  segmentId: e.segmentId,
+                  transcriptRevisionId: evaluation.transcriptRevisionId,
+                };
+                const seg = resolveEvidence(ref);
+                return (
+                  <button
+                    key={e.segmentId}
+                    type="button"
+                    className={styles.evidenceButton}
+                    data-evidence-segment={e.segmentId}
+                    onClick={() =>
+                      onEvidence(
+                        ref,
+                        c.evidence.map((x) => x.segmentId),
+                      )
+                    }
+                  >
+                    <Icon name="play" size={12} />
+                    <span className="visually-hidden">{t('evaluations.evidenceAt')}</span>
+                    {seg ? (
+                      <>
+                        <span className={styles.ts}>{formatDuration(seg.startMs)}</span>
+                        <span className={styles.quote} dir="auto">
+                          {seg.text}
+                        </span>
+                      </>
+                    ) : (
+                      <span className={styles.quote}>
+                        {t('evaluations.evidenceUnresolved', { id: e.segmentId })}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </li>
@@ -94,9 +115,11 @@ export function CriterionResults({ evaluation, version, onEvidence }: CriterionR
 
 export function ProhibitedHits({
   evaluation,
+  resolveEvidence,
   onEvidence,
 }: {
   evaluation: Evaluation;
+  resolveEvidence: CriterionResultsProps['resolveEvidence'];
   onEvidence: CriterionResultsProps['onEvidence'];
 }) {
   const { t, fmt } = useI18n();
@@ -107,39 +130,41 @@ export function ProhibitedHits({
         <p className={styles.rationale}>{t('evaluations.prohibited.none')}</p>
       ) : (
         <div className={styles.evidence}>
-          {evaluation.prohibitedHits.map((h) => (
-            <span key={`${h.expressionId}-${h.segmentId}`} className={styles.hit}>
-              <button
-                type="button"
-                className={styles.evidenceButton}
-                onClick={() =>
-                  onEvidence(
-                    { segmentId: h.segmentId, startMs: h.startMs, endMs: null, quote: h.quote },
-                    [h.segmentId],
-                  )
-                }
-              >
-                <Icon name="flag" size={12} />
-                <span className={styles.ts}>{formatDuration(h.startMs)}</span>
-                <bdi>“{h.phrase}”</bdi>
-              </button>
-              <Badge>{t(`evaluations.speaker.${h.speaker}`)}</Badge>
-              {h.disposition === 'penalty_applied' ? (
-                <Badge tone="danger" icon="minus">
-                  {t(
-                    h.penaltyPoints === 1
-                      ? 'evaluations.prohibited.penaltyAppliedOne'
-                      : 'evaluations.prohibited.penaltyApplied',
-                    { n: fmt.integer(h.penaltyPoints) },
-                  )}
-                </Badge>
-              ) : (
-                <Badge tone="warning" icon="flag">
-                  {t('evaluations.prohibited.flagged')}
-                </Badge>
-              )}
-            </span>
-          ))}
+          {evaluation.prohibitedHits.map((h) => {
+            const ref = {
+              segmentId: h.segmentId,
+              transcriptRevisionId: evaluation.transcriptRevisionId,
+            };
+            const seg = resolveEvidence(ref);
+            return (
+              <span key={`${h.expressionId}-${h.segmentId}`} className={styles.hit}>
+                <button
+                  type="button"
+                  className={styles.evidenceButton}
+                  onClick={() => onEvidence(ref, [h.segmentId])}
+                >
+                  <Icon name="flag" size={12} />
+                  {seg && <span className={styles.ts}>{formatDuration(seg.startMs)}</span>}
+                  <bdi>“{h.phrase}”</bdi>
+                </button>
+                <Badge>{t(`evaluations.speaker.${h.speaker}`)}</Badge>
+                {h.disposition === 'penalty_applied' ? (
+                  <Badge tone="danger" icon="minus">
+                    {t(
+                      h.penaltyPoints === 1
+                        ? 'evaluations.prohibited.penaltyAppliedOne'
+                        : 'evaluations.prohibited.penaltyApplied',
+                      { n: fmt.integer(h.penaltyPoints) },
+                    )}
+                  </Badge>
+                ) : (
+                  <Badge tone="warning" icon="flag">
+                    {t('evaluations.prohibited.flagged')}
+                  </Badge>
+                )}
+              </span>
+            );
+          })}
         </div>
       )}
       <p className={styles.rationale}>{t('evaluations.prohibited.note')}</p>

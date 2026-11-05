@@ -277,6 +277,31 @@ bundle test) and `npm run test:e2e` (56 passed: desktop + mobile, EN/AR × light
 transcript search incl. Arabic variants, evidence highlighting, audio shortcuts, upload flow
 with the new not-assessable list label).
 
+## Task 6 — confirmed v0.2 frontend changes (Stream 6)
+
+**Inputs.** Local Claude's frontend change list v0.2 and demo API contract v0.1 (the v0.2
+contract was not received). Details and the open decisions are in
+`docs/demo-integration-handoff.md` §3–§4.
+
+**Implemented.** Launch code in the URL fragment with `POST /api/session/exchange`;
+`X-Taqeef-CSRF` on every API request (GET included) with the token held in memory; session end
+on any 401 without re-exchange; explicit `not_assessable` run outcome (no failed runs);
+criterion results `met`/`partially_met`/`not_met`/`not_assessable` with reason codes and the
+AI-declared reason (EN/AR); transcript revision identity (UUIDv7) and `seg-NNNN` segment ids;
+evidence as segment references resolved only against the run's own revision (times and text
+never from model output); `unknown` speaker; audio from the protected call audio route; upload
+with `display_name`, optional `channel_map`, `request_id`, WAV only up to 100 MB.
+
+**Removed behaviour.** Quote-level `<mark>` highlighting inside a line (evidence now has no
+quote; the whole referenced line is highlighted). Query-string launch codes. Session survival
+across reloads.
+
+**Tests.** 94 unit/component/mock-integration tests (new: session exchange and CSRF on GET,
+401 session end, ID format rejection, explicit outcome decoding, mock CSRF enforcement,
+revision-linked evidence, reason labels, WAV-only validation) and 60 Playwright tests
+(desktop + mobile, EN/AR × light/dark with axe, transcript search, evidence highlighting,
+playback shortcuts, fragment launch, query code ignored, reload needs a new code).
+
 ## Proposed next tasks (prioritized, client-only unless noted)
 
 1. On approval: launch code in the URL fragment (Task 3a finding 9).

@@ -11,8 +11,9 @@ import type {
   ScorecardVersion,
   Session,
   Transcript,
+  UploadAccepted,
 } from '@/shared/types/domain';
-import type { ApiMode } from './config';
+import { apiConfig, type ApiMode } from './config';
 import { arrayOf, DecodeError, type Decoder } from './decode';
 import { endpoints } from './endpoints';
 import { ApiError, toApiError } from './errors';
@@ -27,10 +28,17 @@ import {
   wireQueue,
 } from './wire/agents';
 import { brandingFromWire, wireBranding } from './wire/branding';
-import { callFromWire, transcriptFromWire, wireCall, wireTranscript } from './wire/calls';
+import {
+  callFromWire,
+  transcriptFromWire,
+  uploadAcceptedFromWire,
+  wireCall,
+  wireTranscript,
+  wireUploadAccepted,
+} from './wire/calls';
 import { evaluationFromWire, wireEvaluation } from './wire/evaluations';
 import { scorecardDraftToWire, scorecardFromWire, wireScorecardVersion } from './wire/scorecards';
-import { sessionFromWire, wireSession } from './wire/session';
+import { wireSessionExchange } from './wire/session';
 
 export interface CallFilter {
   agentId?: string | undefined;
@@ -44,8 +52,14 @@ export interface EvaluationFilter {
 /** The only data-access surface for UI code. Returns domain types; throws ApiError. */
 export interface ApiClient {
   readonly mode: ApiMode;
+  /** The session held in memory, or null (a reload always needs a new launch code). */
   getSession(): Promise<Session | null>;
+  /** Exchange a one-time launch code; keeps the returned CSRF token in memory only. */
   openSession(launchCode: string): Promise<Session>;
+  /** Called once whenever the backend ends the session (any 401). Returns an unsubscribe. */
+  onSessionEnded(listener: () => void): () => void;
+  /** Playback source for a call: the protected audio route (cookie, same-origin, no CSRF). */
+  audioSrc(callId: string): string | null;
   getBranding(): Promise<Branding>;
   listQueues(): Promise<Queue[]>;
   listAgents(): Promise<Agent[]>;
@@ -54,8 +68,9 @@ export interface ApiClient {
   getAgentHistory(id: string): Promise<AuditEntry[]>;
   listCalls(filter?: CallFilter): Promise<Call[]>;
   getCall(id: string): Promise<Call>;
-  uploadCall(upload: CallUpload): Promise<Call>;
-  getTranscript(callId: string): Promise<Transcript>;
+  uploadCall(upload: CallUpload): Promise<UploadAccepted>;
+  /** One immutable transcript revision. */
+  getTranscript(revisionId: string): Promise<Transcript>;
   listEvaluations(filter?: EvaluationFilter): Promise<Evaluation[]>;
   rescoreCall(callId: string): Promise<Evaluation>;
   getCurrentScorecard(): Promise<ScorecardVersion>;
@@ -63,9 +78,49 @@ export interface ApiClient {
   saveScorecardVersion(draft: ScorecardDraft): Promise<ScorecardVersion>;
 }
 
-export function createApiClient(transport: Transport, mode: ApiMode): ApiClient {
+/**
+ * The local demo has a single operator session and no role model (demo API contract §1), so
+ * a session holds every demo permission. The backend still enforces every route.
+ */
+const DEMO_PERMISSIONS = [
+  'agents.manage',
+  'scorecards.manage',
+  'calls.upload',
+  'evaluations.rescore',
+  'settings.manage',
+] as const;
+
+export interface ApiClientOptions {
+  /** Playback source override (the mock backend serves synthetic audio in the browser). */
+  audioSrc?: (callId: string) => string | null;
+}
+
+/** Client-generated idempotency key for action requests (contract 5.1, CONFIRMED). */
+const requestId = (): string => crypto.randomUUID();
+
+export function createApiClient(
+  transport: Transport,
+  mode: ApiMode,
+  options: ApiClientOptions = {},
+): ApiClient {
+  // Held in memory only: never written to storage, cookies, logs or the URL.
+  let csrfToken: string | null = null;
+  let session: Session | null = null;
+  const endedListeners = new Set<() => void>();
+
+  function endSession() {
+    if (session === null && csrfToken === null) return;
+    csrfToken = null;
+    session = null;
+    for (const listener of endedListeners) listener();
+  }
+
   async function send<W, T>(req: ApiRequest, decoder: Decoder<W>, map: (w: W) => T): Promise<T> {
-    const res = await transport(req);
+    // Every /api request carries the CSRF header, GET included (contract 1.7). The exchange
+    // is exempt and is sent through `exchange` below.
+    const headers = csrfToken ? { [apiConfig.csrfHeaderName]: csrfToken } : undefined;
+    const res = await transport({ ...req, headers });
+    if (res.status === 401) endSession();
     if (res.status >= 400) throw toApiError(res.status, res.body);
     try {
       return map(decoder(res.body));
@@ -95,20 +150,42 @@ export function createApiClient(transport: Transport, mode: ApiMode): ApiClient 
 
   return {
     mode,
-    async getSession() {
+    getSession: () => Promise.resolve(session),
+    async openSession(launchCode) {
+      csrfToken = null;
+      session = null;
+      const res = await transport({
+        method: 'POST',
+        path: endpoints.sessionExchange,
+        body: { code: launchCode.trim() },
+      });
+      if (res.status >= 400) throw toApiError(res.status, res.body);
+      let w;
       try {
-        return await send({ method: 'GET', path: endpoints.session }, wireSession, sessionFromWire);
+        w = wireSessionExchange(res.body);
       } catch (err) {
-        if (err instanceof ApiError && err.code === 'unauthorized') return null;
+        if (err instanceof DecodeError) {
+          throw new ApiError('contract_mismatch', res.status, `POST exchange: ${err.message}`);
+        }
         throw err;
       }
+      csrfToken = w.csrf_token;
+      session = {
+        mode,
+        permissions: DEMO_PERMISSIONS,
+        idleTimeoutS: w.idle_timeout_s,
+        absoluteTimeoutS: w.absolute_timeout_s,
+      };
+      return session;
     },
-    openSession: (launchCode) =>
-      send(
-        { method: 'POST', path: endpoints.sessionLaunch, body: { launch_code: launchCode.trim() } },
-        wireSession,
-        sessionFromWire,
-      ),
+    onSessionEnded(listener) {
+      endedListeners.add(listener);
+      return () => endedListeners.delete(listener);
+    },
+    audioSrc: (callId) =>
+      options.audioSrc
+        ? options.audioSrc(callId)
+        : `${apiConfig.baseUrl.replace(/\/$/, '')}${endpoints.callAudio(callId)}`,
     getBranding: () =>
       send({ method: 'GET', path: endpoints.branding }, wireBranding, brandingFromWire),
     listQueues: () => send({ method: 'GET', path: endpoints.queues }, queues.decoder, queues.map),
@@ -134,16 +211,23 @@ export function createApiClient(transport: Transport, mode: ApiMode): ApiClient 
         calls.map,
       ),
     getCall: (id) => send({ method: 'GET', path: endpoints.call(id) }, wireCall, callFromWire),
-    uploadCall: ({ file, title, agentId }) => {
+    uploadCall: ({ file, displayName, agentId, channelMap }) => {
       const form = new FormData();
       form.append('file', file);
-      form.append('title', title.trim());
+      form.append('display_name', displayName.trim());
+      // PROVISIONAL: agent selection field (contract §7 item 3 is still open).
       form.append('agent_id', agentId);
-      return send({ method: 'POST', path: endpoints.calls, body: form }, wireCall, callFromWire);
+      if (channelMap) form.append('channel_map', channelMap);
+      form.append('request_id', requestId());
+      return send(
+        { method: 'POST', path: endpoints.calls, body: form },
+        wireUploadAccepted,
+        uploadAcceptedFromWire,
+      );
     },
-    getTranscript: (callId) =>
+    getTranscript: (revisionId) =>
       send(
-        { method: 'GET', path: endpoints.transcript(callId) },
+        { method: 'GET', path: endpoints.transcriptSegments(revisionId) },
         wireTranscript,
         transcriptFromWire,
       ),
@@ -158,7 +242,11 @@ export function createApiClient(transport: Transport, mode: ApiMode): ApiClient 
         evaluations.map,
       ),
     rescoreCall: (callId) =>
-      send({ method: 'POST', path: endpoints.rescore(callId) }, wireEvaluation, evaluationFromWire),
+      send(
+        { method: 'POST', path: endpoints.rescore(callId), body: { request_id: requestId() } },
+        wireEvaluation,
+        evaluationFromWire,
+      ),
     getCurrentScorecard: () =>
       send(
         { method: 'GET', path: endpoints.scorecardCurrent },

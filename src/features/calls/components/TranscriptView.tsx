@@ -18,8 +18,8 @@ export interface TranscriptViewProps {
   currentMs: number;
   /** Segment ids to emphasise (e.g. evidence for a selected criterion). */
   highlightIds?: ReadonlySet<string> | undefined;
-  /** The located evidence line and, when known, the quoted character range in it. */
-  evidence?: { segmentId: string; range: readonly [number, number] | null; key: number } | null;
+  /** The located evidence line (the whole segment is the evidence). */
+  evidence?: { segmentId: string; key: number } | null;
   onSeek: (ms: number) => void;
 }
 
@@ -170,19 +170,7 @@ export function TranscriptView({
                     lang={seg.language}
                     dir={seg.language === 'ar' ? 'rtl' : 'ltr'}
                   >
-                    {seg.id === evidenceId && evidence?.range ? (
-                      <>
-                        {seg.text.slice(0, evidence.range[0])}
-                        <span className="visually-hidden">{t('calls.evidence.quoteStart')} </span>
-                        <mark className={styles.evidenceMark}>
-                          {seg.text.slice(evidence.range[0], evidence.range[1])}
-                        </mark>
-                        <span className="visually-hidden"> {t('calls.evidence.quoteEnd')}</span>
-                        {seg.text.slice(evidence.range[1])}
-                      </>
-                    ) : (
-                      seg.text
-                    )}
+                    {seg.text}
                   </span>
                 </span>
               </button>

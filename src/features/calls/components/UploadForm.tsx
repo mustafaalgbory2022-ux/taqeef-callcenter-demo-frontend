@@ -11,6 +11,8 @@ import { useToast } from '@/shared/ui/Toaster';
 import { useUploadCall } from '../hooks/useCallData';
 import {
   ACCEPT_ATTRIBUTE,
+  CHANNEL_MAPS,
+  MAX_DISPLAY_NAME,
   MAX_UPLOAD_MB,
   SERVER_UPLOAD_FIELD,
   validateUpload,
@@ -19,7 +21,13 @@ import {
 } from '../model/upload';
 import styles from './UploadForm.module.css';
 
-const initial: UploadValues = { file: null, title: '', agentId: '', confirmSynthetic: false };
+const initial: UploadValues = {
+  file: null,
+  title: '',
+  agentId: '',
+  channelMap: '',
+  confirmSynthetic: false,
+};
 
 export function UploadForm() {
   const { t } = useI18n();
@@ -42,13 +50,14 @@ export function UploadForm() {
     setErrors(Object.fromEntries(Object.entries(clientErrors).map(([k, key]) => [k, t(key)])));
     if (Object.keys(clientErrors).length > 0 || !values.file) return;
     try {
-      const call = await upload.mutate({
+      const accepted = await upload.mutate({
         file: values.file,
-        title: values.title,
+        displayName: values.title,
         agentId: values.agentId,
+        channelMap: values.channelMap || null,
       });
-      toast('success', t('calls.upload.done', { id: call.id }));
-      navigate(`/calls/${encodeURIComponent(call.id)}`);
+      toast('success', t('calls.upload.done', { id: accepted.callId }));
+      navigate(`/calls/${encodeURIComponent(accepted.callId)}`);
     } catch (err) {
       const mapped = mapFieldIssues(err, SERVER_UPLOAD_FIELD);
       if (mapped) setErrors(mapped.fields);
@@ -83,7 +92,7 @@ export function UploadForm() {
             <input
               {...p}
               value={values.title}
-              maxLength={120}
+              maxLength={MAX_DISPLAY_NAME}
               onChange={(e) => set('title', e.target.value)}
             />
           )}
@@ -95,6 +104,28 @@ export function UploadForm() {
               {active.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.displayName} · {a.extension}
+                </option>
+              ))}
+            </select>
+          )}
+        </Field>
+      </div>
+      <div className={styles.row}>
+        <Field
+          label={t('calls.upload.channelMap')}
+          hint={t('calls.upload.channelMapHint')}
+          error={errors.channelMap}
+        >
+          {(p) => (
+            <select
+              {...p}
+              value={values.channelMap}
+              onChange={(e) => set('channelMap', e.target.value as UploadValues['channelMap'])}
+            >
+              <option value="">{t('calls.upload.channelMapDefault')}</option>
+              {CHANNEL_MAPS.map((m) => (
+                <option key={m} value={m}>
+                  {t(`calls.upload.channelMaps.${m}`)}
                 </option>
               ))}
             </select>

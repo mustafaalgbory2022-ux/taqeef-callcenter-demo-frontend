@@ -1,14 +1,5 @@
 import type { Evaluation } from '@/shared/types/domain';
 
-/**
- * An evaluation is eligible to be a call's current evaluation when it completed (failed
- * attempts never replace a result). An eligible evaluation may still be
- * "Insufficient evidence — no score": the call then has no score (see isScored).
- */
-export function isEligible(e: Evaluation): boolean {
-  return e.status === 'completed';
-}
-
 /** Counts in scored averages and low-score counts. */
 export function isScored(e: Evaluation): boolean {
   return e.outcome === 'scored' && e.overallScore !== null;
@@ -18,14 +9,14 @@ const newerThan = (a: Evaluation, b: Evaluation) =>
   Date.parse(a.createdAt) > Date.parse(b.createdAt) || (a.createdAt === b.createdAt && a.id > b.id);
 
 /**
- * One evaluation per call: the latest eligible (completed) one. Earlier evaluations remain
+ * One evaluation per call: the latest run (a failed evaluation creates no run, contract 3.1;
+ * the run may still have no score, see isScored). Earlier evaluations remain
  * in the immutable history but never count twice, and an insufficient-evidence result is
  * never replaced by an older score.
  */
 export function currentEvaluations(evaluations: readonly Evaluation[]): Evaluation[] {
   const byCall = new Map<string, Evaluation>();
   for (const e of evaluations) {
-    if (!isEligible(e)) continue;
     const prev = byCall.get(e.callId);
     if (!prev || newerThan(e, prev)) byCall.set(e.callId, e);
   }

@@ -1,5 +1,6 @@
 import { ApiError } from '../errors';
-import type { ApiResponse, Transport } from '../transport';
+import type { ApiRequest, ApiResponse, Transport } from '../transport';
+import { cachedAudioUrl, synthesizeCallAudio } from './audio';
 import { clearSavedState, loadState, saveState } from './db';
 import { agentRoutes } from './handlers/agents';
 import { callRoutes } from './handlers/calls';
@@ -7,22 +8,10 @@ import { evaluationRoutes } from './handlers/evaluations';
 import { scorecardRoutes } from './handlers/scorecards';
 import { fail, findRoute, ok, type Route } from './router';
 
-const SESSION_KEY = 'taqeef.mock.session';
 const USED_CODES_KEY = 'taqeef.mock.usedCodes';
 const LAUNCH_CODE = /^[A-Z0-9-]{8,64}$/i;
-
-const syntheticSession = {
-  mode: 'mock',
-  display_name: 'Synthetic administrator',
-  permissions: [
-    'agents.manage',
-    'scorecards.manage',
-    'calls.upload',
-    'evaluations.rescore',
-    'settings.manage',
-  ],
-  expires_at: null,
-};
+/** Same header as the live contract (1.7), compared on every non-exempt mock route. */
+const CSRF_HEADER = 'X-Taqeef-CSRF';
 
 function storage(): Storage | null {
   try {
@@ -47,35 +36,48 @@ export interface MockTransportOptions {
   latencyMs?: number;
 }
 
-/** In-browser SIMULATED backend speaking the same wire format as the FastAPI adapter. */
-export function createMockTransport({ latencyMs = 160 }: MockTransportOptions = {}): Transport {
+export interface MockBackend {
+  transport: Transport;
+  /** Synthetic in-browser audio stands in for the protected audio route. */
+  audioSrc: (callId: string) => string | null;
+}
+
+function randomToken(): string {
+  const bytes = new Uint8Array(24);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+function headerOf(req: ApiRequest, name: string): string | undefined {
+  const key = Object.keys(req.headers ?? {}).find((k) => k.toLowerCase() === name.toLowerCase());
+  return key ? req.headers?.[key] : undefined;
+}
+
+/**
+ * In-browser SIMULATED backend speaking the same wire format as the FastAPI adapter. It
+ * mirrors the confirmed session rules: one-time launch codes, a CSRF token returned by the
+ * exchange and required on every other route (GET included); the session lives only as long
+ * as this page (a reload needs a new launch code).
+ */
+export function createMockBackend({ latencyMs = 160 }: MockTransportOptions = {}): MockBackend {
   const state = loadState();
   const persist = () => saveState(state);
+  let csrfToken: string | null = null;
 
   const sessionRoutes: Route[] = [
     {
-      method: 'GET',
-      pattern: '/session',
-      public: true,
-      handler: () =>
-        storage()?.getItem(SESSION_KEY) ? ok(syntheticSession) : fail(401, 'No session.'),
-    },
-    {
       method: 'POST',
-      pattern: '/session/launch',
+      pattern: '/session/exchange',
       public: true,
       handler: ({ body }) => {
         const code =
-          typeof body === 'object' && body !== null && 'launch_code' in body
-            ? String(body.launch_code)
-            : '';
-        if (!LAUNCH_CODE.test(code))
-          return fail(422, [{ loc: ['body', 'launch_code'], msg: 'Invalid launch code.' }]);
+          typeof body === 'object' && body !== null && 'code' in body ? String(body.code) : '';
+        if (!LAUNCH_CODE.test(code)) return fail(400, 'Malformed launch code.');
         const used: string[] = JSON.parse(storage()?.getItem(USED_CODES_KEY) ?? '[]');
         if (used.includes(code)) return fail(401, 'This launch code has already been used.');
         storage()?.setItem(USED_CODES_KEY, JSON.stringify([...used, code]));
-        storage()?.setItem(SESSION_KEY, '1');
-        return ok(syntheticSession);
+        csrfToken = randomToken();
+        return ok({ csrf_token: csrfToken, idle_timeout_s: 1800, absolute_timeout_s: 43200 });
       },
     },
     {
@@ -100,13 +102,14 @@ export function createMockTransport({ latencyMs = 160 }: MockTransportOptions = 
     ...scorecardRoutes(state, persist),
   ];
 
-  return async (req) => {
+  const transport: Transport = async (req) => {
     await new Promise((resolve) => setTimeout(resolve, latencyMs));
     const found = findRoute(routes, req);
     let res: ApiResponse;
     if (!found) res = fail(404, `No mock route for ${req.method} ${req.path}`);
-    else if (!found.route.public && !storage()?.getItem(SESSION_KEY))
-      res = fail(401, 'No session.');
+    else if (!found.route.public && csrfToken === null) res = fail(401, 'No session.');
+    else if (!found.route.public && headerOf(req, CSRF_HEADER) !== csrfToken)
+      res = fail(403, 'Missing or invalid CSRF token.');
     else {
       try {
         res = found.route.handler({ params: found.params, query: req.query ?? {}, body: req.body });
@@ -117,4 +120,21 @@ export function createMockTransport({ latencyMs = 160 }: MockTransportOptions = 
     // Responses are copies so UI code can never mutate simulated server state.
     return { status: res.status, body: structuredClone(res.body) };
   };
+
+  const audioSrc = (callId: string): string | null => {
+    const call = state.calls.find((c) => c.id === callId);
+    if (!call) return null;
+    if (call.source === 'upload') return cachedAudioUrl(call.id);
+    const transcript = state.transcripts[call.id];
+    return transcript && call.duration_ms
+      ? synthesizeCallAudio(call.id, call.duration_ms, transcript.segments)
+      : null;
+  };
+
+  return { transport, audioSrc };
+}
+
+/** Transport only (tests). */
+export function createMockTransport(options: MockTransportOptions = {}): Transport {
+  return createMockBackend(options).transport;
 }

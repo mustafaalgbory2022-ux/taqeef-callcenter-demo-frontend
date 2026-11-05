@@ -42,7 +42,9 @@ const ev = (
     score === null
       ? {
           criterionId: 'c1',
-          result: 'insufficient_evidence',
+          result: 'not_assessable',
+          reasonCode: 'ai_declared',
+          aiDeclaredReason: 'insufficient_evidence',
           awardedPoints: null,
           possiblePoints: 10,
           penaltyPoints: 0,
@@ -51,7 +53,9 @@ const ev = (
         }
       : {
           criterionId: 'c1',
-          result: 'scored',
+          result: 'partially_met',
+          reasonCode: null,
+          aiDeclaredReason: null,
           awardedPoints: score,
           possiblePoints: 10,
           penaltyPoints: 0,
@@ -64,7 +68,7 @@ const ev = (
     agentId,
     scorecardId: 'sc',
     scorecardVersion: v,
-    status: 'completed',
+    transcriptRevisionId: '0193a000-0000-7000-8000-000000000001',
     outcome: score === null ? 'insufficient_evidence' : 'scored',
     awardedPoints: score ?? 0,
     assessablePoints: score === null ? 0 : 10,
@@ -94,11 +98,10 @@ const agent = (id: string, displayName: string): Agent => ({
 const T = '2026-10-01T00:00:00Z';
 
 describe('currentEvaluations', () => {
-  it('uses the latest completed evaluation, ignoring failed attempts', () => {
+  it('uses the latest run of each call (a failed evaluation creates no run)', () => {
     const old = ev('call1', 'a', 5, T);
     const rescore = ev('call1', 'a', 8, '2026-10-02T00:00:00Z');
-    const failed = { ...ev('call1', 'a', 9, '2026-10-03T00:00:00Z'), status: 'failed' as const };
-    expect(currentEvaluations([old, rescore, failed])).toEqual([rescore]);
+    expect(currentEvaluations([old, rescore])).toEqual([rescore]);
   });
 
   it('never falls back to an older score when the latest is insufficient evidence', () => {

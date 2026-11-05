@@ -12,7 +12,12 @@ const ApiContext = createContext<ApiContextValue | null>(null);
 
 /** Client for the build's runtime (mock or live, chosen at build time). */
 export function createDefaultClient(): ApiClient {
-  return createApiClient(runtime.createTransport(), runtime.mode);
+  const backend = runtime.createBackend();
+  return createApiClient(
+    backend.transport,
+    runtime.mode,
+    backend.audioSrc ? { audioSrc: backend.audioSrc } : {},
+  );
 }
 
 export function ApiProvider({ client, children }: { client?: ApiClient; children: ReactNode }) {
