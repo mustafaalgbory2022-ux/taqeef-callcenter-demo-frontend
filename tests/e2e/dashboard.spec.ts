@@ -11,8 +11,16 @@ test('overall dashboard pools per call and labels the sample', async ({ page }) 
   await expect(page.getByTestId('kpi-evaluated')).toContainText('1 with insufficient evidence');
   await expect(page.getByTestId('kpi-average')).toContainText('6.25');
   await expect(page.getByTestId('kpi-low')).toContainText('2');
-  const names = page.getByRole('region', { name: 'Agents (sample)' }).getByRole('link');
-  await expect(names).toHaveText(['Agent A', 'Agent B', 'Agent C', 'Agent D']);
+  // Agent pages are linked alphabetically with no figures: no ranking or comparison.
+  const agentList = page.getByRole('list', { name: 'Agent pages' });
+  await expect(agentList.getByRole('link')).toHaveText([
+    'Agent A',
+    'Agent B',
+    'Agent C',
+    'Agent D',
+  ]);
+  await expect(agentList).not.toContainText(/\d\.\d\d|\/ 10|best|worst|rank/i);
+  await expect(page.getByTestId('kpi-average')).toContainText('Based on 4 calls');
   // Five-call demo: no PBX/SLA/missed/abandoned figures are shown or derived from recordings.
   await expect(page.getByTestId('pbx-panel')).toHaveCount(0);
   await expect(page.getByRole('main')).not.toContainText(/SLA|Missed|Abandoned/);
@@ -48,4 +56,12 @@ test('agent dashboard clicks through to the call and its evidence', async ({ pag
   await expect(page.getByTestId('overall-score')).toContainText('5.00');
   await expect(page.getByTestId('overall-score')).toContainText('5 of 10 assessable points');
   await expect(page.getByTestId('overall-score')).toContainText('Below threshold');
+});
+
+test('an agent page shows the agent’s own average, with no name in the title', async ({ page }) => {
+  await openSession(page, { path: '/agents/agt-001' });
+  await expect(page.getByRole('heading', { level: 1, name: 'Agent A' })).toBeVisible();
+  await expect(page.getByTestId('kpi-average')).toContainText('Based on');
+  await expect(page).toHaveTitle(/Agent performance/);
+  await expect(page).not.toHaveTitle(/Agent A/);
 });

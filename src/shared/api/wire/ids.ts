@@ -1,9 +1,9 @@
 import { DecodeError, str, type Decoder } from '../decode';
 
 /**
- * Identifiers are opaque strings (contract v0.2 item 10): the frontend never parses them or
- * depends on their format, and only rejects empty values. The contract describes them as
- * lowercase UUIDv7; that format is not enforced here until confirmed for every id.
+ * Identifiers are opaque strings (contract v0.2.1 §C, CONFIRMED). The frontend never parses
+ * them or checks a UUID version; it only rejects empty or oversized values. (The contract
+ * allows at most a 36-character-form check; none is needed here.)
  */
 export const opaqueId: Decoder<string> = (value, path = '') => {
   const s = str(value, path);
@@ -12,12 +12,5 @@ export const opaqueId: Decoder<string> = (value, path = '') => {
 };
 
 export const revisionId = opaqueId;
-
-/** `seg-0001` … `seg-9999`, unique within one transcript revision (contract v0.1 2.2, CONFIRMED). */
-const SEGMENT_ID = /^seg-\d{4}$/;
-
-export const segmentId: Decoder<string> = (value, path = '') => {
-  const s = str(value, path);
-  if (!SEGMENT_ID.test(s)) throw new DecodeError(path, 'a segment id like "seg-0001"');
-  return s;
-};
+/** Segment ids are opaque within their revision; the mock uses the `seg-NNNN` form. */
+export const segmentId = opaqueId;

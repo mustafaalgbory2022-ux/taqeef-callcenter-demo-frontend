@@ -24,28 +24,30 @@ export type Permission =
 export interface Session {
   mode: 'mock' | 'live';
   permissions: readonly Permission[];
-  idleTimeoutS: number;
-  absoluteTimeoutS: number;
+  /** Null when the server did not report it (e.g. on session resume). */
+  idleTimeoutS: number | null;
+  absoluteTimeoutS: number | null;
 }
 
-export type AgentStatus = 'active' | 'inactive';
+/** Agents are created, then retired; never deleted or reactivated (contract v0.2.1 §A). */
+export type AgentStatus = 'active' | 'retired';
 
 export interface Agent {
   /** Stable internal id. Opaque: conventions are not yet confirmed by the backend. */
   id: string;
   displayName: string;
-  /** Configurable Yeastar extension or agent number. */
-  extension: string;
+  /** PROVISIONAL extra label (not in contract v0.2.1); null when the server sends none. */
+  extension: string | null;
   status: AgentStatus;
   synthetic: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
+/** Create-only input: names are immutable (no rename route). */
 export interface AgentInput {
   displayName: string;
   extension: string;
-  status: AgentStatus;
 }
 
 export interface AuditChange {
@@ -56,7 +58,7 @@ export interface AuditChange {
 
 export interface AuditEntry {
   id: string;
-  action: 'created' | 'updated' | 'disabled' | 'enabled';
+  action: 'created' | 'retired';
   actor: string;
   at: string;
   changes: readonly AuditChange[];
@@ -95,6 +97,8 @@ export interface Call {
   id: string;
   title: string;
   agentId: string | null;
+  /** PROPOSED (contract v0.2.1 §A): returned with call list and detail. */
+  agentDisplayName: string | null;
   language: Language | 'mixed';
   durationMs: number | null;
   recordedAt: string;

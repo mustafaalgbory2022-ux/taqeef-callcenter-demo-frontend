@@ -29,7 +29,11 @@ export function SessionGate({
       }),
     [client, store],
   );
-  const session = useApiQuery(['session'], (api) => api.getSession());
+  // A launch code in the URL is exchanged by the launch screen; otherwise a reload recovers
+  // the existing session first (GET /api/session) before any other /api call.
+  const session = useApiQuery(['session'], (api) =>
+    launchCode && !ended ? api.getSession() : api.resumeSession(),
+  );
   if (session.status === 'loading') return <LoadingState rows={3} />;
   if (session.status === 'success' && session.data) {
     return (

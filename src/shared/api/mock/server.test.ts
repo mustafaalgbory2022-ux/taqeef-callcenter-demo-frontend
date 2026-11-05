@@ -8,6 +8,62 @@ describe('simulated backend', () => {
     sessionStorage.clear();
   });
 
+  it('keeps the simulated session across a reload via GET /session (v0.2.1 §D)', async () => {
+    const first = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
+    await first.openSession('SYN-RELOAD-DEMO');
+    // A "reload" is a new client and a new transport over the same simulated cookie.
+    const transport = createMockTransport({ latencyMs: 0 });
+    const reloaded = createApiClient(transport, 'mock');
+    await expect(reloaded.getSession()).resolves.toBeNull();
+    await expect(reloaded.resumeSession()).resolves.toMatchObject({ mode: 'mock' });
+    expect(await reloaded.listCalls()).toHaveLength(5);
+    // GET /session has no side effects: it does not extend the idle timer.
+    const before = sessionStorage.getItem('taqeef.mock.serverSession');
+    await transport({ method: 'GET', path: '/session' });
+    expect(sessionStorage.getItem('taqeef.mock.serverSession')).toBe(before);
+  });
+
+  it('expires the simulated session after 30 minutes idle', async () => {
+    const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
+    await api.openSession('SYN-IDLE-DEMO');
+    const s = JSON.parse(sessionStorage.getItem('taqeef.mock.serverSession') ?? '{}');
+    s.lastSeenAt -= 31 * 60_000;
+    sessionStorage.setItem('taqeef.mock.serverSession', JSON.stringify(s));
+    const reloaded = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
+    await expect(reloaded.resumeSession()).resolves.toBeNull();
+  });
+
+  it('lists active agents by default, retires permanently and rejects retired uploads', async () => {
+    const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
+    await api.openSession('SYN-AGENTS-DEMO');
+    const before = await api.listAgents();
+    const target = before[0];
+    if (!target) throw new Error('fixture');
+    const retired = await api.retireAgent(target.id);
+    expect(retired.status).toBe('retired');
+    expect((await api.listAgents()).map((a) => a.id)).not.toContain(target.id);
+    expect((await api.listAgents({ includeRetired: true })).map((a) => a.id)).toContain(target.id);
+    await expect(api.retireAgent(target.id)).rejects.toMatchObject({ code: 'conflict' });
+    await expect(
+      api.createAgent({ displayName: ` ${target.displayName.toUpperCase()} `, extension: '' }),
+    ).rejects.toMatchObject({ fieldIssues: [{ field: 'display_name', reason: 'duplicate' }] });
+    const wav = new File(['x'], 'a.wav', { type: 'audio/wav' });
+    for (const [agentId, reason] of [
+      [target.id, 'agent_retired'],
+      ['agt-missing', 'agent_unknown'],
+      ['', 'agent_required'],
+    ] as const) {
+      const err = await api
+        .uploadCall({ file: wav, displayName: '', agentId, channelMap: null })
+        .catch((e: unknown) => e);
+      expect(err).toMatchObject({ fieldIssues: [{ field: 'agent_id', reason }] });
+      expect(JSON.stringify(err)).not.toContain(agentId || '\u0000');
+    }
+    // Calls keep their agent, with the agent's display name from the call payload.
+    const calls = await api.listCalls();
+    expect(calls.find((c) => c.agentId === target.id)?.agentDisplayName).toBe(target.displayName);
+  });
+
   it('requires a session and accepts each launch code once', async () => {
     const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
     await expect(api.listAgents()).rejects.toMatchObject({ code: 'unauthorized' });
@@ -37,7 +93,7 @@ describe('simulated backend', () => {
   it('seeds the approved scorecard and points-based results', async () => {
     const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
     await api.openSession('SYN-TEST04-DEMO');
-    const card = await api.getCurrentScorecard();
+    const card = await api.getLatestScorecardVersion();
     expect(card.criteria.map((c) => c.maxPoints)).toEqual([1, 1, 2, 3, 2, 1]);
     expect(card).toMatchObject({
       minimumAssessablePoints: 6,
@@ -62,9 +118,9 @@ describe('simulated backend', () => {
   it('validates agent extensions on the server side too', async () => {
     const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
     await api.openSession('SYN-TEST03-DEMO');
-    await expect(
-      api.createAgent({ displayName: 'X', extension: 'SYN-101', status: 'active' }),
-    ).rejects.toMatchObject({ code: 'validation_error', fieldIssues: [{ field: 'extension' }] });
+    await expect(api.createAgent({ displayName: 'X', extension: 'SYN-101' })).rejects.toMatchObject(
+      { code: 'validation_error', fieldIssues: [{ field: 'extension' }] },
+    );
   });
 
   it('enforces the CSRF header on every non-exempt route, GET included', async () => {
@@ -138,7 +194,7 @@ describe('simulated backend', () => {
     const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
     await api.openSession('SYN-TEST09-DEMO');
     const err = await api
-      .createAgent({ displayName: 'Secret Name', extension: 'SYN-101', status: 'active' })
+      .createAgent({ displayName: 'Secret Name', extension: 'SYN-101' })
       .catch((e: unknown) => e);
     expect(err).toMatchObject({
       code: 'validation_error',
@@ -151,9 +207,9 @@ describe('simulated backend', () => {
   it('activates a scorecard draft as a new immutable version', async () => {
     const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
     await api.openSession('SYN-TEST10-DEMO');
-    const current = await api.getCurrentScorecard();
+    const current = await api.getLatestScorecardVersion();
     const saved = await api.saveScorecardVersion({ ...current, changeNote: 'Synthetic change' });
     expect(saved.version).toBe(current.version + 1);
-    expect((await api.getCurrentScorecard()).version).toBe(saved.version);
+    expect((await api.getLatestScorecardVersion()).version).toBe(saved.version);
   });
 });

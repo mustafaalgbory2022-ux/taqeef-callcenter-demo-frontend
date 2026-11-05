@@ -41,7 +41,7 @@ function CallDetail({ call }: { call: Call }) {
   const api = useApiClient();
   useDocumentTitle(`${call.id} · ${call.title}`, t('app.title'));
   const [params] = useSearchParams();
-  const agents = useAgents();
+  const agents = useAgents({ includeRetired: true });
   const agent =
     agents.status === 'success' ? agents.data.find((a) => a.id === call.agentId) : undefined;
   // Show the revision the displayed run was scored on (same "latest run" rule as the

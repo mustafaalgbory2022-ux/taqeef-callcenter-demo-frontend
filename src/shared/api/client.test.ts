@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CALL_STATUSES } from '@/shared/types/domain';
 import { createApiClient } from './client';
+import { endpoints } from './endpoints';
 import { ApiError } from './errors';
 import { createFetchTransport, type ApiRequest, type Transport } from './transport';
 
@@ -91,7 +92,7 @@ describe('ApiClient over a transport', () => {
       prohibitedPenalty: { points: 0, criterionId: null },
       changeNote: 'n',
     });
-    expect((await api.getCurrentScorecard()).version).toBe(3);
+    expect((await api.getLatestScorecardVersion()).version).toBe(3);
     const [put, activate, list] = transport.mock.calls.map(([r]) => r);
     expect(put).toMatchObject({ method: 'PUT', path: '/scorecard/draft' });
     expect(activate).toMatchObject({ method: 'POST', path: '/scorecard/activate' });
@@ -104,15 +105,11 @@ describe('ApiClient over a transport', () => {
       .createAgent({
         displayName: ' Agent E ',
         extension: 'SYN-105',
-        status: 'active',
       })
       .catch(() => undefined);
     const req = transport.mock.calls[0]?.[0] as ApiRequest;
-    expect(req.body).toEqual({
-      display_name: 'Agent E',
-      extension: 'SYN-105',
-      status: 'active',
-    });
+    // Create only: no status (a new agent is active) and no rename route.
+    expect(req.body).toEqual({ display_name: 'Agent E', extension: 'SYN-105' });
   });
 
   it('rejects responses that break the contract', async () => {
@@ -220,7 +217,7 @@ describe('ApiClient over a transport', () => {
     expect(na).toMatchObject({ outcome: 'not_assessable', overallScore: null });
   });
 
-  it('treats revision ids as opaque, but rejects empty ids and malformed segment ids', async () => {
+  it('treats revision and segment ids as opaque, rejecting only empty ids (v0.2.1 §C)', async () => {
     const opaque = createApiClient(
       respond(200, { call_id: 'c', transcript_revision_id: 'rev-1', revision_no: 0, segments: [] }),
       'live',
@@ -242,7 +239,9 @@ describe('ApiClient over a transport', () => {
       }),
       'live',
     );
-    await expect(segApi.getTranscript(REV)).rejects.toMatchObject({ code: 'contract_mismatch' });
+    await expect(segApi.getTranscript(REV)).resolves.toMatchObject({
+      segments: [{ id: 's1' }],
+    });
   });
 
   it('maps the structured error envelope, keeping only safe codes (contract v0.2 item 9)', async () => {
@@ -260,7 +259,7 @@ describe('ApiClient over a transport', () => {
       },
     };
     const err = await createApiClient(respond(422, body), 'live')
-      .updateAgent('a', { extension: 'x' })
+      .createAgent({ displayName: 'Agent X', extension: 'x' })
       .catch((e: unknown) => e);
     expect(err).toBeInstanceOf(ApiError);
     expect(err).toMatchObject({
@@ -368,6 +367,7 @@ describe('fetch transport', () => {
     expect(getUrl).toBe('/api/calls');
     expect(getInit?.credentials).toBe('same-origin');
     expect(getInit?.cache).toBe('no-store');
+    expect(getInit?.mode).toBe('same-origin');
     expect(new Headers(getInit?.headers).get('X-Taqeef-CSRF')).toBe('tok');
     expect(new Headers(postInit?.headers).get('X-Taqeef-CSRF')).toBeNull();
     expect(new Headers(postInit?.headers).get('X-CSRF-Token')).toBeNull();
@@ -380,5 +380,60 @@ describe('fetch transport', () => {
     await expect(transport({ method: 'GET', path: '/calls' })).rejects.toMatchObject({
       code: 'network_error',
     });
+  });
+});
+
+describe('session resume and CSRF exemptions (contract v0.2.1 §D)', () => {
+  it('recovers the token with GET /session first, without a CSRF header', async () => {
+    const transport = vi
+      .fn<Transport>()
+      .mockResolvedValueOnce({ status: 200, body: { csrf_token: 'resumed' } })
+      .mockResolvedValue({ status: 200, body: [] });
+    const api = createApiClient(transport, 'live');
+    const session = await api.resumeSession();
+    expect(session).toMatchObject({ mode: 'live', idleTimeoutS: null });
+    await api.listCalls();
+    const [resume, next] = transport.mock.calls.map(([r]) => r);
+    expect(resume).toMatchObject({ method: 'GET', path: '/session' });
+    expect(resume?.headers).toBeUndefined();
+    expect(next?.headers).toEqual({ 'X-Taqeef-CSRF': 'resumed' });
+    // Once resumed, no further GET /session is needed.
+    await expect(api.resumeSession()).resolves.toBe(session);
+    expect(transport).toHaveBeenCalledTimes(2);
+  });
+
+  it('returns null on 401 and keeps no token', async () => {
+    const transport = vi
+      .fn<Transport>()
+      .mockResolvedValueOnce({ status: 401, body: {} })
+      .mockResolvedValue({ status: 200, body: [] });
+    const api = createApiClient(transport, 'live');
+    await expect(api.resumeSession()).resolves.toBeNull();
+    await api.listCalls();
+    expect(transport.mock.calls[1]?.[0].headers).toBeUndefined();
+  });
+
+  it('sends the CSRF header on every request except the exchange and GET /session', async () => {
+    const transport = vi.fn<Transport>().mockImplementation(async (req) => ({
+      status: 200,
+      body:
+        req.path === '/session/exchange'
+          ? { csrf_token: 't', idle_timeout_s: 1, absolute_timeout_s: 2 }
+          : [],
+    }));
+    const api = createApiClient(transport, 'live');
+    await api.openSession('SYN-CODE-0001');
+    await api.listAgents({ includeRetired: true });
+    await api.listEvaluations();
+    await api.retireAgent('agt 1').catch(() => undefined);
+    const reqs = transport.mock.calls.map(([r]) => r);
+    const exempt = reqs.filter((r) => !r.headers).map((r) => `${r.method} ${r.path}`);
+    expect(exempt).toEqual(['POST /session/exchange']);
+    expect(reqs[1]).toMatchObject({ path: '/agents', query: { include_retired: 'true' } });
+    expect(reqs[3]).toMatchObject({ method: 'POST', path: '/agents/agt%201/retire' });
+    expect(Object.keys(endpoints).filter((k) => k.startsWith('session'))).toEqual([
+      'sessionExchange',
+      'session',
+    ]);
   });
 });

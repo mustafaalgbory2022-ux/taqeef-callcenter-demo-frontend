@@ -5,7 +5,7 @@ import { syntheticRevisionId } from './ids';
 import { simulateEvaluation } from './scoring';
 import type { MockState, WireScorecard } from './types';
 
-const STORAGE_KEY = 'taqeef.mock.db.v4';
+const STORAGE_KEY = 'taqeef.mock.db.v5';
 
 function versionOf(n: number): WireScorecard {
   const v = scorecardVersions.find((sc) => sc.version === n);

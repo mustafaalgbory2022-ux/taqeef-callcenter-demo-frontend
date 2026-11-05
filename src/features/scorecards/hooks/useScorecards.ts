@@ -5,8 +5,8 @@ import type { ScorecardDraft } from '@/shared/types/domain';
 export const useScorecardVersions = () =>
   useApiQuery(['scorecards', 'versions'], (api) => api.listScorecardVersions());
 
-export const useCurrentScorecard = () =>
-  useApiQuery(['scorecards', 'current'], (api) => api.getCurrentScorecard());
+export const useLatestScorecardVersion = () =>
+  useApiQuery(['scorecards', 'latest'], (api) => api.getLatestScorecardVersion());
 
 export const useSaveScorecard = () =>
   useApiMutation((api, draft: ScorecardDraft) => api.saveScorecardVersion(draft), ['scorecards']);

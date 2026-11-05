@@ -90,14 +90,15 @@
       "history": "Evaluation history",
       "allCalls": "Open in Calls",
       "rescoreTitle": "Evaluations and re-scoring",
-      "rescoreCaption": "Every evaluation is kept; changes are shown against the previous evaluation of the same call."
+      "rescoreCaption": "Every evaluation is kept; changes are shown against the previous evaluation of the same call.",
+      "pageTitle": "Agent performance"
     },
     "kpi": {
       "label": "Key figures",
       "evaluated": "Scored calls",
       "evaluatedNote": "{k} with insufficient evidence — no score (excluded)",
       "average": "Average quality score",
-      "averageNote": "Pooled over n = {n} scored calls · rounded down",
+      "averageNote": "Based on {n} calls · exact mean, rounded down",
       "low": "Calls below {threshold}",
       "ofN": "of {n}",
       "lowNote": "Strictly below the scorecard threshold",
@@ -122,8 +123,8 @@
       "points": "{awarded} of {possible} points awarded"
     },
     "agents": {
-      "title": "Agents (sample)",
-      "caption": "Alphabetical — not a ranking. Open an agent for details.",
+      "title": "Agent pages",
+      "caption": "Open an individual agent page for that agent’s own results. Agents are listed alphabetically; they are not compared or ranked.",
       "evaluated": "Scored calls",
       "average": "Average",
       "low": "Below threshold",
@@ -142,15 +143,11 @@
     },
     "status": {
       "active": "Active",
-      "inactive": "Disabled",
-      "disable": "Disable",
-      "enable": "Enable",
-      "disableTitle": "Disable {name}?",
-      "enableTitle": "Enable {name}?",
-      "disableBody": "The agent is hidden from new uploads and default filters. Calls, evaluations and history are kept.",
-      "enableBody": "The agent becomes available for uploads and filters again.",
-      "disabledToast": "{name} was disabled.",
-      "enabledToast": "{name} was enabled."
+      "retired": "Retired",
+      "retire": "Retire",
+      "retireTitle": "Retire {name}?",
+      "retireBody": "Retirement is permanent. The agent can no longer be selected for uploads and cannot be reactivated, renamed or deleted. Earlier calls, evaluations and history keep this agent.",
+      "retiredToast": "{name} was retired."
     },
     "filter": {
       "label": "Agent",
@@ -181,8 +178,10 @@
         "nameRequired": "Enter the agent's name.",
         "nameTooLong": "Use at most 80 characters.",
         "extensionFormat": "Use 2–20 letters, digits or hyphens.",
-        "extensionTaken": "This extension is already assigned to another agent."
-      }
+        "extensionTaken": "This extension is already assigned to another agent.",
+        "nameTaken": "This name is already used by another agent, including retired agents."
+      },
+      "immutableNote": "Names cannot be changed later. To rename an agent, retire it and create a new one."
     },
     "history": {
       "open": "History",
@@ -190,9 +189,7 @@
       "empty": "No changes recorded.",
       "actions": {
         "created": "Created",
-        "updated": "Updated",
-        "disabled": "Disabled",
-        "enabled": "Enabled"
+        "retired": "Retired"
       }
     }
   },
@@ -305,7 +302,10 @@
         "fileSize": "The file is larger than 25 MB.",
         "titleTooLong": "Use at most 200 characters.",
         "agentRequired": "Select the agent who handled the call.",
-        "confirmRequired": "Confirm that the recording is synthetic."
+        "confirmRequired": "Confirm that the recording is synthetic.",
+        "agent_required": "Select an agent.",
+        "agent_unknown": "The selected agent does not exist. Choose an agent from the list.",
+        "agent_retired": "The selected agent is retired. Choose an active agent."
       },
       "channelMap": "Channel map",
       "channelMapHint": "Which stereo channel carries the agent.",
@@ -453,7 +453,8 @@
       "title": "Quality scorecard",
       "description": "Configure criteria, weights, the low-score threshold and prohibited expressions. Every save creates a new version.",
       "placeholderTitle": "Approved default scorecard",
-      "placeholderBody": "Six approved criteria worth 10 points, minimum 6 assessable points, low score below 7.00. Criteria, points, partial credit, minimum evidence and threshold stay configurable."
+      "placeholderBody": "Six approved criteria worth 10 points, minimum 6 assessable points, low score below 7.00. Criteria, points, partial credit, minimum evidence and threshold stay configurable.",
+      "activeUnknown": "Which version is active is not yet reported by the server. The latest saved version is shown; activation status will appear once the API provides it."
     },
     "editor": {
       "title": "{name} — editing from v{version}",
@@ -520,12 +521,12 @@
     "history": {
       "title": "Version history",
       "caption": "Versions are immutable. Expand a version to see its configuration.",
-      "current": "Current",
       "threshold": "Threshold {value}",
       "counts": "{criteria} criteria · {points} points · minimum {minimum} assessable · {expressions} prohibited expressions",
       "penaltyNone": "Prohibited expressions: flag for review only",
       "penaltyActive": "Prohibited expressions: deduct {points} points from “{criterion}” when reliably attributed to the agent",
-      "penaltyActiveOne": "Prohibited expressions: deduct {points} point from “{criterion}” when reliably attributed to the agent"
+      "penaltyActiveOne": "Prohibited expressions: deduct {points} point from “{criterion}” when reliably attributed to the agent",
+      "latest": "Latest saved"
     },
     "penalty": {
       "title": "Prohibited-expression penalty rule",

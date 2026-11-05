@@ -1,69 +1,28 @@
 import { Link } from 'react-router';
 import { useI18n } from '@/shared/i18n/I18nProvider';
+import type { Agent } from '@/shared/types/domain';
 import { Badge, SyntheticBadge } from '@/shared/ui/Badge';
 import { Card } from '@/shared/ui/Card';
-import { ScoreFlag, ScoreValue } from '@/shared/ui/ScoreValue';
-import { tableStyles, TableRegion } from '@/shared/ui/Table';
-import type { AgentSummary } from '../model/aggregate';
+import styles from './Dashboard.module.css';
 
-/** Per-agent sample results, alphabetical. Deliberately not sortable by score. */
-export function AgentBreakdown({
-  rows,
-  threshold,
-}: {
-  rows: readonly AgentSummary[];
-  threshold: number;
-}) {
-  const { t, fmt } = useI18n();
+/**
+ * Links to individual agent pages, alphabetical, with NO figures: comparative agent tables,
+ * rankings and score sorting are prohibited (contract v0.2.1 §B). Each agent's own average is
+ * shown only on that agent's page.
+ */
+export function AgentBreakdown({ agents }: { agents: readonly Agent[] }) {
+  const { t } = useI18n();
   return (
-    <Card title={t('dashboard.agents.title')} caption={t('dashboard.agents.caption')} flush>
-      <TableRegion label={t('dashboard.agents.title')}>
-        <thead>
-          <tr>
-            <th scope="col">{t('agents.fields.name')}</th>
-            <th scope="col">{t('agents.fields.extension')}</th>
-            <th scope="col">{t('dashboard.agents.evaluated')}</th>
-            <th scope="col">{t('dashboard.agents.average')}</th>
-            <th scope="col">{t('dashboard.agents.low')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map(({ agent, summary }) => (
-            <tr key={agent.id}>
-              <td>
-                <Link to={`/agents/${encodeURIComponent(agent.id)}`}>{agent.displayName}</Link>{' '}
-                {agent.synthetic && <SyntheticBadge />}{' '}
-                {agent.status === 'inactive' && <Badge>{t('agents.status.inactive')}</Badge>}
-              </td>
-              <td className={tableStyles.mono}>
-                <bdi>{agent.extension}</bdi>
-              </td>
-              <td>
-                <bdi>{fmt.integer(summary.scoredCalls)}</bdi>
-                {summary.insufficientCalls > 0 && (
-                  <span className={tableStyles.muted}>
-                    {' '}
-                    (+{fmt.integer(summary.insufficientCalls)} {t('evaluations.noScore')})
-                  </span>
-                )}
-              </td>
-              <td>
-                {summary.averageScore === null ? (
-                  <span className={tableStyles.muted}>{t('dashboard.agents.noScore')}</span>
-                ) : (
-                  <>
-                    <ScoreValue score={summary.averageScore} />{' '}
-                    <ScoreFlag score={summary.averageScore} threshold={threshold} />
-                  </>
-                )}
-              </td>
-              <td>
-                <bdi>{fmt.integer(summary.lowScoreCalls)}</bdi>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </TableRegion>
+    <Card title={t('dashboard.agents.title')} caption={t('dashboard.agents.caption')}>
+      <ul className={styles.agentLinks} aria-label={t('dashboard.agents.title')}>
+        {agents.map((agent) => (
+          <li key={agent.id}>
+            <Link to={`/agents/${encodeURIComponent(agent.id)}`}>{agent.displayName}</Link>{' '}
+            {agent.synthetic && <SyntheticBadge />}{' '}
+            {agent.status === 'retired' && <Badge>{t('agents.status.retired')}</Badge>}
+          </li>
+        ))}
+      </ul>
     </Card>
   );
 }

@@ -1,6 +1,8 @@
 /**
  * Endpoint map — the only place backend paths are written (relative to `apiConfig.baseUrl`).
  * CONFIRMED (demo API contract 1.2, 1.10): `sessionExchange`, `callAudio`.
+ * The CSRF-header exemptions are exactly four (contract v0.2.1 §D): `sessionExchange`, health
+ * (never called by the UI), the `callAudio` GET (sent by <audio>) and `GET session`.
  * PROPOSED, not frozen (contract §5): every other route; `transcriptSegments` follows the
  * proposed `GET /api/transcripts/{revision_id}/segments`.
  */
@@ -8,8 +10,11 @@ const seg = encodeURIComponent;
 
 export const endpoints = {
   sessionExchange: '/session/exchange',
+  /** Session resume after a reload (contract v0.2.1 §D, PROPOSED). CSRF-exempt. */
+  session: '/session',
   agents: '/agents',
-  agent: (id: string) => `/agents/${seg(id)}`,
+  agentRetire: (id: string) => `/agents/${seg(id)}/retire`,
+  /** PROVISIONAL: not listed in contract v0.2.1 (audit history route undefined). */
   agentHistory: (id: string) => `/agents/${seg(id)}/history`,
   calls: '/calls',
   call: (id: string) => `/calls/${seg(id)}`,

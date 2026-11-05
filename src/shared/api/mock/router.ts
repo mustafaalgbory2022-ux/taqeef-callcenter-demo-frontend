@@ -21,7 +21,15 @@ export const created = (body: unknown): ApiResponse => ({ status: 201, body });
 
 /** Rule codes the simulated backend uses in field errors. */
 export type FieldReason =
-  'required' | 'too_long' | 'out_of_range' | 'invalid_format' | 'duplicate' | 'invalid';
+  | 'required'
+  | 'too_long'
+  | 'out_of_range'
+  | 'invalid_format'
+  | 'duplicate'
+  | 'agent_required'
+  | 'agent_unknown'
+  | 'agent_retired'
+  | 'invalid';
 
 const correlationId = () => crypto.randomUUID();
 

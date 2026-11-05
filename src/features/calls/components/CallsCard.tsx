@@ -14,7 +14,7 @@ export function CallsCard({ agentId, actions }: { agentId: string | null; action
   const { t, fmt } = useI18n();
   const query = combineQueries([
     useCalls(agentId),
-    useAgents(),
+    useAgents({ includeRetired: true }),
     useEvaluations({ agentId: agentId ?? undefined }),
     useScorecardVersions(),
   ] as const);

@@ -33,7 +33,7 @@ import {
 } from './wire/calls';
 import { evaluationFromWire, wireEvaluation } from './wire/evaluations';
 import { scorecardDraftToWire, scorecardFromWire, wireScorecardVersion } from './wire/scorecards';
-import { wireSessionExchange } from './wire/session';
+import { wireSessionExchange, wireSessionResume } from './wire/session';
 
 export interface CallFilter {
   agentId?: string | undefined;
@@ -47,17 +47,24 @@ export interface EvaluationFilter {
 /** The only data-access surface for UI code. Returns domain types; throws ApiError. */
 export interface ApiClient {
   readonly mode: ApiMode;
-  /** The session held in memory, or null (a reload always needs a new launch code). */
+  /** The session held in memory, or null. Never makes a request. */
   getSession(): Promise<Session | null>;
+  /**
+   * After a reload: recover the existing session's CSRF token with `GET /api/session` (the
+   * first /api call, CSRF-exempt). Returns null on 401; the token stays in memory only.
+   */
+  resumeSession(): Promise<Session | null>;
   /** Exchange a one-time launch code; keeps the returned CSRF token in memory only. */
   openSession(launchCode: string): Promise<Session>;
   /** Called once whenever the backend ends the session (any 401). Returns an unsubscribe. */
   onSessionEnded(listener: () => void): () => void;
   /** Playback source for a call: the protected audio route (cookie, same-origin, no CSRF). */
   audioSrc(callId: string): string | null;
-  listAgents(): Promise<Agent[]>;
+  /** Active agents; `includeRetired` adds retired ones for history views. */
+  listAgents(options?: { includeRetired?: boolean }): Promise<Agent[]>;
   createAgent(input: AgentInput): Promise<Agent>;
-  updateAgent(id: string, patch: Partial<AgentInput>): Promise<Agent>;
+  /** Irreversible: a retired agent is never reactivated. */
+  retireAgent(id: string): Promise<Agent>;
   getAgentHistory(id: string): Promise<AuditEntry[]>;
   listCalls(filter?: CallFilter): Promise<Call[]>;
   getCall(id: string): Promise<Call>;
@@ -66,7 +73,11 @@ export interface ApiClient {
   getTranscript(revisionId: string): Promise<Transcript>;
   listEvaluations(filter?: EvaluationFilter): Promise<Evaluation[]>;
   rescoreCall(callId: string): Promise<Evaluation>;
-  getCurrentScorecard(): Promise<ScorecardVersion>;
+  /**
+   * The newest saved version. NOT necessarily the active one: the contract does not yet say
+   * how the active version is reported, so the UI never labels this version as active.
+   */
+  getLatestScorecardVersion(): Promise<ScorecardVersion>;
   listScorecardVersions(): Promise<ScorecardVersion[]>;
   saveScorecardVersion(draft: ScorecardDraft): Promise<ScorecardVersion>;
 }
@@ -143,6 +154,29 @@ export function createApiClient(
   return {
     mode,
     getSession: () => Promise.resolve(session),
+    async resumeSession() {
+      if (session) return session;
+      const res = await transport({ method: 'GET', path: endpoints.session });
+      if (res.status === 401) return null;
+      if (res.status >= 400) throw toApiError(res.status, res.body);
+      let w;
+      try {
+        w = wireSessionResume(res.body);
+      } catch (err) {
+        if (err instanceof DecodeError) {
+          throw new ApiError('contract_mismatch', res.status, `GET session: ${err.message}`);
+        }
+        throw err;
+      }
+      csrfToken = w.csrf_token;
+      session = {
+        mode,
+        permissions: DEMO_PERMISSIONS,
+        idleTimeoutS: w.idle_timeout_s,
+        absoluteTimeoutS: w.absolute_timeout_s,
+      };
+      return session;
+    },
     async openSession(launchCode) {
       csrfToken = null;
       session = null;
@@ -178,16 +212,25 @@ export function createApiClient(
       options.audioSrc
         ? options.audioSrc(callId)
         : `${apiConfig.baseUrl.replace(/\/$/, '')}${endpoints.callAudio(callId)}`,
-    listAgents: () => send({ method: 'GET', path: endpoints.agents }, agents.decoder, agents.map),
+    listAgents: ({ includeRetired = false } = {}) =>
+      send(
+        {
+          method: 'GET',
+          path: endpoints.agents,
+          query: { include_retired: includeRetired ? 'true' : undefined },
+        },
+        agents.decoder,
+        agents.map,
+      ),
     createAgent: (input) =>
       send(
         { method: 'POST', path: endpoints.agents, body: agentInputToWire(input) },
         wireAgent,
         agentFromWire,
       ),
-    updateAgent: (id, patch) =>
+    retireAgent: (id) =>
       send(
-        { method: 'PATCH', path: endpoints.agent(id), body: agentInputToWire(patch) },
+        { method: 'POST', path: endpoints.agentRetire(id), body: { request_id: requestId() } },
         wireAgent,
         agentFromWire,
       ),
@@ -237,9 +280,9 @@ export function createApiClient(
         wireEvaluation,
         evaluationFromWire,
       ),
-    // PROVISIONAL: the contract has no "current version" route and no active flag yet. In
-    // the demo a version is only created by activation, so the newest version is the active one.
-    getCurrentScorecard: async () => {
+    // The contract defines no active-version field or route yet; return the newest saved
+    // version and let the UI say so (never "active" without authoritative information).
+    getLatestScorecardVersion: async () => {
       const all = await send(
         { method: 'GET', path: endpoints.scorecardVersions },
         versions.decoder,

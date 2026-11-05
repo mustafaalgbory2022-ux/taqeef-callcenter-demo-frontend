@@ -11,10 +11,10 @@ import styles from './AgentFilter.module.css';
 export function AgentFilter() {
   const { t } = useI18n();
   const [agentId, setAgentId] = useAgentParam();
-  const agents = useAgents();
+  const agents = useAgents({ includeRetired: true });
   const list = agents.status === 'success' ? sortAgents(agents.data) : [];
   const active = list.filter((a) => a.status === 'active');
-  const inactive = list.filter((a) => a.status === 'inactive');
+  const inactive = list.filter((a) => a.status === 'retired');
 
   return (
     <label className={styles.filter}>

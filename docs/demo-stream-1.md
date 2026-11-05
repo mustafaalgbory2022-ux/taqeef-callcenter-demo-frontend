@@ -317,6 +317,28 @@ defined), UUIDv7 for mock call/agent ids (awaiting confirmation).
 mobile, EN/AR × light/dark with axe, transcript search, evidence, shortcuts, upload pipeline
 steps and final status, run-revision display in EN/AR).
 
+## Task 8 — contract v0.2.1 reconciliation (Stream 8)
+
+**Inputs (all four received and read):** `demo-api-contract-v0.2.md`,
+`demo-api-contract-v0.2.1.md`, `cloud-frontend-changes-v0.2.md`,
+`cloud-alignment-note-v0.2.1.md`.
+
+**Implemented** (handoff §5): agents can only be created or retired, with names unique after
+normalization and no reuse; upload requires an active agent, with the three agent rejection
+reasons; agent display name on calls; agent names removed from page titles and from mock audit
+records; the overview's comparative per-agent table was replaced by links only, while the agent
+page keeps that agent's own average ("Based on N calls"); all ids are opaque; session resume via
+`GET /api/session` with exactly four CSRF exemptions and same-origin fetch mode; the newest
+scorecard version is no longer presented as active.
+
+**Remaining gaps:** handoff §6 (session-resume body, active-version reporting, provisional agent
+fields and history route, `display_hundredths`, job polling, speaker roles).
+
+**QA.** `npm run check` passed: typecheck, lint, format and 115 unit/component/mock-integration
+tests, including the live-bundle exclusion test. `npm run test:e2e` passed: 66 Playwright tests
+(desktop + mobile, EN/AR × light/dark with axe, transcript search, evidence, shortcuts, reload
+resume, retire flow, no comparative agent figures, generic agent page title).
+
 ## Proposed next tasks (prioritized, client-only unless noted)
 
 1. On approval: launch code in the URL fragment (Task 3a finding 9).

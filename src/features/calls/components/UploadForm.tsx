@@ -21,6 +21,10 @@ import {
 } from '../model/upload';
 import styles from './UploadForm.module.css';
 
+const AGENT_REASONS = ['agent_required', 'agent_unknown', 'agent_retired'] as const;
+const isAgentReason = (r: string): r is (typeof AGENT_REASONS)[number] =>
+  (AGENT_REASONS as readonly string[]).includes(r);
+
 const initial: UploadValues = {
   file: null,
   title: '',
@@ -60,7 +64,9 @@ export function UploadForm() {
       navigate(`/calls/${encodeURIComponent(accepted.callId)}`);
     } catch (err) {
       const mapped = mapFieldIssues(err, SERVER_UPLOAD_FIELD, (issue) =>
-        describeFieldIssue(issue, t),
+        issue.field === 'agent_id' && isAgentReason(issue.reason)
+          ? t(`calls.upload.errors.${issue.reason}`)
+          : describeFieldIssue(issue, t),
       );
       if (mapped) setErrors(mapped.fields);
       if (!mapped || mapped.unmapped.length > 0) {

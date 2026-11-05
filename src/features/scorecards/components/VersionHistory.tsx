@@ -17,7 +17,7 @@ export function VersionHistory({ versions }: { versions: readonly ScorecardVersi
                 <bdi>v{v.version}</bdi>
               </span>
               {v.version === latest && (
-                <Badge tone="accent">{t('scorecards.history.current')}</Badge>
+                <Badge tone="accent">{t('scorecards.history.latest')}</Badge>
               )}
               <span className={styles.meta}>
                 <bdi>{fmt.dateTime(v.createdAt)}</bdi> · {v.createdBy}

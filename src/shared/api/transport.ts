@@ -53,6 +53,10 @@ export function createFetchTransport(fetchImpl: typeof fetch = fetch): Transport
         body: payload ?? null,
         credentials: 'same-origin',
         cache: 'no-store',
+        // Same-origin only: the browser refuses cross-origin targets and sends
+        // Sec-Fetch-Site: same-origin, Sec-Fetch-Mode: same-origin, Sec-Fetch-Dest: empty
+        // (required by GET /api/session, contract v0.2.1 §D).
+        mode: 'same-origin',
       });
     } catch {
       throw new ApiError('network_error', 0, 'Network error');

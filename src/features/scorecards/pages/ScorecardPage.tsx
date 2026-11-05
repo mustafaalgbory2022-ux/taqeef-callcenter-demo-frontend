@@ -8,14 +8,14 @@ import { PageHeader } from '@/shared/ui/PageHeader';
 import { QueryView } from '@/shared/ui/States';
 import { ScorecardEditor } from '../components/ScorecardEditor';
 import { VersionHistory } from '../components/VersionHistory';
-import { useCurrentScorecard, useScorecardVersions } from '../hooks/useScorecards';
+import { useLatestScorecardVersion, useScorecardVersions } from '../hooks/useScorecards';
 import styles from '../components/Editor.module.css';
 
 export function ScorecardPage() {
   const { t, pick } = useI18n();
   useDocumentTitle(t('scorecards.page.title'), t('app.title'));
   const canEdit = usePermission('scorecards.manage');
-  const query = combineQueries([useCurrentScorecard(), useScorecardVersions()] as const);
+  const query = combineQueries([useLatestScorecardVersion(), useScorecardVersions()] as const);
 
   return (
     <>
@@ -27,6 +27,7 @@ export function ScorecardPage() {
       <Notice tone="mock" title={t('scorecards.page.placeholderTitle')}>
         {t('scorecards.page.placeholderBody')}
       </Notice>
+      <Notice tone="info" title={t('scorecards.page.activeUnknown')} testId="active-unknown" />
       <QueryView query={query} rows={8}>
         {([current, versions]) => (
           <div className={styles.editor}>

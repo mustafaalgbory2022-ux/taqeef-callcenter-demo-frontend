@@ -1,64 +1,66 @@
 import { EXTENSION_PATTERN } from '@/shared/utils/validation';
 import { nextId } from '../db';
 import { created, fail, invalid, ok, type Route } from '../router';
-import type { MockState, WireAgent, WireAudit } from '../types';
+import type { MockState, WireAgent } from '../types';
 
-const ACTOR = 'Synthetic administrator';
-type Patch = Partial<Pick<WireAgent, 'display_name' | 'extension' | 'status'>>;
+/** Audit records hold ids only, never names (contract v0.2.1 §A). */
+const ACTOR = 'operator';
 
-function readPatch(body: unknown): Patch {
-  if (typeof body !== 'object' || body === null) return {};
-  return body as Patch;
+const normalize = (name: string) => name.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
+
+interface CreateBody {
+  display_name?: unknown;
+  extension?: unknown;
 }
 
-function validate(state: MockState, patch: Patch, selfId: string | null, isCreate: boolean) {
-  const name = patch.display_name;
-  if (isCreate || name !== undefined) {
-    if (typeof name !== 'string' || name.trim().length === 0)
-      return invalid('display_name', 'required');
-    if (name.length > 80) return invalid('display_name', 'too_long');
-  }
-  const ext = patch.extension;
-  if (isCreate || ext !== undefined) {
-    if (typeof ext !== 'string' || !EXTENSION_PATTERN.test(ext)) {
+function validate(state: MockState, body: CreateBody) {
+  const name = body.display_name;
+  if (typeof name !== 'string' || name.trim().length === 0)
+    return invalid('display_name', 'required');
+  if (name.trim().length > 80) return invalid('display_name', 'too_long');
+  // Unique across all agents, retired included (names are never reused).
+  if (state.agents.some((a) => normalize(a.display_name) === normalize(name)))
+    return invalid('display_name', 'duplicate');
+  const ext = body.extension;
+  if (ext !== undefined && ext !== null && ext !== '') {
+    if (typeof ext !== 'string' || !EXTENSION_PATTERN.test(ext))
       return invalid('extension', 'invalid_format');
-    }
-    const taken = state.agents.some(
-      (a) => a.id !== selfId && a.extension.toLowerCase() === ext.toLowerCase(),
-    );
-    if (taken) return invalid('extension', 'duplicate');
-  }
-  if (patch.status !== undefined && patch.status !== 'active' && patch.status !== 'inactive') {
-    return invalid('status', 'invalid');
+    if (state.agents.some((a) => a.extension?.toLowerCase() === ext.toLowerCase()))
+      return invalid('extension', 'duplicate');
   }
   return null;
 }
 
-function diff(before: WireAgent, after: WireAgent): WireAudit['changes'] {
-  const fields = ['display_name', 'extension', 'status'] as const;
-  return fields.flatMap((f) => {
-    const b = String(before[f]);
-    const a = String(after[f]);
-    return a === b ? [] : [{ field: f, before: b, after: a }];
-  });
-}
-
+/**
+ * SIMULATED agent routes (contract v0.2.1 §A, PROPOSED): list (active by default), create and
+ * retire. There is no rename, reactivate or delete route.
+ */
 export function agentRoutes(state: MockState, persist: () => void): Route[] {
   return [
-    { method: 'GET', pattern: '/agents', handler: () => ok(state.agents) },
+    {
+      method: 'GET',
+      pattern: '/agents',
+      handler: ({ query }) =>
+        ok(
+          query.include_retired === 'true'
+            ? state.agents
+            : state.agents.filter((a) => a.status === 'active'),
+        ),
+    },
     {
       method: 'POST',
       pattern: '/agents',
       handler: ({ body }) => {
-        const patch = readPatch(body);
-        const error = validate(state, patch, null, true);
+        const input = (typeof body === 'object' && body !== null ? body : {}) as CreateBody;
+        const error = validate(state, input);
         if (error) return error;
         const now = new Date().toISOString();
         const agent: WireAgent = {
           id: nextId(state, 'agt'),
-          display_name: (patch.display_name ?? '').trim(),
-          extension: (patch.extension ?? '').trim(),
-          status: patch.status ?? 'active',
+          display_name: String(input.display_name).trim(),
+          extension:
+            typeof input.extension === 'string' && input.extension ? input.extension : null,
+          status: 'active',
           synthetic: true,
           created_at: now,
           updated_at: now,
@@ -70,7 +72,7 @@ export function agentRoutes(state: MockState, persist: () => void): Route[] {
             action: 'created',
             actor: ACTOR,
             at: now,
-            changes: diff({ ...agent, display_name: '', extension: '' }, agent),
+            changes: [{ field: 'agent_id', before: null, after: agent.id }],
           },
         ];
         persist();
@@ -78,36 +80,27 @@ export function agentRoutes(state: MockState, persist: () => void): Route[] {
       },
     },
     {
-      method: 'PATCH',
-      pattern: '/agents/:id',
-      handler: ({ params, body }) => {
-        const current = state.agents.find((a) => a.id === params.id);
-        if (!current) return fail(404, 'Agent not found.');
-        const patch = readPatch(body);
-        const error = validate(state, patch, current.id, false);
-        if (error) return error;
-        const next: WireAgent = { ...current, ...patch, updated_at: new Date().toISOString() };
-        const changes = diff(current, next);
-        if (changes.length === 0) return ok(current);
-        const statusOnly = changes.length === 1 && changes[0]?.field === 'status';
-        const action = statusOnly
-          ? next.status === 'inactive'
-            ? 'disabled'
-            : 'enabled'
-          : 'updated';
-        Object.assign(current, next);
-        (state.audit[current.id] ??= []).unshift({
+      method: 'POST',
+      pattern: '/agents/:id/retire',
+      handler: ({ params }) => {
+        const agent = state.agents.find((a) => a.id === params.id);
+        if (!agent) return fail(404, 'Agent not found.');
+        if (agent.status === 'retired') return fail(409, 'Agent is already retired.');
+        agent.status = 'retired';
+        agent.updated_at = new Date().toISOString();
+        (state.audit[agent.id] ??= []).unshift({
           id: nextId(state, 'audit'),
-          action,
+          action: 'retired',
           actor: ACTOR,
-          at: next.updated_at,
-          changes,
+          at: agent.updated_at,
+          changes: [{ field: 'status', before: 'active', after: 'retired' }],
         });
         persist();
-        return ok(current);
+        return ok(agent);
       },
     },
     {
+      // PROVISIONAL: audit history route is not defined by the contract.
       method: 'GET',
       pattern: '/agents/:id/history',
       handler: ({ params }) =>

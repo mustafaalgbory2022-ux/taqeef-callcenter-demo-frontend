@@ -26,12 +26,18 @@ test('a launch code in the query string is ignored', async ({ page }) => {
   await expect(page.getByRole('heading', { level: 1, name: 'Quality overview' })).toHaveCount(0);
 });
 
-test('a reused launch code is rejected and a reload needs a new code', async ({ page }) => {
+test('a reload resumes the session via GET /session; a reused code is rejected', async ({
+  page,
+}) => {
   await page.goto('/#c=SYN-REUSED-E2E');
   await expect(page.getByRole('heading', { level: 1, name: 'Quality overview' })).toBeVisible();
-  // The session lives in memory only: a reload returns to the launch screen.
+  // Reload: the token is recovered from GET /api/session (contract v0.2.1 §D), not storage.
   await page.reload();
-  await expect(page.getByRole('button', { name: 'Open local demo session' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Quality overview' })).toBeVisible();
+  const stored = await page.evaluate(() =>
+    JSON.stringify({ ...localStorage }).includes('csrf') ? 'leak' : 'ok',
+  );
+  expect(stored).toBe('ok');
   await page.goto('/launch#c=SYN-REUSED-E2E');
   await expect(page.getByText(/invalid, expired or has already been used/)).toBeVisible();
 });

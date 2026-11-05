@@ -1,3 +1,4 @@
+import { sortAgents } from '@/features/agents';
 import { Link } from 'react-router';
 import { AgentFilter, useAgentParam } from '@/features/agents';
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
@@ -65,9 +66,7 @@ export function OverviewPage() {
               <SampleNotice evaluatedCalls={derived.summary.scoredCalls} />
               <KpiRow summary={derived.summary} />
               <VersionNotice versions={derived.summary.scorecardVersions} />
-              {!agentId && (
-                <AgentBreakdown rows={derived.byAgent} threshold={derived.summary.threshold} />
-              )}
+              {!agentId && <AgentBreakdown agents={sortAgents(derived.agents)} />}
               <div className={layout.split}>
                 <CriteriaPerformance summary={derived.summary} />
               </div>

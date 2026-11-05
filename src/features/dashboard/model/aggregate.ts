@@ -1,4 +1,4 @@
-import type { Agent, Evaluation, LocalizedText, ScorecardVersion } from '@/shared/types/domain';
+import type { Evaluation, LocalizedText, ScorecardVersion } from '@/shared/types/domain';
 import {
   DEFAULT_LOW_SCORE_THRESHOLD,
   isAssessed,
@@ -117,28 +117,4 @@ export function filterByVersion(
   version: number | null,
 ): Evaluation[] {
   return version === null ? [...current] : current.filter((e) => e.scorecardVersion === version);
-}
-
-export interface AgentSummary {
-  agent: Agent;
-  summary: PerformanceSummary;
-}
-
-/** Per-agent summaries, alphabetical (no ranking by score). */
-export function summarizeByAgent(
-  current: readonly Evaluation[],
-  agents: readonly Agent[],
-  versions: readonly ScorecardVersion[],
-  selectedVersion: number | null = null,
-): AgentSummary[] {
-  return [...agents]
-    .sort((a, b) => a.displayName.localeCompare(b.displayName))
-    .map((agent) => ({
-      agent,
-      summary: summarize(
-        current.filter((e) => e.agentId === agent.id),
-        versions,
-        selectedVersion,
-      ),
-    }));
 }

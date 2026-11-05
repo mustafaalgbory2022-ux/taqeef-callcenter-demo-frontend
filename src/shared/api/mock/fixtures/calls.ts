@@ -56,6 +56,7 @@ const call = (
   id,
   title,
   agent_id: agentId,
+  agent_display_name: null,
   language,
   duration_ms: durationSec * 1000,
   recorded_at: recordedAt,

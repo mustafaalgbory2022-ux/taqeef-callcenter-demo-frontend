@@ -8,18 +8,11 @@ import { tableStyles, TableRegion } from '@/shared/ui/Table';
 export interface AgentsTableProps {
   agents: readonly Agent[];
   canManage: boolean;
-  onEdit: (agent: Agent) => void;
-  onToggleStatus: (agent: Agent) => void;
+  onRetire: (agent: Agent) => void;
   onHistory: (agent: Agent) => void;
 }
 
-export function AgentsTable({
-  agents,
-  canManage,
-  onEdit,
-  onToggleStatus,
-  onHistory,
-}: AgentsTableProps) {
+export function AgentsTable({ agents, canManage, onRetire, onHistory }: AgentsTableProps) {
   const { t, fmt } = useI18n();
   return (
     <TableRegion label={t('agents.table.label')}>
@@ -42,7 +35,7 @@ export function AgentsTable({
               {agent.synthetic && <SyntheticBadge />}
             </td>
             <td className={tableStyles.mono}>
-              <bdi>{agent.extension}</bdi>
+              <bdi>{agent.extension ?? '—'}</bdi>
             </td>
             <td>
               <Badge
@@ -62,16 +55,12 @@ export function AgentsTable({
               </Button>
               {canManage && (
                 <>
-                  <Button variant="ghost" size="sm" icon="edit" onClick={() => onEdit(agent)}>
-                    {t('common.edit')}
-                    <span className="visually-hidden"> — {agent.displayName}</span>
-                  </Button>
-                  <Button variant="ghost" size="sm" onClick={() => onToggleStatus(agent)}>
-                    {t(
-                      agent.status === 'active' ? 'agents.status.disable' : 'agents.status.enable',
-                    )}
-                    <span className="visually-hidden"> — {agent.displayName}</span>
-                  </Button>
+                  {agent.status === 'active' && (
+                    <Button variant="ghost" size="sm" onClick={() => onRetire(agent)}>
+                      {t('agents.status.retire')}
+                      <span className="visually-hidden"> — {agent.displayName}</span>
+                    </Button>
+                  )}
                 </>
               )}
             </td>

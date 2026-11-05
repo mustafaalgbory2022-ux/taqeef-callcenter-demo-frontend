@@ -1,11 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type {
-  Agent,
-  CriterionEvaluation,
-  Evaluation,
-  ScorecardVersion,
-} from '@/shared/types/domain';
-import { currentEvaluations, filterByVersion, summarize, summarizeByAgent } from './aggregate';
+import type { CriterionEvaluation, Evaluation, ScorecardVersion } from '@/shared/types/domain';
+import { currentEvaluations, filterByVersion, summarize } from './aggregate';
 
 const version = (v: number, threshold = 7): ScorecardVersion => ({
   scorecardId: 'sc',
@@ -84,16 +79,6 @@ const ev = (
   };
 };
 
-const agent = (id: string, displayName: string): Agent => ({
-  id,
-  displayName,
-  extension: id,
-  status: 'active',
-  synthetic: true,
-  createdAt: '',
-  updatedAt: '',
-});
-
 const T = '2026-10-01T00:00:00Z';
 
 describe('currentEvaluations', () => {
@@ -169,21 +154,5 @@ describe('summarize', () => {
       averageScore: null,
       lowScoreCalls: 0,
     });
-  });
-});
-
-describe('summarizeByAgent', () => {
-  it('lists agents alphabetically, including agents with no scored calls', () => {
-    const rows = summarizeByAgent(
-      [ev('1', 'b', 9, T), ev('2', 'a', null, T)],
-      [agent('b', 'Zed'), agent('a', 'Amy')],
-      [version(1)],
-    );
-    expect(
-      rows.map((r) => [r.agent.displayName, r.summary.scoredCalls, r.summary.insufficientCalls]),
-    ).toEqual([
-      ['Amy', 0, 1],
-      ['Zed', 1, 0],
-    ]);
   });
 });

@@ -13,6 +13,12 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
     if (state.calls.map((c) => refreshUpload(state, c)).some(Boolean)) persist();
   };
 
+  /** Call list and detail carry `agent_display_name` (contract v0.2.1 §A, PROPOSED). */
+  const withAgentName = (call: WireCall): WireCall => ({
+    ...call,
+    agent_display_name: state.agents.find((a) => a.id === call.agent_id)?.display_name ?? null,
+  });
+
   return [
     {
       method: 'GET',
@@ -22,7 +28,11 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
         const list = query.agent_id
           ? state.calls.filter((c) => c.agent_id === query.agent_id)
           : state.calls;
-        return ok([...list].sort((a, b) => Date.parse(b.recorded_at) - Date.parse(a.recorded_at)));
+        return ok(
+          [...list]
+            .sort((a, b) => Date.parse(b.recorded_at) - Date.parse(a.recorded_at))
+            .map(withAgentName),
+        );
       },
     },
     {
@@ -31,7 +41,7 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
       handler: ({ params }) => {
         refreshAll();
         const call = state.calls.find((c) => c.id === params.id);
-        return call ? ok(call) : fail(404, 'Call not found.');
+        return call ? ok(withAgentName(call)) : fail(404, 'Call not found.');
       },
     },
     {
@@ -62,8 +72,11 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
         if (channelMap !== null && !CHANNEL_MAPS.includes(String(channelMap)))
           return invalid('channel_map', 'invalid');
         if (!body.get('request_id')) return invalid('request_id', 'required');
+        // Contract v0.2.1 §A: an existing, active agent is required (value never echoed).
+        if (!agentId) return invalid('agent_id', 'agent_required');
         const agent = state.agents.find((a) => a.id === agentId);
-        if (!agent || agent.status !== 'active') return invalid('agent_id', 'invalid');
+        if (!agent) return invalid('agent_id', 'agent_unknown');
+        if (agent.status !== 'active') return invalid('agent_id', 'agent_retired');
 
         const id = nextId(state, 'UPL').toUpperCase();
         const call: WireCall = {
@@ -71,6 +84,7 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
           // Optional display name; the synthetic fallback is mock-only.
           title: title || `Uploaded call ${id}`,
           agent_id: agent.id,
+          agent_display_name: null,
           language: 'ar',
           duration_ms: null,
           recorded_at: new Date().toISOString(),

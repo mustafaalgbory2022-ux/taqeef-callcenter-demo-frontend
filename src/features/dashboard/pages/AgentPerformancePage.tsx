@@ -23,7 +23,8 @@ export function AgentPerformancePage() {
   const { t } = useI18n();
   const { query, derived, version, setVersion } = usePerformance(agentId);
   const agent = derived?.agents.find((a) => a.id === agentId);
-  useDocumentTitle(agent?.displayName ?? t('dashboard.agent.title'), t('app.title'));
+  // Agent names never appear in page titles or URLs (contract v0.2.1 §A).
+  useDocumentTitle(t('dashboard.agent.pageTitle'), t('app.title'));
 
   return (
     <QueryView query={query} rows={6}>
@@ -68,7 +69,7 @@ function AgentDashboard({
             <div>
               <dt>{t('agents.fields.extension')}</dt>
               <dd>
-                <bdi>{agent.extension}</bdi>
+                <bdi>{agent.extension ?? '—'}</bdi>
               </dd>
             </div>
             <div>

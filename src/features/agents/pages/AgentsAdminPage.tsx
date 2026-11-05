@@ -17,7 +17,7 @@ import { sortAgents } from '../model/agents';
 
 type DialogState =
   | { kind: 'none' }
-  | { kind: 'form'; agent: Agent | null }
+  | { kind: 'form' }
   | { kind: 'status'; agent: Agent }
   | { kind: 'history'; agent: Agent };
 
@@ -25,7 +25,7 @@ export function AgentsAdminPage() {
   const { t } = useI18n();
   useDocumentTitle(t('agents.admin.title'), t('app.title'));
   const canManage = usePermission('agents.manage');
-  const agents = useAgents();
+  const agents = useAgents({ includeRetired: true });
   const [dialog, setDialog] = useState<DialogState>({ kind: 'none' });
   const close = () => setDialog({ kind: 'none' });
   const list = agents.status === 'success' ? agents.data : [];
@@ -38,11 +38,7 @@ export function AgentsAdminPage() {
         description={t('agents.admin.description')}
         actions={
           canManage && (
-            <Button
-              variant="primary"
-              icon="plus"
-              onClick={() => setDialog({ kind: 'form', agent: null })}
-            >
+            <Button variant="primary" icon="plus" onClick={() => setDialog({ kind: 'form' })}>
               {t('agents.admin.add')}
             </Button>
           )
@@ -64,17 +60,14 @@ export function AgentsAdminPage() {
             <AgentsTable
               agents={sortAgents(data)}
               canManage={canManage}
-              onEdit={(agent) => setDialog({ kind: 'form', agent })}
-              onToggleStatus={(agent) => setDialog({ kind: 'status', agent })}
+              onRetire={(agent) => setDialog({ kind: 'status', agent })}
               onHistory={(agent) => setDialog({ kind: 'history', agent })}
             />
           )}
         </QueryView>
       </Card>
 
-      {dialog.kind === 'form' && (
-        <AgentFormDialog agent={dialog.agent} agents={list} onClose={close} />
-      )}
+      {dialog.kind === 'form' && <AgentFormDialog agents={list} onClose={close} />}
       {dialog.kind === 'status' && <ConfirmStatusDialog agent={dialog.agent} onClose={close} />}
       {dialog.kind === 'history' && <AgentHistoryDialog agent={dialog.agent} onClose={close} />}
     </>

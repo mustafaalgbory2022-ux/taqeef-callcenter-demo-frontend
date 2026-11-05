@@ -2,37 +2,33 @@ import type { Agent, AgentInput } from '@/shared/types/domain';
 import type { MessageKey } from '@/shared/i18n/translate';
 import { EXTENSION_PATTERN, isBlank } from '@/shared/utils/validation';
 
-export type AgentField = 'displayName' | 'extension' | 'status';
+export type AgentField = 'displayName' | 'extension';
 export type AgentErrors = Partial<Record<AgentField, MessageKey>>;
 
-export const emptyAgentInput: AgentInput = {
-  displayName: '',
-  extension: '',
-  status: 'active',
-};
+export const emptyAgentInput: AgentInput = { displayName: '', extension: '' };
 
-export function toAgentInput(agent: Agent): AgentInput {
-  return {
-    displayName: agent.displayName,
-    extension: agent.extension,
-    status: agent.status,
-  };
+/** Case-insensitive, whitespace-collapsed form used for name uniqueness (contract v0.2.1 §A). */
+export function normalizeAgentName(name: string): string {
+  return name.normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 }
 
-/** Client-side validation mirroring server rules. Errors are i18n message keys. */
-export function validateAgent(
-  input: AgentInput,
-  agents: readonly Agent[],
-  selfId: string | null,
-): AgentErrors {
+/**
+ * Client-side validation for creating an agent, mirroring server rules. Errors are i18n
+ * message keys. Names are unique across ALL agents, retired included (never reused).
+ */
+export function validateAgent(input: AgentInput, agents: readonly Agent[]): AgentErrors {
   const errors: AgentErrors = {};
+  const name = normalizeAgentName(input.displayName);
   if (isBlank(input.displayName)) errors.displayName = 'agents.form.errors.nameRequired';
   else if (input.displayName.trim().length > 80)
     errors.displayName = 'agents.form.errors.nameTooLong';
+  else if (agents.some((a) => normalizeAgentName(a.displayName) === name))
+    errors.displayName = 'agents.form.errors.nameTaken';
 
+  // Extension is a PROVISIONAL optional label (not defined by contract v0.2.1).
   const ext = input.extension.trim();
-  if (!EXTENSION_PATTERN.test(ext)) errors.extension = 'agents.form.errors.extensionFormat';
-  else if (agents.some((a) => a.id !== selfId && a.extension.toLowerCase() === ext.toLowerCase())) {
+  if (ext && !EXTENSION_PATTERN.test(ext)) errors.extension = 'agents.form.errors.extensionFormat';
+  else if (ext && agents.some((a) => a.extension?.toLowerCase() === ext.toLowerCase())) {
     errors.extension = 'agents.form.errors.extensionTaken';
   }
   return errors;
@@ -42,12 +38,13 @@ export function validateAgent(
 export const SERVER_FIELD: Record<string, AgentField> = {
   display_name: 'displayName',
   extension: 'extension',
-  status: 'status',
 };
 
 /** Alphabetical by name — never by score (no rankings). */
 export function sortAgents(agents: readonly Agent[]): Agent[] {
   return [...agents].sort(
-    (a, b) => a.displayName.localeCompare(b.displayName) || a.extension.localeCompare(b.extension),
+    (a, b) =>
+      a.displayName.localeCompare(b.displayName) ||
+      (a.extension ?? '').localeCompare(b.extension ?? ''),
   );
 }

@@ -17,7 +17,7 @@ export function EvaluationsPage() {
   const [rescoresOnly, setRescoresOnly] = useState(false);
   const query = combineQueries([
     useEvaluations({ agentId: agentId ?? undefined }),
-    useAgents(),
+    useAgents({ includeRetired: true }),
   ] as const);
 
   return (

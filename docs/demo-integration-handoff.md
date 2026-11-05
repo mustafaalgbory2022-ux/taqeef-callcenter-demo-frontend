@@ -1,6 +1,6 @@
 # Five-call demo frontend — integration handoff for Local Claude
 
-Status: aligned with **demo API contract v0.2** (authoritative) as of Stream 7. Nothing here
+Status: aligned with **demo API contract v0.2 + amendment v0.2.1** (authoritative) as of Stream 8. Nothing here
 creates or freezes an endpoint or schema; every route stays PROPOSED until M4 / v0.3.
 
 ## 1. Where it is
@@ -9,7 +9,7 @@ creates or freezes an endpoint or schema; every route stays PROPOSED until M4 / 
 - Branch: `demo/ord-0035-cloud-stream-1` (dedicated demo branch; never merged into `main`)
 - Commit: the commit that last changed this file —
   `git log -1 --format=%H -- docs/demo-integration-handoff.md`; the exact hash is in the
-  Stream 7 report. Previous checkpoint: `e1e44abf`.
+  Stream 8 report. Previous checkpoint: `854f9922`.
 - Untouched: `main`, the preserved original demo branch, `feature/taqeef-full-frontend`.
 
 ## 2. How to run
@@ -48,33 +48,49 @@ builds (`src/test/liveBundle.test.ts`).
 | 1 Branding    | Static: no branding route; neutral placeholder in `shared/branding/defaults.ts`; branch-local `CLAUDE.md` and the brand-tokens skill updated                                                                                                                                        | `shared/branding/`, `CLAUDE.md`, `.claude/skills/taqeef-brand-tokens/SKILL.md`                        |
 | 10 IDs        | All ids are treated as opaque (non-empty) strings; the UUIDv7 format is not enforced (awaiting confirmation for every id); `seg-NNNN` stays enforced (v0.1 2.2)                                                                                                                     | `wire/ids.ts`                                                                                         |
 
-## 5. Remaining gaps — decisions for Local Claude
+## 5. Implemented in Stream 8 (contract v0.2.1 and alignment note)
 
-| Item                                                                                                 | Status                                                                                                                                                                       | Files affected when decided                                                        |
-| ---------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| E Job-summary polling (2 s)                                                                          | Deferred: the `GET /api/jobs/summary` body is not defined, so nothing is polled from it; call-status polling stays                                                           | `useCallData.ts`, `client.ts`, `ProcessingStatus.tsx`                              |
-| B Speaker roles per run, `channel_map_source`                                                        | Deferred: role-method values are known, but the per-run segment-role fields and `channel_map_source` values are not; `channel_layout` and segment `speaker` stay PROVISIONAL | `wire/calls.ts`, `wire/evaluations.ts`, `TranscriptView.tsx`, `CallDetailPage.tsx` |
-| UUIDv7 for every id                                                                                  | Contract item 10 says lowercase UUIDv7; mock call/agent ids (`DEMO-001`, `agt-001`) unchanged pending confirmation                                                           | `wire/ids.ts`, mock fixtures, e2e paths                                            |
-| Rejection reason enum on `rejected` calls                                                            | Field name not defined; only the status is shown                                                                                                                             | `wire/calls.ts`, `ProcessingStatus.tsx`                                            |
-| Selecting an older run to view                                                                       | The page shows the latest run; picking another run for the transcript needs a UI decision                                                                                    | `EvaluationPanel.tsx`, `CallDetailPage.tsx`                                        |
-| Re-score `202 {job_id}`, response bodies, agents schema, dashboard payload, word span, digit masking | OPEN / deferred in v0.2                                                                                                                                                      | `client.ts`, `wire/*.ts`                                                           |
-| Overall "Not assessable — no score (<main reason>)"                                                  | Main-reason rule not defined                                                                                                                                                 | `EvaluationPanel.tsx`                                                              |
+| v0.2.1 item              | Frontend behaviour                                                                                                                                                                                                                                                                                                                                                           | Files                                                                            |
+| ------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| §A Agents                | Create and retire only; no edit, rename, reactivate or delete. Names unique after normalization (case-insensitive, whitespace-collapsed) across all agents, retired included. `GET /api/agents` = active (upload); `?include_retired=true` for admin, dashboards, filters and call pages. Retire = `POST /api/agents/{agent_id}/retire`, irreversible, confirmed in a dialog | `client.ts`, `wire/agents.ts`, agents feature, `domain.ts`                       |
+| §A Upload                | `agent_id` required, from active agents only; 422 reasons `agent_required` / `agent_unknown` / `agent_retired` shown as localized text; value never echoed                                                                                                                                                                                                                   | `UploadForm.tsx`, mock `handlers/calls.ts`                                       |
+| §A Call payload          | `agent_display_name` decoded (PROPOSED, nullable)                                                                                                                                                                                                                                                                                                                            | `wire/calls.ts`                                                                  |
+| §A Privacy               | Agent names removed from page titles (agent page title is generic); URLs use ids; mock audit entries hold ids only                                                                                                                                                                                                                                                           | `AgentPerformancePage.tsx`, mock `handlers/agents.ts`                            |
+| §B Agent pages           | The agent page keeps that agent's own average, labelled "Based on N calls". The overview's per-agent comparison table was removed and replaced by alphabetical links with no figures; the per-agent summary helper was removed                                                                                                                                               | `AgentBreakdown.tsx`, `aggregate.ts`, `usePerformance.ts`                        |
+| §C IDs                   | All ids (including segment ids) are opaque, non-empty strings; no UUID version or format check                                                                                                                                                                                                                                                                               | `wire/ids.ts`                                                                    |
+| §D Session reload        | Without a launch code, the first API call is `GET /api/session` (no CSRF header); the token is held in memory only; 401 → launch screen. CSRF exemptions are exactly four (exchange, health, audio GET, `GET /api/session`). Fetches use `mode: 'same-origin'`, so the browser sends `Sec-Fetch-Site: same-origin`, `Sec-Fetch-Mode: same-origin`, `Sec-Fetch-Dest: empty`   | `client.ts` (`resumeSession`), `SessionGate.tsx`, `transport.ts`, `endpoints.ts` |
+| Scorecard active version | The newest saved version is no longer treated or labelled as active: the method is now `getLatestScorecardVersion`, the history badge reads "Latest saved", and the scorecard page says the server does not yet report the active version                                                                                                                                    | `client.ts`, `scorecards/*`, locales                                             |
 
-## 6. Mock mode
+## 6. Remaining gaps — decisions for Local Claude
+
+| Item                                                                                                                  | Status                                                                                                                | Files affected when decided                                                                   |
+| --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `GET /api/session` body                                                                                               | Only "returns the CSRF token" is specified; `csrf_token` (same as the exchange) is assumed and timeouts are optional  | `wire/session.ts`                                                                             |
+| Active scorecard version                                                                                              | No field or route reports it; the UI shows the latest saved version and says so                                       | `client.ts`, `ScorecardPage.tsx`, `VersionHistory.tsx`, dashboard threshold in `aggregate.ts` |
+| Agent body fields                                                                                                     | `status` (`active` / `retired`) and `extension` are PROVISIONAL (not in v0.2.1); `extension` is optional and nullable | `wire/agents.ts`, agent UI                                                                    |
+| Agent audit history route                                                                                             | `GET /api/agents/{id}/history` is not in the contract; kept as PROVISIONAL                                            | `endpoints.ts`, `AgentHistoryDialog.tsx`                                                      |
+| Score from `display_hundredths` (alignment note §B)                                                                   | Not yet implemented: the float `overall_score` is still decoded and rendered truncated                                | `wire/evaluations.ts`, `domain.ts`, `src/shared/i18n/format.ts`                               |
+| Job-summary polling (v0.2 E)                                                                                          | Deferred: payload undefined                                                                                           | `useCallData.ts`, `client.ts`                                                                 |
+| Speaker roles per run, `channel_map_source`                                                                           | Deferred: fields undefined                                                                                            | `wire/calls.ts`, `wire/evaluations.ts`, `TranscriptView.tsx`                                  |
+| Rejection reason on `rejected`, re-score `202 {job_id}`, response bodies, dashboard payload, word span, digit masking | OPEN / deferred                                                                                                       | `client.ts`, `wire/*.ts`                                                                      |
+
+## 7. Mock mode
 
 The simulated backend mirrors the confirmed rules: one-time codes, CSRF on every
 non-exempt route (403 otherwise), in-memory session, revision-linked runs, explicit outcomes,
 reason codes, WAV-only uploads, the 12-status pipeline, UTC timestamps, the error envelope,
-draft/activate scorecards, and a re-transcribed call (DEMO-002) whose run stays on its earlier
-revision. Its scoring rule (0 assessable points → not assessable)
+draft/activate scorecards, a re-transcribed call (DEMO-002) whose run stays on its earlier
+revision, create/retire agents, and a simulated session cookie (sessionStorage, mock only) so a
+reload resumes via `GET /session` with the 30-minute idle / 12-hour absolute limits. Its scoring rule (0 assessable points → not assessable)
 is a simulation only; real outcomes come from the API. All data stays synthetic and labelled.
 
-## 7. Acceptance checklist
+## 8. Acceptance checklist
 
 - [ ] `npm run check` and `npm run test:e2e` pass.
 - [ ] Live build contains no synthetic markers.
 - [ ] `/launch#c=<code>` opens the session; the code never appears in a request or the address bar.
 - [ ] Every `/api` request except the exchange, health and audio carries `X-Taqeef-CSRF`.
-- [ ] A 401 returns to the launch screen with the session-ended notice.
+- [ ] A reload resumes the session via `GET /api/session`; a 401 returns to the launch screen.
+- [ ] Agents can only be created and retired; no agent comparison, ranking or name in titles.
 - [ ] Scored, insufficient evidence and not assessable runs each show their own label; none shows a score it did not receive.
 - [ ] Evidence highlights the referenced segment of the run's own transcript revision only.

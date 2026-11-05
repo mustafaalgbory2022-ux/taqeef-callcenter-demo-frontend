@@ -33,8 +33,8 @@ export async function openSession(
 }
 
 /**
- * Navigate inside the open session without reloading the page: the session (and its CSRF
- * token) lives in memory only, so a reload correctly requires a new launch code.
+ * Navigate inside the open session without reloading the page (faster than a reload, which
+ * would resume the session through GET /api/session).
  */
 export async function gotoInApp(page: Page, path: string) {
   await page.evaluate((p) => {

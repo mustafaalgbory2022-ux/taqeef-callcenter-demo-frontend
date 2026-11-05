@@ -8,32 +8,25 @@ import { Dialog } from '@/shared/ui/Dialog';
 import { Field } from '@/shared/ui/Field';
 import { Notice } from '@/shared/ui/Notice';
 import { useToast } from '@/shared/ui/Toaster';
-import { useCreateAgent, useUpdateAgent } from '../hooks/useAgentData';
-import {
-  emptyAgentInput,
-  SERVER_FIELD,
-  toAgentInput,
-  validateAgent,
-  type AgentField,
-} from '../model/agents';
+import { useCreateAgent } from '../hooks/useAgentData';
+import { emptyAgentInput, SERVER_FIELD, validateAgent, type AgentField } from '../model/agents';
 import styles from './AgentFormDialog.module.css';
 
 export interface AgentFormDialogProps {
-  /** Agent being edited, or null to create a new one. */
-  agent: Agent | null;
+  /** All agents, retired included (names are unique across all of them). */
   agents: readonly Agent[];
   onClose: () => void;
 }
 
-export function AgentFormDialog({ agent, agents, onClose }: AgentFormDialogProps) {
+/** Create an agent. Names are immutable: to rename, retire the agent and create a new one. */
+export function AgentFormDialog({ agents, onClose }: AgentFormDialogProps) {
   const { t } = useI18n();
   const toast = useToast();
   const create = useCreateAgent();
-  const update = useUpdateAgent();
-  const [values, setValues] = useState<AgentInput>(agent ? toAgentInput(agent) : emptyAgentInput);
+  const [values, setValues] = useState<AgentInput>(emptyAgentInput);
   const [errors, setErrors] = useState<Partial<Record<AgentField, string>>>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const pending = create.isPending || update.isPending;
+  const pending = create.isPending;
 
   const set = <K extends keyof AgentInput>(key: K, value: AgentInput[K]) =>
     setValues((v) => ({ ...v, [key]: value }));
@@ -41,23 +34,21 @@ export function AgentFormDialog({ agent, agents, onClose }: AgentFormDialogProps
   async function submit(e: FormEvent) {
     e.preventDefault();
     setFormError(null);
-    const clientErrors = validateAgent(values, agents, agent?.id ?? null);
+    const clientErrors = validateAgent(values, agents);
     setErrors(Object.fromEntries(Object.entries(clientErrors).map(([k, key]) => [k, t(key)])));
     if (Object.keys(clientErrors).length > 0) return;
     try {
-      if (agent) await update.mutate({ id: agent.id, patch: values });
-      else await create.mutate(values);
-      toast(
-        'success',
-        t(agent ? 'agents.form.updated' : 'agents.form.created', {
-          name: values.displayName.trim(),
-        }),
-      );
+      await create.mutate(values);
+      toast('success', t('agents.form.created', { name: values.displayName.trim() }));
       onClose();
     } catch (err) {
       const mapped = mapFieldIssues(err, SERVER_FIELD, (issue) =>
-        issue.field === 'extension' && issue.reason === 'duplicate'
-          ? t('agents.form.errors.extensionTaken')
+        issue.reason === 'duplicate'
+          ? t(
+              issue.field === 'extension'
+                ? 'agents.form.errors.extensionTaken'
+                : 'agents.form.errors.nameTaken',
+            )
           : describeFieldIssue(issue, t),
       );
       if (mapped) setErrors(mapped.fields);
@@ -71,7 +62,7 @@ export function AgentFormDialog({ agent, agents, onClose }: AgentFormDialogProps
   return (
     <Dialog
       open
-      title={agent ? t('agents.form.editTitle') : t('agents.form.createTitle')}
+      title={t('agents.form.createTitle')}
       onClose={onClose}
       footer={
         <>
@@ -82,6 +73,7 @@ export function AgentFormDialog({ agent, agents, onClose }: AgentFormDialogProps
         </>
       }
     >
+      <Notice tone="info" title={t('agents.form.immutableNote')} />
       <form id={formId} onSubmit={submit} noValidate>
         <div className={styles.row}>
           <Field label={t('agents.fields.name')} required error={errors.displayName}>
@@ -98,7 +90,6 @@ export function AgentFormDialog({ agent, agents, onClose }: AgentFormDialogProps
           <Field
             label={t('agents.fields.extension')}
             hint={t('agents.form.extensionHint')}
-            required
             error={errors.extension}
           >
             {(p) => (
@@ -109,20 +100,6 @@ export function AgentFormDialog({ agent, agents, onClose }: AgentFormDialogProps
                 autoComplete="off"
                 onChange={(e) => set('extension', e.target.value)}
               />
-            )}
-          </Field>
-          <Field label={t('agents.fields.status')} error={errors.status}>
-            {(p) => (
-              <select
-                {...p}
-                value={values.status}
-                onChange={(e) =>
-                  set('status', e.target.value === 'inactive' ? 'inactive' : 'active')
-                }
-              >
-                <option value="active">{t('agents.status.active')}</option>
-                <option value="inactive">{t('agents.status.inactive')}</option>
-              </select>
             )}
           </Field>
         </div>
