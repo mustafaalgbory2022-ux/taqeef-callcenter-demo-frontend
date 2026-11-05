@@ -302,6 +302,21 @@ revision-linked evidence, reason labels, WAV-only validation) and 60 Playwright 
 (desktop + mobile, EN/AR × light/dark with axe, transcript search, evidence highlighting,
 playback shortcuts, fragment launch, query code ignored, reload needs a new code).
 
+## Task 7 — demo API contract v0.2 alignment (Stream 7)
+
+**Implemented** (details in `docs/demo-integration-handoff.md` §4): the call page loads the
+transcript revision of the displayed run; structured error envelope without server text; the
+12 call statuses and 7 job states; UTC `…sssZ` timestamps enforced; optional `display_name`
+with agent by id; scorecard draft/activate/versions routes; queue and branding routes removed
+(static branding; branch-local instructions updated); ids treated as opaque.
+
+**Deferred** (handoff §5): job-summary polling and per-run speaker roles (payloads not
+defined), UUIDv7 for mock call/agent ids (awaiting confirmation).
+
+**Tests.** 110 unit/component/mock-integration tests and 64 Playwright tests (desktop +
+mobile, EN/AR × light/dark with axe, transcript search, evidence, shortcuts, upload pipeline
+steps and final status, run-revision display in EN/AR).
+
 ## Proposed next tasks (prioritized, client-only unless noted)
 
 1. On approval: launch code in the URL fragment (Task 3a finding 9).

@@ -80,18 +80,6 @@ export function createMockBackend({ latencyMs = 160 }: MockTransportOptions = {}
         return ok({ csrf_token: csrfToken, idle_timeout_s: 1800, absolute_timeout_s: 43200 });
       },
     },
-    {
-      method: 'GET',
-      pattern: '/branding',
-      handler: () =>
-        ok({
-          product_name: null,
-          organization_name: null,
-          logo_light_url: null,
-          logo_dark_url: null,
-          tokens: { light: null, dark: null },
-        }),
-    },
   ];
 
   const routes: Route[] = [

@@ -1,3 +1,4 @@
+import { isProcessingStatus } from '../model/status';
 import { useEffect, useRef } from 'react';
 import { useApiContext } from '@/shared/api/ApiProvider';
 import { useApiMutation } from '@/shared/hooks/useApiMutation';
@@ -6,7 +7,7 @@ import type { Call, CallUpload } from '@/shared/types/domain';
 
 const PROCESSING_POLL_MS = 1000;
 
-export const isProcessing = (c: Call) => c.status !== 'scored' && c.status !== 'failed';
+export const isProcessing = (c: Call) => isProcessingStatus(c.status);
 
 /**
  * When the number of calls still processing drops, new results exist: refresh every

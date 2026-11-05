@@ -27,8 +27,9 @@ system (FastAPI backend, ORD-0035 frontend). This repo is frontend-only.
   local source code. Fixtures are invented and marked `synthetic: true`.
 - **Never touch the Orva repository** or any repo other than this one.
 - Work on the assigned feature branch. **Never merge into `main`.**
-- **Do not invent company branding.** Official branding arrives at runtime (`GET /api/branding`);
-  build-time defaults in `src/shared/branding/` stay a neutral placeholder. Never redraw logos.
+- **Do not invent company branding.** On this demo branch branding is **static** (demo API
+  contract v0.2 item 1: there is no branding route). Values live in `src/shared/branding/` and
+  stay a neutral placeholder; approved assets are added only when authorized. Never redraw logos.
 - No new plugins, MCP servers, hooks or external services. No runtime CDN calls.
 - **Everything is managed in the GUI** (see `docs/requirements/gui-administration.md`): no admin
   task may require CLI, DB, config-file or code changes. Admin settings are API resources, not

@@ -1,5 +1,4 @@
 import { useParams } from 'react-router';
-import { queueNames, useQueues } from '@/features/agents';
 import { CallsCard } from '@/features/calls';
 import { EvaluationLog, useEvaluations } from '@/features/evaluations';
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
@@ -55,8 +54,7 @@ function AgentDashboard({
   version: number | null;
   setVersion: (version: number | null) => void;
 }) {
-  const { t, lang } = useI18n();
-  const queues = useQueues();
+  const { t } = useI18n();
   const evaluations = useEvaluations({ agentId: agent.id });
   const q = encodeURIComponent(agent.id);
 
@@ -79,14 +77,6 @@ function AgentDashboard({
                 <Badge tone={agent.status === 'active' ? 'success' : 'neutral'}>
                   {t(`agents.status.${agent.status}`)}
                 </Badge>
-              </dd>
-            </div>
-            <div>
-              <dt>{t('agents.fields.queues')}</dt>
-              <dd>
-                {queues.status === 'success'
-                  ? queueNames(agent.queueIds, queues.data, lang) || '—'
-                  : '…'}
               </dd>
             </div>
             {agent.synthetic && (

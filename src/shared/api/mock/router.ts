@@ -18,12 +18,34 @@ export interface Route {
 
 export const ok = (body: unknown): ApiResponse => ({ status: 200, body });
 export const created = (body: unknown): ApiResponse => ({ status: 201, body });
-export const fail = (status: number, detail: unknown): ApiResponse => ({
+
+/** Rule codes the simulated backend uses in field errors. */
+export type FieldReason =
+  'required' | 'too_long' | 'out_of_range' | 'invalid_format' | 'duplicate' | 'invalid';
+
+const correlationId = () => crypto.randomUUID();
+
+/**
+ * Structured error envelope (contract v0.2 item 9). `message` is fixed safe text; nothing
+ * submitted by the client is echoed.
+ */
+export const fail = (
+  status: number,
+  message: string,
+  fields: { field: string; reason: FieldReason }[] = [],
+): ApiResponse => ({
   status,
-  body: { detail },
+  body: {
+    error: {
+      code: `demo.mock.http_${status}`,
+      message,
+      correlation_id: correlationId(),
+      fields,
+    },
+  },
 });
-export const invalid = (field: string, msg: string): ApiResponse =>
-  fail(422, [{ loc: ['body', field], msg, type: 'value_error' }]);
+export const invalid = (field: string, reason: FieldReason): ApiResponse =>
+  fail(422, 'Validation failed.', [{ field, reason }]);
 
 function match(pattern: string, path: string): Record<string, string> | null {
   const p = pattern.split('/');

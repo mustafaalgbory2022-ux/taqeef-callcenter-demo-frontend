@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { CALL_STATUSES } from '@/shared/types/domain';
 import { createApiClient } from './client';
 import { ApiError } from './errors';
 import { createFetchTransport, type ApiRequest, type Transport } from './transport';
@@ -12,7 +13,7 @@ const wireCall = {
   queue_id: null,
   language: 'ar',
   duration_ms: 78000,
-  recorded_at: '2026-10-20T10:12:00+03:00',
+  recorded_at: '2026-10-20T07:12:00.000Z',
   status: 'scored',
   current_transcript_revision_id: '0193a000-0000-7000-8000-000000000001',
   synthetic: true,
@@ -40,6 +41,63 @@ describe('ApiClient over a transport', () => {
     });
   });
 
+  it('requires UTC timestamps with milliseconds and Z (contract v0.2 item 4)', async () => {
+    for (const recorded_at of ['2026-10-20T10:12:00+03:00', '2026-10-20T07:12:00Z', '2026-10-20']) {
+      await expect(
+        createApiClient(respond(200, [{ ...wireCall, recorded_at }]), 'live').listCalls(),
+      ).rejects.toMatchObject({ code: 'contract_mismatch' });
+    }
+  });
+
+  it('decodes all twelve confirmed call statuses and rejects others', async () => {
+    for (const status of CALL_STATUSES) {
+      const [call] = await createApiClient(
+        respond(200, [{ ...wireCall, status }]),
+        'live',
+      ).listCalls();
+      expect(call?.status).toBe(status);
+    }
+    await expect(
+      createApiClient(respond(200, [{ ...wireCall, status: 'failed' }]), 'live').listCalls(),
+    ).rejects.toMatchObject({ code: 'contract_mismatch' });
+  });
+
+  it('saves a scorecard as draft then activates it, and reads the newest version', async () => {
+    const version = {
+      scorecard_id: 'sc',
+      version: 3,
+      name: { en: 'S', ar: 'س' },
+      low_score_threshold: 7,
+      minimum_assessable_points: 6,
+      criteria: [],
+      prohibited_expressions: [],
+      prohibited_penalty: { points: 0, criterion_id: null },
+      created_at: '2026-11-05T09:30:00.000Z',
+      created_by: 'x',
+      change_note: 'n',
+    };
+    const transport = vi
+      .fn<Transport>()
+      .mockResolvedValueOnce({ status: 200, body: {} })
+      .mockResolvedValueOnce({ status: 201, body: version })
+      .mockResolvedValueOnce({ status: 200, body: [{ ...version, version: 2 }, version] });
+    const api = createApiClient(transport, 'live');
+    await api.saveScorecardVersion({
+      name: version.name,
+      lowScoreThreshold: 7,
+      minimumAssessablePoints: 6,
+      criteria: [],
+      prohibitedExpressions: [],
+      prohibitedPenalty: { points: 0, criterionId: null },
+      changeNote: 'n',
+    });
+    expect((await api.getCurrentScorecard()).version).toBe(3);
+    const [put, activate, list] = transport.mock.calls.map(([r]) => r);
+    expect(put).toMatchObject({ method: 'PUT', path: '/scorecard/draft' });
+    expect(activate).toMatchObject({ method: 'POST', path: '/scorecard/activate' });
+    expect(list).toMatchObject({ method: 'GET', path: '/scorecard/versions' });
+  });
+
   it('sends snake_case request bodies', async () => {
     const transport = respond(201, { ...wireCall });
     await createApiClient(transport, 'live')
@@ -47,7 +105,6 @@ describe('ApiClient over a transport', () => {
         displayName: ' Agent E ',
         extension: 'SYN-105',
         status: 'active',
-        queueIds: ['q'],
       })
       .catch(() => undefined);
     const req = transport.mock.calls[0]?.[0] as ApiRequest;
@@ -55,7 +112,6 @@ describe('ApiClient over a transport', () => {
       display_name: 'Agent E',
       extension: 'SYN-105',
       status: 'active',
-      queue_ids: ['q'],
     });
   });
 
@@ -164,12 +220,17 @@ describe('ApiClient over a transport', () => {
     expect(na).toMatchObject({ outcome: 'not_assessable', overallScore: null });
   });
 
-  it('rejects evidence ids and revision ids outside the confirmed formats', async () => {
-    const api = createApiClient(
+  it('treats revision ids as opaque, but rejects empty ids and malformed segment ids', async () => {
+    const opaque = createApiClient(
       respond(200, { call_id: 'c', transcript_revision_id: 'rev-1', revision_no: 0, segments: [] }),
       'live',
     );
-    await expect(api.getTranscript('rev-1')).rejects.toMatchObject({ code: 'contract_mismatch' });
+    await expect(opaque.getTranscript('rev-1')).resolves.toMatchObject({ revisionId: 'rev-1' });
+    const api = createApiClient(
+      respond(200, { call_id: 'c', transcript_revision_id: '', revision_no: 0, segments: [] }),
+      'live',
+    );
+    await expect(api.getTranscript('x')).rejects.toMatchObject({ code: 'contract_mismatch' });
     const segApi = createApiClient(
       respond(200, {
         call_id: 'c',
@@ -184,16 +245,50 @@ describe('ApiClient over a transport', () => {
     await expect(segApi.getTranscript(REV)).rejects.toMatchObject({ code: 'contract_mismatch' });
   });
 
-  it('maps FastAPI 422 details to field issues', async () => {
-    const detail = [{ loc: ['body', 'extension', 0], msg: 'Already used', type: 'value_error' }];
-    const err = await createApiClient(respond(422, { detail }), 'live')
+  it('maps the structured error envelope, keeping only safe codes (contract v0.2 item 9)', async () => {
+    const CID = '0193a000-0000-7000-8000-0000000000aa';
+    const body = {
+      error: {
+        code: 'demo.agents.extension_taken',
+        message: 'Extension SYN-999 already used by <b>Agent</b>',
+        correlation_id: CID,
+        fields: [
+          { field: 'extension', reason: 'duplicate' },
+          { field: 'display_name', reason: 'Name <script> is bad' },
+          { field: 'bad field!', reason: 'required' },
+        ],
+      },
+    };
+    const err = await createApiClient(respond(422, body), 'live')
       .updateAgent('a', { extension: 'x' })
       .catch((e: unknown) => e);
     expect(err).toBeInstanceOf(ApiError);
     expect(err).toMatchObject({
       code: 'validation_error',
-      fieldIssues: [{ field: 'extension', message: 'Already used' }],
+      serverCode: 'demo.agents.extension_taken',
+      correlationId: CID,
+      fieldIssues: [
+        { field: 'extension', reason: 'duplicate' },
+        { field: 'display_name', reason: 'invalid' },
+      ],
     });
+    // Server text (which could echo input) is never kept.
+    expect(JSON.stringify(err)).not.toContain('SYN-999');
+    expect((err as ApiError).message).not.toContain('SYN-999');
+  });
+
+  it('maps 403, 413, 415 and 429 without an envelope', async () => {
+    const codes: Record<number, string> = {
+      403: 'forbidden',
+      413: 'payload_too_large',
+      415: 'unsupported_media_type',
+      429: 'rate_limited',
+    };
+    for (const [status, code] of Object.entries(codes)) {
+      await expect(
+        createApiClient(respond(Number(status), 'raw <html> body'), 'live').listCalls(),
+      ).rejects.toMatchObject({ code, fieldIssues: [] });
+    }
   });
 
   it('has no session until a launch code is exchanged', async () => {

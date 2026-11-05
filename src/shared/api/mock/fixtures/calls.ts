@@ -49,7 +49,6 @@ const call = (
   id: string,
   title: string,
   agentId: string,
-  queueId: string,
   language: WireCall['language'],
   durationSec: number,
   recordedAt: string,
@@ -57,7 +56,6 @@ const call = (
   id,
   title,
   agent_id: agentId,
-  queue_id: queueId,
   language,
   duration_ms: durationSec * 1000,
   recorded_at: recordedAt,
@@ -73,15 +71,7 @@ const call = (
 
 export const callFixtures: CallFixture[] = [
   {
-    call: call(
-      'DEMO-001',
-      'Billing inquiry',
-      'agt-001',
-      'q-billing',
-      'ar',
-      78,
-      '2026-10-20T10:12:00+03:00',
-    ),
+    call: call('DEMO-001', 'Billing inquiry', 'agt-001', 'ar', 78, '2026-10-20T07:12:00.000Z'),
     segments: [
       s(
         's1',
@@ -123,15 +113,7 @@ export const callFixtures: CallFixture[] = [
     ],
   },
   {
-    call: call(
-      'DEMO-002',
-      'Plan change',
-      'agt-002',
-      'q-sales',
-      'ar',
-      70,
-      '2026-10-21T13:40:00+03:00',
-    ),
+    call: call('DEMO-002', 'Plan change', 'agt-002', 'ar', 70, '2026-10-21T10:40:00.000Z'),
     segments: [
       s('s1', 0.5, 6, 'agent', 'ar', 'مساء الخير، خدمة العملاء وياك. المكالمة مسجلة لضمان الجودة.'),
       s('s2', 7, 12, 'customer', 'ar', 'أريد أغير باقتي لباقة أكبر بالبيانات.'),
@@ -158,15 +140,7 @@ export const callFixtures: CallFixture[] = [
     ],
   },
   {
-    call: call(
-      'DEMO-003',
-      'Billing dispute',
-      'agt-001',
-      'q-billing',
-      'ar',
-      92,
-      '2026-10-22T09:05:00+03:00',
-    ),
+    call: call('DEMO-003', 'Billing dispute', 'agt-001', 'ar', 92, '2026-10-22T06:05:00.000Z'),
     segments: [
       s('s1', 0.5, 3, 'agent', 'ar', 'نعم، خدمة العملاء.'),
       s('s2', 4, 11, 'customer', 'ar', 'السلام عليكم، انخصم مني مبلغ مرتين بنفس الفاتورة.'),
@@ -208,10 +182,9 @@ export const callFixtures: CallFixture[] = [
       'DEMO-004',
       'Internet outage (call dropped)',
       'agt-003',
-      'q-support',
       'en',
       32,
-      '2026-10-23T08:30:00+03:00',
+      '2026-10-23T05:30:00.000Z',
     ),
     segments: [
       s(
@@ -256,15 +229,7 @@ export const callFixtures: CallFixture[] = [
     ],
   },
   {
-    call: call(
-      'DEMO-005',
-      'Router setup',
-      'agt-004',
-      'q-support',
-      'ar',
-      88,
-      '2026-10-24T16:20:00+03:00',
-    ),
+    call: call('DEMO-005', 'Router setup', 'agt-004', 'ar', 88, '2026-10-24T13:20:00.000Z'),
     segments: [
       s('s1', 0.5, 6, 'agent', 'ar', 'هلا وغلا، الدعم الفني وياك. المكالمة مسجلة.'),
       s('s2', 7, 13, 'customer', 'ar', 'اشتريت راوتر جديد وما يشتغل الواي فاي.'),

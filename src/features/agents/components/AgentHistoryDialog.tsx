@@ -10,7 +10,6 @@ const FIELD_KEYS: Record<string, MessageKey> = {
   display_name: 'agents.fields.name',
   extension: 'agents.fields.extension',
   status: 'agents.fields.status',
-  queue_ids: 'agents.fields.queues',
 };
 
 /** Change history (audit) for one agent. */

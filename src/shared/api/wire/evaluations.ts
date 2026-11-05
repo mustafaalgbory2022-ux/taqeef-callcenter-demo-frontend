@@ -11,6 +11,7 @@ import {
   str,
   type Decoded,
 } from '../decode';
+import { utcTimestamp } from './common';
 import { revisionId, segmentId } from './ids';
 
 const score = numInRange(0, 10);
@@ -69,7 +70,7 @@ export const wireEvaluation = object({
   ),
   trigger: oneOf(['initial', 'rescore']),
   supersedes_id: nullable(str),
-  created_at: str,
+  created_at: utcTimestamp,
   simulated: bool,
 });
 

@@ -1,30 +1,23 @@
-import type { WireAgent, WireAudit, WireQueue } from '../types';
+import type { WireAgent, WireAudit } from '../types';
 
-/** SYNTHETIC agents and queues. Extensions use the SYN- prefix so they cannot be mistaken for real Yeastar numbers. */
-export const queues: WireQueue[] = [
-  { id: 'q-billing', name: { en: 'Billing', ar: 'الفواتير' } },
-  { id: 'q-support', name: { en: 'Technical support', ar: 'الدعم الفني' } },
-  { id: 'q-sales', name: { en: 'Sales and plans', ar: 'المبيعات والباقات' } },
-];
+/** SYNTHETIC agents. Extensions use the SYN- prefix so they cannot be mistaken for real Yeastar numbers. */
+const created = '2026-09-15T06:00:00.000Z';
 
-const created = '2026-09-15T09:00:00+03:00';
-
-const agent = (id: string, name: string, ext: string, queueIds: string[]): WireAgent => ({
+const agent = (id: string, name: string, ext: string): WireAgent => ({
   id,
   display_name: name,
   extension: ext,
   status: 'active',
-  queue_ids: queueIds,
   synthetic: true,
   created_at: created,
   updated_at: created,
 });
 
 export const agents: WireAgent[] = [
-  agent('agt-001', 'Agent A', 'SYN-101', ['q-billing']),
-  agent('agt-002', 'Agent B', 'SYN-102', ['q-sales', 'q-billing']),
-  agent('agt-003', 'Agent C', 'SYN-103', ['q-support']),
-  agent('agt-004', 'Agent D', 'SYN-104', ['q-support']),
+  agent('agt-001', 'Agent A', 'SYN-101'),
+  agent('agt-002', 'Agent B', 'SYN-102'),
+  agent('agt-003', 'Agent C', 'SYN-103'),
+  agent('agt-004', 'Agent D', 'SYN-104'),
 ];
 
 export function initialAudit(a: WireAgent): WireAudit[] {

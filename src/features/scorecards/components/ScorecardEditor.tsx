@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { ApiError } from '@/shared/api/errors';
-import { describeError } from '@/shared/i18n/errorMessage';
+import { describeError, describeFieldIssue } from '@/shared/i18n/errorMessage';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import type { ScorecardDraft, ScorecardVersion } from '@/shared/types/domain';
 import { Button } from '@/shared/ui/Button';
@@ -51,7 +51,8 @@ export function ScorecardEditor({ current }: { current: ScorecardVersion }) {
       setDraft(toDraft(saved));
       setErrors(NO_ERRORS);
     } catch (err) {
-      const messages = err instanceof ApiError ? err.fieldIssues.map((i) => i.message) : [];
+      const messages =
+        err instanceof ApiError ? err.fieldIssues.map((i) => describeFieldIssue(i, t)) : [];
       setServerError(messages.length ? messages.join(' ') : describeError(err, t));
     }
   }

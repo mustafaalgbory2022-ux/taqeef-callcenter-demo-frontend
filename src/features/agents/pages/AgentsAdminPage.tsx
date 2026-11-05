@@ -12,7 +12,7 @@ import { AgentFormDialog } from '../components/AgentFormDialog';
 import { AgentHistoryDialog } from '../components/AgentHistoryDialog';
 import { AgentsTable } from '../components/AgentsTable';
 import { ConfirmStatusDialog } from '../components/ConfirmStatusDialog';
-import { useAgents, useQueues } from '../hooks/useAgentData';
+import { useAgents } from '../hooks/useAgentData';
 import { sortAgents } from '../model/agents';
 
 type DialogState =
@@ -26,7 +26,6 @@ export function AgentsAdminPage() {
   useDocumentTitle(t('agents.admin.title'), t('app.title'));
   const canManage = usePermission('agents.manage');
   const agents = useAgents();
-  const queues = useQueues();
   const [dialog, setDialog] = useState<DialogState>({ kind: 'none' });
   const close = () => setDialog({ kind: 'none' });
   const list = agents.status === 'success' ? agents.data : [];
@@ -64,7 +63,6 @@ export function AgentsAdminPage() {
           {(data) => (
             <AgentsTable
               agents={sortAgents(data)}
-              queues={queues.status === 'success' ? queues.data : []}
               canManage={canManage}
               onEdit={(agent) => setDialog({ kind: 'form', agent })}
               onToggleStatus={(agent) => setDialog({ kind: 'status', agent })}

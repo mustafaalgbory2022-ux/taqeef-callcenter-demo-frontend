@@ -39,7 +39,7 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
       pattern: '/transcripts/:revisionId/segments',
       handler: ({ params }) => {
         refreshAll();
-        const transcript = Object.values(state.transcripts).find(
+        const transcript = [...Object.values(state.transcripts), ...state.revisions].find(
           (tr) => tr.transcript_revision_id === params.revisionId,
         );
         return transcript ? ok(transcript) : fail(404, 'Transcript revision not found.');
@@ -54,25 +54,23 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
         const title = String(body.get('display_name') ?? '').trim();
         const agentId = String(body.get('agent_id') ?? '');
         const channelMap = body.get('channel_map');
-        if (!(file instanceof File)) return invalid('file', 'An audio file is required.');
+        if (!(file instanceof File)) return invalid('file', 'required');
         if (file.size > MAX_UPLOAD_BYTES) return fail(413, 'File exceeds the 100 MB limit.');
         if (!/\.wav$/i.test(file.name) && !/wav/i.test(file.type))
           return fail(415, 'Only WAV files are accepted.');
-        if (!title || title.length > 200)
-          return invalid('display_name', 'Display name must be 1–200 characters.');
+        if (title.length > 200) return invalid('display_name', 'too_long');
         if (channelMap !== null && !CHANNEL_MAPS.includes(String(channelMap)))
-          return invalid('channel_map', 'Unknown channel map.');
-        if (!body.get('request_id')) return invalid('request_id', 'A request id is required.');
+          return invalid('channel_map', 'invalid');
+        if (!body.get('request_id')) return invalid('request_id', 'required');
         const agent = state.agents.find((a) => a.id === agentId);
-        if (!agent || agent.status !== 'active')
-          return invalid('agent_id', 'Select an active agent.');
+        if (!agent || agent.status !== 'active') return invalid('agent_id', 'invalid');
 
         const id = nextId(state, 'UPL').toUpperCase();
         const call: WireCall = {
           id,
-          title,
+          // Optional display name; the synthetic fallback is mock-only.
+          title: title || `Uploaded call ${id}`,
           agent_id: agent.id,
-          queue_id: agent.queue_ids[0] ?? null,
           language: 'ar',
           duration_ms: null,
           recorded_at: new Date().toISOString(),

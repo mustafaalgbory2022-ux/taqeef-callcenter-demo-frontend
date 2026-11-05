@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { TranscriptSegment } from '@/shared/types/domain';
+import { CALL_STATUSES, type TranscriptSegment } from '@/shared/types/domain';
+import { isEvaluatedStatus, isProcessingStatus, pipelineIndex, statusGroup } from './status';
 import {
   findActiveSegment,
   findTranscriptMatches,
   locateEvidence,
+  revisionToShow,
   normalizeForSearch,
   normalizeWithMap,
   stepMatch,
@@ -33,7 +35,7 @@ describe('findActiveSegment', () => {
 
 describe('validateUpload', () => {
   const audio = new File(['x'], 'call.wav', { type: 'audio/wav' });
-  it('requires every field and the synthetic-data confirmation', () => {
+  it('requires the file, the agent and the synthetic-data confirmation; the name is optional', () => {
     expect(
       validateUpload({
         file: null,
@@ -44,7 +46,6 @@ describe('validateUpload', () => {
       }),
     ).toEqual({
       file: 'calls.upload.errors.fileRequired',
-      title: 'calls.upload.errors.titleRequired',
       agentId: 'calls.upload.errors.agentRequired',
       confirmSynthetic: 'calls.upload.errors.confirmRequired',
     });
@@ -139,5 +140,51 @@ describe('evidence location', () => {
     expect(
       locateEvidence(transcript, { segmentId: 'seg-0009', transcriptRevisionId: REV }),
     ).toEqual({ status: 'unavailable', reason: 'segment_missing' });
+  });
+});
+
+describe('call status model (contract v0.2 item C)', () => {
+  it('groups the twelve statuses into processing, evaluated and failed', () => {
+    expect(CALL_STATUSES.filter(isProcessingStatus)).toEqual([
+      'uploaded',
+      'probing',
+      'ready',
+      'transcribing',
+      'transcribed',
+      'evaluating',
+    ]);
+    expect(CALL_STATUSES.filter(isEvaluatedStatus)).toEqual([
+      'scored',
+      'insufficient_evidence',
+      'not_assessable',
+    ]);
+    expect(CALL_STATUSES.filter((s) => statusGroup(s) === 'failed')).toEqual([
+      'rejected',
+      'transcription_failed',
+      'evaluation_failed',
+    ]);
+  });
+  it('orders pipeline steps and treats evaluated as complete', () => {
+    expect(pipelineIndex('uploaded')).toBe(0);
+    expect(pipelineIndex('evaluating')).toBe(5);
+    expect(pipelineIndex('not_assessable')).toBe(6);
+    expect(pipelineIndex('evaluation_failed')).toBe(-1);
+  });
+});
+
+describe('revisionToShow (contract v0.2 item 7)', () => {
+  const call = { currentTranscriptRevisionId: 'rev-new' };
+  it("uses the run's revision, not the call's latest", () => {
+    expect(revisionToShow(call, { transcriptRevisionId: 'rev-old' })).toEqual({
+      revisionId: 'rev-old',
+      isLatest: false,
+    });
+    expect(revisionToShow(call, { transcriptRevisionId: 'rev-new' })).toEqual({
+      revisionId: 'rev-new',
+      isLatest: true,
+    });
+  });
+  it('falls back to the current revision when there is no run', () => {
+    expect(revisionToShow(call, undefined)).toEqual({ revisionId: 'rev-new', isLatest: true });
   });
 });

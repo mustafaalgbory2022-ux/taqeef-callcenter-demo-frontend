@@ -1,14 +1,14 @@
 import { useState, type FormEvent } from 'react';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
-import { describeError } from '@/shared/i18n/errorMessage';
+import { describeError, describeFieldIssue } from '@/shared/i18n/errorMessage';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import type { Agent, AgentInput } from '@/shared/types/domain';
 import { Button } from '@/shared/ui/Button';
 import { Dialog } from '@/shared/ui/Dialog';
-import { Checkbox, Field } from '@/shared/ui/Field';
+import { Field } from '@/shared/ui/Field';
 import { Notice } from '@/shared/ui/Notice';
 import { useToast } from '@/shared/ui/Toaster';
-import { useCreateAgent, useQueues, useUpdateAgent } from '../hooks/useAgentData';
+import { useCreateAgent, useUpdateAgent } from '../hooks/useAgentData';
 import {
   emptyAgentInput,
   SERVER_FIELD,
@@ -26,9 +26,8 @@ export interface AgentFormDialogProps {
 }
 
 export function AgentFormDialog({ agent, agents, onClose }: AgentFormDialogProps) {
-  const { t, pick } = useI18n();
+  const { t } = useI18n();
   const toast = useToast();
-  const queues = useQueues();
   const create = useCreateAgent();
   const update = useUpdateAgent();
   const [values, setValues] = useState<AgentInput>(agent ? toAgentInput(agent) : emptyAgentInput);
@@ -38,9 +37,6 @@ export function AgentFormDialog({ agent, agents, onClose }: AgentFormDialogProps
 
   const set = <K extends keyof AgentInput>(key: K, value: AgentInput[K]) =>
     setValues((v) => ({ ...v, [key]: value }));
-
-  const toggleQueue = (id: string, on: boolean) =>
-    set('queueIds', on ? [...values.queueIds, id] : values.queueIds.filter((q) => q !== id));
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -59,7 +55,11 @@ export function AgentFormDialog({ agent, agents, onClose }: AgentFormDialogProps
       );
       onClose();
     } catch (err) {
-      const mapped = mapFieldIssues(err, SERVER_FIELD);
+      const mapped = mapFieldIssues(err, SERVER_FIELD, (issue) =>
+        issue.field === 'extension' && issue.reason === 'duplicate'
+          ? t('agents.form.errors.extensionTaken')
+          : describeFieldIssue(issue, t),
+      );
       if (mapped) setErrors(mapped.fields);
       if (!mapped || mapped.unmapped.length > 0) {
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
@@ -126,20 +126,6 @@ export function AgentFormDialog({ agent, agents, onClose }: AgentFormDialogProps
             )}
           </Field>
         </div>
-        <fieldset className={styles.queues}>
-          <legend>{t('agents.fields.queues')}</legend>
-          {queues.status === 'success' &&
-            queues.data.map((q) => (
-              <Checkbox
-                key={q.id}
-                checked={values.queueIds.includes(q.id)}
-                onChange={(on) => toggleQueue(q.id, on)}
-              >
-                {pick(q.name)}
-              </Checkbox>
-            ))}
-          {errors.queueIds && <Notice tone="danger" title={errors.queueIds} />}
-        </fieldset>
       </form>
       {formError && <Notice tone="danger" title={formError} />}
       <Notice tone="mock">{t('agents.form.syntheticNote')}</Notice>

@@ -1,14 +1,12 @@
 import { Link } from 'react-router';
 import { useI18n } from '@/shared/i18n/I18nProvider';
-import type { Agent, Queue } from '@/shared/types/domain';
+import type { Agent } from '@/shared/types/domain';
 import { Badge, SyntheticBadge } from '@/shared/ui/Badge';
 import { Button } from '@/shared/ui/Button';
 import { tableStyles, TableRegion } from '@/shared/ui/Table';
-import { queueNames } from '../model/agents';
 
 export interface AgentsTableProps {
   agents: readonly Agent[];
-  queues: readonly Queue[];
   canManage: boolean;
   onEdit: (agent: Agent) => void;
   onToggleStatus: (agent: Agent) => void;
@@ -17,13 +15,12 @@ export interface AgentsTableProps {
 
 export function AgentsTable({
   agents,
-  queues,
   canManage,
   onEdit,
   onToggleStatus,
   onHistory,
 }: AgentsTableProps) {
-  const { t, lang, fmt } = useI18n();
+  const { t, fmt } = useI18n();
   return (
     <TableRegion label={t('agents.table.label')}>
       <thead>
@@ -31,7 +28,6 @@ export function AgentsTable({
           <th scope="col">{t('agents.fields.name')}</th>
           <th scope="col">{t('agents.fields.extension')}</th>
           <th scope="col">{t('agents.fields.status')}</th>
-          <th scope="col">{t('agents.fields.queues')}</th>
           <th scope="col">{t('agents.table.updated')}</th>
           <th scope="col">
             <span className="visually-hidden">{t('common.actions')}</span>
@@ -56,7 +52,6 @@ export function AgentsTable({
                 {t(`agents.status.${agent.status}`)}
               </Badge>
             </td>
-            <td className={tableStyles.wrap}>{queueNames(agent.queueIds, queues, lang) || '—'}</td>
             <td className={tableStyles.muted}>
               <bdi>{fmt.date(agent.updatedAt)}</bdi>
             </td>

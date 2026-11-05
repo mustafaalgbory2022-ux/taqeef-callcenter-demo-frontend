@@ -1,9 +1,7 @@
-import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react';
-import { useApiQuery } from '@/shared/hooks/useApiQuery';
+import { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { useTheme } from '@/shared/theme/ThemeProvider';
 import type { LocalizedText } from '@/shared/types/domain';
-import { applyBrandTokens, safeAssetUrl } from './applyBrandTokens';
-import { defaultBranding, emptyBranding } from './defaults';
+import { staticBranding } from './defaults';
 
 export interface ResolvedBranding {
   productName: LocalizedText;
@@ -14,25 +12,22 @@ export interface ResolvedBranding {
 
 const BrandingContext = createContext<ResolvedBranding | null>(null);
 
-/** Loads runtime branding from the backend (after the session opens) and applies it. */
-export function BrandingProvider({ enabled, children }: { enabled: boolean; children: ReactNode }) {
+/**
+ * Static demo branding (contract v0.2 item 1: branding is static; there is no branding
+ * route). Values come from `./defaults.ts` and the same-origin `/brand/` assets; nothing is
+ * fetched at runtime.
+ */
+export function BrandingProvider({ children }: { children: ReactNode }) {
   const { resolved: theme } = useTheme();
-  const query = useApiQuery(['branding'], (api) => api.getBranding(), { enabled });
-  const branding = query.status === 'success' ? query.data : emptyBranding;
-
-  useEffect(() => applyBrandTokens(branding.tokens), [branding.tokens]);
-
-  const value = useMemo<ResolvedBranding>(() => {
-    const logo = safeAssetUrl(theme === 'dark' ? branding.logoDarkUrl : branding.logoLightUrl);
-    return {
-      productName: branding.productName ?? defaultBranding.productName,
-      organizationName: branding.organizationName ?? defaultBranding.organizationName,
-      logoUrl:
-        logo ?? (theme === 'dark' ? defaultBranding.logoDarkUrl : defaultBranding.logoLightUrl),
-      isPlaceholder: logo === null,
-    };
-  }, [branding, theme]);
-
+  const value = useMemo<ResolvedBranding>(
+    () => ({
+      productName: staticBranding.productName,
+      organizationName: staticBranding.organizationName,
+      logoUrl: theme === 'dark' ? staticBranding.logoDarkUrl : staticBranding.logoLightUrl,
+      isPlaceholder: staticBranding.isPlaceholder,
+    }),
+    [theme],
+  );
   return <BrandingContext.Provider value={value}>{children}</BrandingContext.Provider>;
 }
 

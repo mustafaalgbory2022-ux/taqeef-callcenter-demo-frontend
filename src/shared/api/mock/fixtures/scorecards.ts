@@ -87,7 +87,7 @@ export const scorecardVersions: WireScorecard[] = [
       { id: 'px-1', phrase: 'مو شغلي', language: 'ar' },
       { id: 'px-2', phrase: 'not my problem', language: 'en' },
     ],
-    created_at: '2026-10-01T09:00:00+03:00',
+    created_at: '2026-10-01T06:00:00.000Z',
     change_note: 'Approved default scorecard (six criteria, 10 points).',
   },
   {
@@ -98,7 +98,7 @@ export const scorecardVersions: WireScorecard[] = [
       { id: 'px-2', phrase: 'not my problem', language: 'en' },
       { id: 'px-3', phrase: 'ما أدري', language: 'ar' },
     ],
-    created_at: '2026-10-27T10:30:00+03:00',
+    created_at: '2026-10-27T07:30:00.000Z',
     change_note: 'Added prohibited expression "ما أدري" (flag for review).',
   },
 ];

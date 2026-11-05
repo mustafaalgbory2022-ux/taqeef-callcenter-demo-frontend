@@ -1,22 +1,26 @@
-import type { Call, Transcript, UploadAccepted } from '@/shared/types/domain';
+import {
+  CALL_STATUSES,
+  type Call,
+  type Transcript,
+  type UploadAccepted,
+} from '@/shared/types/domain';
 import { arrayOf, bool, nullable, num, object, oneOf, str, type Decoded } from '../decode';
-import { wireTimeToMs } from './common';
+import { wireTimeToMs, utcTimestamp } from './common';
 import { revisionId, segmentId } from './ids';
 
 /**
- * Call summary. PROVISIONAL field names (`title`, `queue_id`, `channel_layout`) and the
- * five-value status list stay until the contract's call-status list and response bodies are
- * final (M4). `audio_url` was removed: audio is always fetched from the call audio route.
+ * Call summary. Status values are CONFIRMED (contract v0.2 item C). Other field names
+ * (`title`, `channel_layout`) stay PROVISIONAL until response bodies are final (M4).
+ * `audio_url` was removed: audio is always fetched from the call audio route.
  */
 export const wireCall = object({
   id: str,
   title: str,
   agent_id: nullable(str),
-  queue_id: nullable(str),
   language: oneOf(['ar', 'en', 'mixed']),
   duration_ms: nullable(num),
-  recorded_at: str,
-  status: oneOf(['uploaded', 'transcribing', 'scoring', 'scored', 'failed']),
+  recorded_at: utcTimestamp,
+  status: oneOf(CALL_STATUSES),
   current_transcript_revision_id: nullable(revisionId),
   synthetic: bool,
   simulated: bool,
@@ -29,7 +33,6 @@ export function callFromWire(w: Decoded<typeof wireCall>): Call {
     id: w.id,
     title: w.title,
     agentId: w.agent_id,
-    queueId: w.queue_id,
     language: w.language,
     durationMs: w.duration_ms === null ? null : wireTimeToMs(w.duration_ms),
     recordedAt: w.recorded_at,

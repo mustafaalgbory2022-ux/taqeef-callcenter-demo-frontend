@@ -28,11 +28,6 @@ export interface Session {
   absoluteTimeoutS: number;
 }
 
-export interface Queue {
-  id: string;
-  name: LocalizedText;
-}
-
 export type AgentStatus = 'active' | 'inactive';
 
 export interface Agent {
@@ -42,7 +37,6 @@ export interface Agent {
   /** Configurable Yeastar extension or agent number. */
   extension: string;
   status: AgentStatus;
-  queueIds: readonly string[];
   synthetic: boolean;
   createdAt: string;
   updatedAt: string;
@@ -52,7 +46,6 @@ export interface AgentInput {
   displayName: string;
   extension: string;
   status: AgentStatus;
-  queueIds: readonly string[];
 }
 
 export interface AuditChange {
@@ -69,13 +62,39 @@ export interface AuditEntry {
   changes: readonly AuditChange[];
 }
 
-export type CallStatus = 'uploaded' | 'transcribing' | 'scoring' | 'scored' | 'failed';
+/** Call status (demo API contract v0.2 item C, CONFIRMED). */
+export const CALL_STATUSES = [
+  'uploaded',
+  'probing',
+  'ready',
+  'transcribing',
+  'transcribed',
+  'evaluating',
+  'scored',
+  'insufficient_evidence',
+  'not_assessable',
+  'rejected',
+  'transcription_failed',
+  'evaluation_failed',
+] as const;
+export type CallStatus = (typeof CALL_STATUSES)[number];
+
+/** Processing job state (contract v0.2 item E2, CONFIRMED). */
+export const JOB_STATES = [
+  'queued',
+  'running',
+  'succeeded',
+  'retry_scheduled',
+  'failed',
+  'waiting',
+  'cancelled',
+] as const;
+export type JobState = (typeof JOB_STATES)[number];
 
 export interface Call {
   id: string;
   title: string;
   agentId: string | null;
-  queueId: string | null;
   language: Language | 'mixed';
   durationMs: number | null;
   recordedAt: string;
@@ -265,12 +284,4 @@ export interface BrandTokens {
   primaryHover?: string | undefined;
   primarySoft?: string | undefined;
   primaryText?: string | undefined;
-}
-
-export interface Branding {
-  productName: LocalizedText | null;
-  organizationName: LocalizedText | null;
-  logoLightUrl: string | null;
-  logoDarkUrl: string | null;
-  tokens: { light: BrandTokens; dark: BrandTokens };
 }

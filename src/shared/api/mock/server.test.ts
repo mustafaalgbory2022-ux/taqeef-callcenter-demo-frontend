@@ -63,7 +63,7 @@ describe('simulated backend', () => {
     const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
     await api.openSession('SYN-TEST03-DEMO');
     await expect(
-      api.createAgent({ displayName: 'X', extension: 'SYN-101', status: 'active', queueIds: [] }),
+      api.createAgent({ displayName: 'X', extension: 'SYN-101', status: 'active' }),
     ).rejects.toMatchObject({ code: 'validation_error', fieldIssues: [{ field: 'extension' }] });
   });
 
@@ -102,5 +102,58 @@ describe('simulated backend', () => {
     // Evidence carries no time or quote of its own.
     expect(Object.keys(run?.criteria[0]?.evidence[0] ?? {})).toEqual(['segmentId']);
     expect(run?.criteria.map((c) => c.result)).toContain('met');
+  });
+
+  it('serves no queue or branding routes (contract v0.2 item 1)', async () => {
+    const transport = createMockTransport({ latencyMs: 0 });
+    const res = await transport({
+      method: 'POST',
+      path: '/session/exchange',
+      body: { code: 'SYN-TEST07-DEMO' },
+    });
+    const headers = { 'X-Taqeef-CSRF': (res.body as { csrf_token: string }).csrf_token };
+    for (const path of ['/queues', '/branding', '/scorecards/current']) {
+      expect((await transport({ method: 'GET', path, headers })).status).toBe(404);
+    }
+  });
+
+  it('reports call status from the latest explicit outcome and keeps the run revision', async () => {
+    const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
+    await api.openSession('SYN-TEST08-DEMO');
+    expect((await api.getCall('DEMO-001')).status).toBe('scored');
+    expect((await api.getCall('DEMO-004')).status).toBe('insufficient_evidence');
+    const call2 = await api.getCall('DEMO-002');
+    const [run] = await api.listEvaluations({ callId: 'DEMO-002' });
+    // DEMO-002 was re-transcribed: its run stays linked to the earlier revision.
+    expect(run?.transcriptRevisionId).not.toBe(call2.currentTranscriptRevisionId);
+    const older = await api.getTranscript(run?.transcriptRevisionId ?? '');
+    const newer = await api.getTranscript(call2.currentTranscriptRevisionId ?? '');
+    expect([older.revisionNo, newer.revisionNo]).toEqual([0, 1]);
+    // Re-scoring evaluates the current revision.
+    const rescored = await api.rescoreCall('DEMO-002');
+    expect(rescored.transcriptRevisionId).toBe(call2.currentTranscriptRevisionId);
+  });
+
+  it('returns the structured error envelope without echoing input', async () => {
+    const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
+    await api.openSession('SYN-TEST09-DEMO');
+    const err = await api
+      .createAgent({ displayName: 'Secret Name', extension: 'SYN-101', status: 'active' })
+      .catch((e: unknown) => e);
+    expect(err).toMatchObject({
+      code: 'validation_error',
+      serverCode: 'demo.mock.http_422',
+      fieldIssues: [{ field: 'extension', reason: 'duplicate' }],
+    });
+    expect(JSON.stringify(err)).not.toContain('Secret Name');
+  });
+
+  it('activates a scorecard draft as a new immutable version', async () => {
+    const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
+    await api.openSession('SYN-TEST10-DEMO');
+    const current = await api.getCurrentScorecard();
+    const saved = await api.saveScorecardVersion({ ...current, changeNote: 'Synthetic change' });
+    expect(saved.version).toBe(current.version + 1);
+    expect((await api.getCurrentScorecard()).version).toBe(saved.version);
   });
 });

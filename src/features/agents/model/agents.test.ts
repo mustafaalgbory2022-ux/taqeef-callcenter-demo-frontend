@@ -7,7 +7,6 @@ const agent = (id: string, displayName: string, extension: string): Agent => ({
   displayName,
   extension,
   status: 'active',
-  queueIds: [],
   synthetic: true,
   createdAt: '',
   updatedAt: '',

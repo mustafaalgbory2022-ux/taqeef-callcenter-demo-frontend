@@ -17,9 +17,10 @@ approximate or redraw them.** Until they are supplied, the neutral placeholder s
    `--color-score-*`, `--color-mock`…), redefined under `:root[data-theme='dark']`.
    **Components use only these.**
 3. Brand layer — optional `--brand-*` variables consumed by semantic tokens with fallbacks.
-   Set at **runtime** from `GET /api/branding` by `shared/branding/applyBrandTokens.ts`
-   (only `#rrggbb` accepted; applied via CSSOM, CSP-safe). `shared/branding/brand.css` may
-   hold build-time defaults.
+   On the five-call demo branch branding is **static** (demo API contract v0.2: no branding
+   route): build-time values in `shared/branding/brand.css` and `shared/branding/defaults.ts`.
+   `shared/branding/applyBrandTokens.ts` (only `#rrggbb`, CSSOM, CSP-safe) stays available for
+   the full system.
 
 ## Themes
 
@@ -28,12 +29,13 @@ approximate or redraw them.** Until they are supplied, the neutral placeholder s
 
 ## Logo slot
 
-`logo_light_url` / `logo_dark_url` from `GET /api/branding`; defaults in
-`shared/branding/defaults.ts` point to `public/brand/logo-placeholder.svg`. Header height ≤ 32px.
+Static on the demo branch: `shared/branding/defaults.ts` points to
+`public/brand/logo-placeholder.svg`. Header height ≤ 32px.
 
 ## Applying official branding
 
-1. Backend serves approved tokens and logo URLs from `/api/branding` (light + dark).
+1. Demo branch: approved files replace `public/brand/` and the static values, only when
+   authorized (never redistributed from here). Full system: as specified in its own docs.
 2. Fonts, if any, are self-hosted with licences; confirm Arabic coverage. No remote fonts.
 3. Verify contrast (text ≥ 4.5:1, UI ≥ 3:1) with `npm run test:e2e` (axe, both themes).
 

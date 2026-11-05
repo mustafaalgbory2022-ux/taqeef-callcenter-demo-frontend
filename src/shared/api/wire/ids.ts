@@ -1,17 +1,23 @@
 import { DecodeError, str, type Decoder } from '../decode';
 
-/** Lowercase UUIDv7 (contract 2.1, CONFIRMED). */
-const UUID_V7 = /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-/** `seg-0001` … `seg-9999`, unique within one transcript revision (contract 2.2, CONFIRMED). */
+/**
+ * Identifiers are opaque strings (contract v0.2 item 10): the frontend never parses them or
+ * depends on their format, and only rejects empty values. The contract describes them as
+ * lowercase UUIDv7; that format is not enforced here until confirmed for every id.
+ */
+export const opaqueId: Decoder<string> = (value, path = '') => {
+  const s = str(value, path);
+  if (s.length === 0 || s.length > 128) throw new DecodeError(path, 'a non-empty opaque id');
+  return s;
+};
+
+export const revisionId = opaqueId;
+
+/** `seg-0001` … `seg-9999`, unique within one transcript revision (contract v0.1 2.2, CONFIRMED). */
 const SEGMENT_ID = /^seg-\d{4}$/;
 
-const pattern =
-  (re: RegExp, expected: string): Decoder<string> =>
-  (value, path = '') => {
-    const s = str(value, path);
-    if (!re.test(s)) throw new DecodeError(path, expected);
-    return s;
-  };
-
-export const revisionId = pattern(UUID_V7, 'a lowercase UUIDv7 transcript revision id');
-export const segmentId = pattern(SEGMENT_ID, 'a segment id like "seg-0001"');
+export const segmentId: Decoder<string> = (value, path = '') => {
+  const s = str(value, path);
+  if (!SEGMENT_ID.test(s)) throw new DecodeError(path, 'a segment id like "seg-0001"');
+  return s;
+};

@@ -43,13 +43,26 @@
   "errors": {
     "network": "The server could not be reached. Check that the local application is running.",
     "unauthorized": "Your session has ended. Open a new local demo session.",
-    "forbidden": "You do not have permission for this action.",
+    "forbidden": "The request was refused for security reasons. Reopen the demo from the launcher.",
     "notFound": "The requested item was not found.",
     "validation": "Some values are not valid. Please review the form.",
     "conflict": "The item changed or is not ready yet. Try again.",
     "contract": "The server response did not match the expected format.",
     "server": "The server reported an error. Try again later.",
-    "generic": "Something went wrong."
+    "generic": "Something went wrong.",
+    "badRequest": "The request was not accepted.",
+    "tooLarge": "The file is larger than the 100 MB limit.",
+    "unsupportedType": "Only WAV files are accepted.",
+    "rateLimited": "Too many requests. Wait a moment and try again.",
+    "reference": "(Reference: {id})",
+    "fieldReasons": {
+      "required": "This value is required.",
+      "too_long": "This value is too long.",
+      "out_of_range": "This value is out of range.",
+      "invalid_format": "This value has an invalid format.",
+      "duplicate": "This value is already in use.",
+      "invalid": "This value is not valid."
+    }
   },
   "session": {
     "open": "Open local demo session",
@@ -125,8 +138,7 @@
     "fields": {
       "name": "Agent",
       "extension": "Extension / agent number",
-      "status": "Status",
-      "queues": "Queues"
+      "status": "Status"
     },
     "status": {
       "active": "Active",
@@ -206,15 +218,28 @@
     },
     "status": {
       "uploaded": "Uploaded",
+      "probing": "Checking file",
+      "ready": "Ready",
       "transcribing": "Transcribing",
-      "scoring": "Scoring",
+      "transcribed": "Transcribed",
+      "evaluating": "Evaluating",
       "scored": "Scored",
-      "failed": "Failed"
+      "insufficient_evidence": "Insufficient evidence",
+      "not_assessable": "Not assessable",
+      "rejected": "Rejected",
+      "transcription_failed": "Transcription failed",
+      "evaluation_failed": "Evaluation failed"
     },
     "processing": {
       "title": "Processing",
       "simulated": "Simulated in the browser — the real backend transcribes and scores.",
-      "failed": "Processing failed."
+      "failed": "Processing failed.",
+      "evaluated": "Evaluated",
+      "failure": {
+        "rejected": "The file was rejected when it was checked. Upload a supported WAV file.",
+        "transcription_failed": "Transcription failed. No transcript or evaluation was produced.",
+        "evaluation_failed": "Evaluation failed. No evaluation run was created and no score is shown."
+      }
     },
     "player": {
       "title": "Recording",
@@ -256,7 +281,9 @@
       "matchCount": "{n} matching lines",
       "matchPosition": "Match {n} of {total}",
       "matchLabel": "Matches search.",
-      "unknown": "Speaker unknown"
+      "unknown": "Speaker unknown",
+      "revision": "Transcript revision {n}",
+      "olderRevision": "This evaluation was scored on an earlier transcript revision, shown here. A newer revision exists and has not been scored."
     },
     "upload": {
       "open": "Upload call",
@@ -276,7 +303,6 @@
         "fileRequired": "Choose an audio file.",
         "fileType": "Only WAV files are accepted.",
         "fileSize": "The file is larger than 25 MB.",
-        "titleRequired": "Enter a display name.",
         "titleTooLong": "Use at most 200 characters.",
         "agentRequired": "Select the agent who handled the call.",
         "confirmRequired": "Confirm that the recording is synthetic."
@@ -288,7 +314,8 @@
         "left_agent": "Left channel is the agent",
         "right_agent": "Right channel is the agent",
         "none": "No channel map (speakers unknown)"
-      }
+      },
+      "titleHint": "Optional. Up to 200 characters."
     },
     "channel": {
       "mixedTitle": "Mixed channel — speakers unresolved",
@@ -305,6 +332,15 @@
         "revision_mismatch": "The evidence refers to a different transcript revision than the one shown."
       },
       "lineLabel": "Evidence line."
+    },
+    "jobState": {
+      "queued": "Queued",
+      "running": "Running",
+      "succeeded": "Succeeded",
+      "retry_scheduled": "Retry scheduled",
+      "failed": "Failed",
+      "waiting": "Waiting",
+      "cancelled": "Cancelled"
     }
   },
   "evaluations": {

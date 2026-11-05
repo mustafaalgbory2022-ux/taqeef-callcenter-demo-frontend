@@ -1,11 +1,11 @@
-import { agents, initialAudit, queues } from './fixtures/agents';
+import { agents, initialAudit } from './fixtures/agents';
 import { callFixtures } from './fixtures/calls';
 import { scorecardVersions } from './fixtures/scorecards';
 import { syntheticRevisionId } from './ids';
 import { simulateEvaluation } from './scoring';
 import type { MockState, WireScorecard } from './types';
 
-const STORAGE_KEY = 'taqeef.mock.db.v3';
+const STORAGE_KEY = 'taqeef.mock.db.v4';
 
 function versionOf(n: number): WireScorecard {
   const v = scorecardVersions.find((sc) => sc.version === n);
@@ -16,7 +16,6 @@ function versionOf(n: number): WireScorecard {
 /** Build the initial synthetic dataset, including evaluation history for DEMO-003. */
 export function createSeedState(): MockState {
   const state: MockState = {
-    queues: structuredClone(queues),
     agents: structuredClone(agents),
     audit: Object.fromEntries(agents.map((a) => [a.id, initialAudit(a)])),
     calls: callFixtures.map((f, i) => ({
@@ -36,6 +35,7 @@ export function createSeedState(): MockState {
     ),
     judgments: Object.fromEntries(callFixtures.map((f) => [f.call.id, f.judgments])),
     scorecards: structuredClone(scorecardVersions),
+    revisions: [],
     evaluations: [],
     uploads: {},
     seq: 100,
@@ -70,9 +70,30 @@ export function createSeedState(): MockState {
         scorecard: versionOf(2),
         trigger: 'rescore',
         supersedesId: 'ev-003',
-        createdAt: '2026-10-28T11:00:00+03:00',
+        createdAt: '2026-10-28T08:00:00.000Z',
       }),
     );
+  }
+  // DEMO-002 was re-transcribed after scoring: revision 1 is current but unscored, so the call
+  // page must keep showing revision 0 with its run (contract v0.2 item 7).
+  const retranscribed = state.transcripts['DEMO-002'];
+  const call2 = state.calls.find((c) => c.id === 'DEMO-002');
+  if (retranscribed && call2) {
+    const rev1 = {
+      ...structuredClone(retranscribed),
+      transcript_revision_id: syntheticRevisionId(90),
+      revision_no: 1,
+    };
+    state.revisions.push(rev1);
+    call2.current_transcript_revision_id = rev1.transcript_revision_id;
+  }
+
+  // Each call's status reflects its latest run's explicit outcome (contract v0.2 item C).
+  for (const call of state.calls) {
+    const latest = state.evaluations
+      .filter((e) => e.call_id === call.id)
+      .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0];
+    if (latest) call.status = latest.outcome;
   }
   return state;
 }

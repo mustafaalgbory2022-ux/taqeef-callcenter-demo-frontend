@@ -1,6 +1,6 @@
 import type { ScorecardDraft, ScorecardVersion } from '@/shared/types/domain';
 import { arrayOf, bool, nullable, num, object, oneOf, str, type Decoded } from '../decode';
-import { localizedText } from './common';
+import { localizedText, utcTimestamp } from './common';
 
 export const wireScorecardVersion = object({
   scorecard_id: str,
@@ -19,7 +19,7 @@ export const wireScorecardVersion = object({
   ),
   prohibited_expressions: arrayOf(object({ id: str, phrase: str, language: oneOf(['ar', 'en']) })),
   prohibited_penalty: object({ points: num, criterion_id: nullable(str) }),
-  created_at: str,
+  created_at: utcTimestamp,
   created_by: str,
   change_note: str,
 });

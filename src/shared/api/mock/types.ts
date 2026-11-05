@@ -1,10 +1,9 @@
 import type { Decoded } from '../decode';
-import type { wireAgent, wireAuditEntry, wireQueue } from '../wire/agents';
+import type { wireAgent, wireAuditEntry } from '../wire/agents';
 import type { wireCall, wireTranscript } from '../wire/calls';
 import type { WireEvaluation } from '../wire/evaluations';
 import type { wireScorecardVersion } from '../wire/scorecards';
 
-export type WireQueue = Decoded<typeof wireQueue>;
 export type WireAgent = Decoded<typeof wireAgent>;
 export type WireAudit = Decoded<typeof wireAuditEntry>;
 export type WireCall = Decoded<typeof wireCall>;
@@ -28,14 +27,18 @@ export interface Judgment {
 }
 
 export interface MockState {
-  queues: WireQueue[];
   agents: WireAgent[];
   audit: Record<string, WireAudit[]>;
   calls: WireCall[];
+  /** First revision per call (the one seeded runs were scored on). */
   transcripts: Record<string, WireTranscript>;
+  /** Later, append-only revisions (re-transcription), any call. */
+  revisions: WireTranscript[];
   judgments: Record<string, Judgment[]>;
   scorecards: WireScorecard[];
   evaluations: WireEvaluation[];
+  /** Stored scorecard draft (PUT /scorecard/draft). */
+  draft?: unknown;
   /** Upload time (epoch ms) per uploaded call, used to simulate processing stages. */
   uploads: Record<string, number>;
   seq: number;

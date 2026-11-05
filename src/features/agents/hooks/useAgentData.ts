@@ -3,7 +3,6 @@ import { useApiQuery } from '@/shared/hooks/useApiQuery';
 import type { AgentInput } from '@/shared/types/domain';
 
 export const useAgents = () => useApiQuery(['agents'], (api) => api.listAgents());
-export const useQueues = () => useApiQuery(['queues'], (api) => api.listQueues());
 export const useAgentHistory = (id: string | null) =>
   useApiQuery(['agents', 'history', id], (api) => api.getAgentHistory(id ?? ''), {
     enabled: id !== null,

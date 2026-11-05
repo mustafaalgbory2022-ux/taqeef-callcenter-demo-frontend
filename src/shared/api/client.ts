@@ -2,11 +2,9 @@ import type {
   Agent,
   AgentInput,
   AuditEntry,
-  Branding,
   Call,
   CallUpload,
   Evaluation,
-  Queue,
   ScorecardDraft,
   ScorecardVersion,
   Session,
@@ -22,12 +20,9 @@ import {
   agentFromWire,
   agentInputToWire,
   auditFromWire,
-  queueFromWire,
   wireAgent,
   wireAuditEntry,
-  wireQueue,
 } from './wire/agents';
-import { brandingFromWire, wireBranding } from './wire/branding';
 import {
   callFromWire,
   transcriptFromWire,
@@ -60,8 +55,6 @@ export interface ApiClient {
   onSessionEnded(listener: () => void): () => void;
   /** Playback source for a call: the protected audio route (cookie, same-origin, no CSRF). */
   audioSrc(callId: string): string | null;
-  getBranding(): Promise<Branding>;
-  listQueues(): Promise<Queue[]>;
   listAgents(): Promise<Agent[]>;
   createAgent(input: AgentInput): Promise<Agent>;
   updateAgent(id: string, patch: Partial<AgentInput>): Promise<Agent>;
@@ -145,7 +138,6 @@ export function createApiClient(
   const calls = list(wireCall, callFromWire);
   const evaluations = list(wireEvaluation, evaluationFromWire);
   const versions = list(wireScorecardVersion, scorecardFromWire);
-  const queues = list(wireQueue, queueFromWire);
   const audit = list(wireAuditEntry, auditFromWire);
 
   return {
@@ -186,9 +178,6 @@ export function createApiClient(
       options.audioSrc
         ? options.audioSrc(callId)
         : `${apiConfig.baseUrl.replace(/\/$/, '')}${endpoints.callAudio(callId)}`,
-    getBranding: () =>
-      send({ method: 'GET', path: endpoints.branding }, wireBranding, brandingFromWire),
-    listQueues: () => send({ method: 'GET', path: endpoints.queues }, queues.decoder, queues.map),
     listAgents: () => send({ method: 'GET', path: endpoints.agents }, agents.decoder, agents.map),
     createAgent: (input) =>
       send(
@@ -214,9 +203,10 @@ export function createApiClient(
     uploadCall: ({ file, displayName, agentId, channelMap }) => {
       const form = new FormData();
       form.append('file', file);
-      form.append('display_name', displayName.trim());
-      // PROVISIONAL: agent selection field (contract §7 item 3 is still open).
+      // Field names PROPOSED (contract v0.2 item 1). The agent is sent by stable id only;
+      // its display name never goes to the server as an identifier.
       form.append('agent_id', agentId);
+      if (displayName.trim()) form.append('display_name', displayName.trim());
       if (channelMap) form.append('channel_map', channelMap);
       form.append('request_id', requestId());
       return send(
@@ -247,19 +237,36 @@ export function createApiClient(
         wireEvaluation,
         evaluationFromWire,
       ),
-    getCurrentScorecard: () =>
-      send(
-        { method: 'GET', path: endpoints.scorecardCurrent },
-        wireScorecardVersion,
-        scorecardFromWire,
-      ),
+    // PROVISIONAL: the contract has no "current version" route and no active flag yet. In
+    // the demo a version is only created by activation, so the newest version is the active one.
+    getCurrentScorecard: async () => {
+      const all = await send(
+        { method: 'GET', path: endpoints.scorecardVersions },
+        versions.decoder,
+        versions.map,
+      );
+      const newest = all.reduce<ScorecardVersion | undefined>(
+        (a, b) => (!a || b.version > a.version ? b : a),
+        undefined,
+      );
+      if (!newest) throw new ApiError('not_found', 404, 'No scorecard version');
+      return newest;
+    },
     listScorecardVersions: () =>
       send({ method: 'GET', path: endpoints.scorecardVersions }, versions.decoder, versions.map),
-    saveScorecardVersion: (draft) =>
-      send(
-        { method: 'POST', path: endpoints.scorecardVersions, body: scorecardDraftToWire(draft) },
+    // "Save and Activate": store the draft, then activate it as a new immutable version.
+    // Route names PROPOSED (contract v0.2 item D); field errors arrive with the activation.
+    saveScorecardVersion: async (draft) => {
+      await send(
+        { method: 'PUT', path: endpoints.scorecardDraft, body: scorecardDraftToWire(draft) },
+        (v) => v,
+        () => undefined,
+      );
+      return send(
+        { method: 'POST', path: endpoints.scorecardActivate, body: { request_id: requestId() } },
         wireScorecardVersion,
         scorecardFromWire,
-      ),
+      );
+    },
   };
 }

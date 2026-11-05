@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { clickNav, openSession, syntheticWav } from './helpers';
+import { clickNav, openSession, syntheticWav, gotoInApp } from './helpers';
 
 test('evidence and transcript lines seek the synthetic recording', async ({ page }) => {
   await openSession(page, { path: '/calls/DEMO-003' });
@@ -73,12 +73,17 @@ test('uploads a synthetic file and shows simulated processing', async ({ page })
     page.getByRole('heading', { level: 1, name: 'Synthetic upload test' }),
   ).toBeVisible();
   await expect(page.getByText('Simulated in the browser')).toBeVisible();
+  // The confirmed pipeline steps are shown while processing (contract v0.2 item C).
+  for (const step of ['Uploaded', 'Checking file', 'Transcribing', 'Evaluating']) {
+    await expect(page.getByRole('listitem').filter({ hasText: step }).first()).toBeVisible();
+  }
 
   // The calls list must update by itself when processing finishes (no reload).
   await clickNav(page, 'Calls');
   const row = page.getByRole('row', { name: /Synthetic upload test/ });
   await expect(row).toBeVisible();
-  await expect(row.getByText('Scored')).toBeVisible({ timeout: 15_000 });
+  // The final call status is the run's explicit outcome, not a generic "Scored".
+  await expect(row.locator('[data-status="not_assessable"]')).toBeVisible({ timeout: 15_000 });
   // The list keeps the no-score kind distinct: not assessable, never a generic or 0 score.
   await expect(row.getByText('No score — not assessable')).toBeVisible();
   // Not assessable criteria show their reason code (roles unreliable on a mixed channel).
@@ -236,4 +241,29 @@ test('Arabic shows the advisory label, readable points and 24-hour times', async
   await expect(criterion).toContainText('مُولَّد بالذكاء الاصطناعي، أوّلي، استشاري');
   await expect(criterion).toContainText(/النقاط: \d من 3/);
   await expect(page.getByRole('main')).not.toContainText(/\d{1,2}:\d{2}\s?[صم](\s|$)/);
+});
+
+test('a call page shows the transcript revision its evaluation run was scored on', async ({
+  page,
+}) => {
+  // DEMO-002 was re-transcribed after scoring (synthetic): the run's revision 1 of 2 is shown.
+  await openSession(page, { path: '/calls/DEMO-002' });
+  await expect(page.getByTestId('transcript-revision')).toHaveText('Transcript revision 1');
+  await expect(page.getByTestId('older-revision')).toBeVisible();
+  // Evidence resolves against that revision: located, never "different revision".
+  await page.getByTestId('criterion-c-greeting').getByRole('button').first().click();
+  await expect(page.getByTestId('evidence-status')).toContainText('Evidence located at');
+  // A call scored on its latest revision shows no notice.
+  await gotoInApp(page, '/calls/DEMO-001');
+  await expect(page.getByTestId('transcript-revision')).toHaveText('Transcript revision 1');
+  await expect(page.getByTestId('older-revision')).toHaveCount(0);
+});
+
+test('Arabic shows the twelve-status labels and the revision notice', async ({ page }) => {
+  await openSession(page, { path: '/calls/DEMO-002', lang: 'ar', theme: 'dark' });
+  await expect(page.getByTestId('older-revision')).toContainText('نسخة نص سابقة');
+  await gotoInApp(page, '/calls');
+  await expect(page.locator('[data-status="insufficient_evidence"]').first()).toHaveText(
+    'أدلة غير كافية',
+  );
 });

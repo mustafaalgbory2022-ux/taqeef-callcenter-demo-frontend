@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { useAgents } from '@/features/agents';
 import {
+  currentEvaluations,
   EvaluationHistoryPanel,
   EvaluationPanel,
+  useEvaluations,
   type EvidenceSelection,
   type ResolvedSegment,
 } from '@/features/evaluations';
@@ -21,8 +23,9 @@ import { CallStatusBadge } from '../components/CallStatusBadge';
 import { ProcessingStatus } from '../components/ProcessingStatus';
 import { EvidenceStatus } from '../components/EvidenceStatus';
 import { TranscriptView } from '../components/TranscriptView';
-import { locateEvidence, type EvidenceLocation } from '../model/transcript';
+import { locateEvidence, revisionToShow, type EvidenceLocation } from '../model/transcript';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
+import { isEvaluatedStatus } from '../model/status';
 import { useCall, useTranscript } from '../hooks/useCallData';
 import styles from './CallDetail.module.css';
 
@@ -41,10 +44,14 @@ function CallDetail({ call }: { call: Call }) {
   const agents = useAgents();
   const agent =
     agents.status === 'success' ? agents.data.find((a) => a.id === call.agentId) : undefined;
-  // The call's current revision. A run's evidence is resolved only against the revision that
-  // run evaluated; a mismatch is reported, never resolved against other text.
-  const revisionId = call.currentTranscriptRevisionId;
-  const hasTranscript = revisionId !== null;
+  // Show the revision the displayed run was scored on (same "latest run" rule as the
+  // evaluation panel). Evidence is resolved only against that revision.
+  const evaluations = useEvaluations({ callId: call.id });
+  const run =
+    evaluations.status === 'success' ? currentEvaluations(evaluations.data)[0] : undefined;
+  const waitingForRun = isEvaluatedStatus(call.status) && evaluations.status === 'loading';
+  const { revisionId, isLatest } = revisionToShow(call, run);
+  const hasTranscript = revisionId !== null && !waitingForRun;
   const transcript = useTranscript(revisionId ?? '', hasTranscript);
   const audioSrc = useMemo(() => api.audioSrc(call.id), [api, call.id]);
   const player = useAudioPlayer(audioSrc, call.durationMs);
@@ -128,7 +135,7 @@ function CallDetail({ call }: { call: Call }) {
           {t('calls.channel.mixedBody')}
         </Notice>
       )}
-      {call.status !== 'scored' && (
+      {!isEvaluatedStatus(call.status) && (
         <ProcessingStatus status={call.status} simulated={call.simulated} />
       )}
       <div className={styles.layout}>
@@ -141,6 +148,20 @@ function CallDetail({ call }: { call: Call }) {
               <QueryView query={transcript}>
                 {(data) => (
                   <>
+                    <p
+                      className={styles.revision}
+                      data-testid="transcript-revision"
+                      data-revision-id={data.revisionId}
+                    >
+                      {t('calls.transcript.revision', { n: data.revisionNo + 1 })}
+                    </p>
+                    {!isLatest && (
+                      <Notice
+                        tone="info"
+                        title={t('calls.transcript.olderRevision')}
+                        testId="older-revision"
+                      />
+                    )}
                     <EvidenceStatus
                       selection={selection}
                       onPlay={(ms) => seek(ms, true)}
@@ -170,17 +191,17 @@ function CallDetail({ call }: { call: Call }) {
           </Card>
         </div>
         <div className={styles.column}>
-          {call.status === 'scored' && (
+          {isEvaluatedStatus(call.status) && (
             <EvaluationPanel
               callId={call.id}
-              canRescore={call.status === 'scored'}
+              canRescore={isEvaluatedStatus(call.status)}
               onEvidence={onEvidence}
               resolveEvidence={resolveEvidence}
             />
           )}
         </div>
       </div>
-      {call.status === 'scored' && <EvaluationHistoryPanel callId={call.id} />}
+      {isEvaluatedStatus(call.status) && <EvaluationHistoryPanel callId={call.id} />}
     </>
   );
 }

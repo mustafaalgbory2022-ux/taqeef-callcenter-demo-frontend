@@ -34,12 +34,12 @@ export function SessionGate({
   if (session.status === 'success' && session.data) {
     return (
       <SessionContext.Provider value={session.data}>
-        <BrandingProvider enabled>{children}</BrandingProvider>
+        <BrandingProvider>{children}</BrandingProvider>
       </SessionContext.Provider>
     );
   }
   return (
-    <BrandingProvider enabled={false}>
+    <BrandingProvider>
       <LaunchScreen
         initialCode={ended ? null : launchCode}
         loadError={session.status === 'error' ? session.error : undefined}

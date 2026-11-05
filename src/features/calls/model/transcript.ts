@@ -1,4 +1,4 @@
-import type { Transcript, TranscriptSegment } from '@/shared/types/domain';
+import type { Call, Evaluation, Transcript, TranscriptSegment } from '@/shared/types/domain';
 
 /** The segment playing at `timeMs`, or the last one that started before it (gaps). */
 export function findActiveSegment(
@@ -114,4 +114,17 @@ export function locateEvidence(
     endMs: seg.endMs,
     text: seg.text,
   };
+}
+
+/**
+ * The transcript revision to show with a call: the revision the displayed evaluation run was
+ * scored on, never simply the latest (contract v0.2 item 7). Without a run, the call's
+ * current revision. `isLatest` is false when the call has a newer revision than the run's.
+ */
+export function revisionToShow(
+  call: Pick<Call, 'currentTranscriptRevisionId'>,
+  run: Pick<Evaluation, 'transcriptRevisionId'> | undefined,
+): { revisionId: string | null; isLatest: boolean } {
+  const revisionId = run?.transcriptRevisionId ?? call.currentTranscriptRevisionId;
+  return { revisionId, isLatest: revisionId === call.currentTranscriptRevisionId };
 }

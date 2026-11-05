@@ -30,8 +30,8 @@ export function validateUpload(v: UploadValues): UploadErrors {
     errors.file = 'calls.upload.errors.fileType';
   } else if (v.file.size > MAX_UPLOAD_MB * 1024 * 1024)
     errors.file = 'calls.upload.errors.fileSize';
-  if (isBlank(v.title)) errors.title = 'calls.upload.errors.titleRequired';
-  else if (v.title.trim().length > MAX_DISPLAY_NAME)
+  // display_name is optional (contract v0.2 item 1); the agent is required, by id only.
+  if (!isBlank(v.title) && v.title.trim().length > MAX_DISPLAY_NAME)
     errors.title = 'calls.upload.errors.titleTooLong';
   if (!v.agentId) errors.agentId = 'calls.upload.errors.agentRequired';
   if (!v.confirmSynthetic) errors.confirmSynthetic = 'calls.upload.errors.confirmRequired';

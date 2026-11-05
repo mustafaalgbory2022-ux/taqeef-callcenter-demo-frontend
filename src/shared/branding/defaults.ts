@@ -1,25 +1,14 @@
-import type { Branding, LocalizedText } from '@/shared/types/domain';
+import type { LocalizedText } from '@/shared/types/domain';
 
 /**
- * Neutral defaults used until the backend supplies approved Taqeef branding.
- * The placeholder mark is deliberately generic — official logos are never redrawn here.
+ * Static demo branding, applied at build time (contract v0.2: no branding route).
+ * The mark is a neutral placeholder — official logos are never redrawn or distributed here.
+ * Approved assets, when authorized, replace the files under `public/brand/` and these values.
  */
-export const defaultBranding: Required<{
-  productName: LocalizedText;
-  organizationName: LocalizedText;
-  logoLightUrl: string;
-  logoDarkUrl: string;
-}> = {
-  productName: { en: 'Call Center AI', ar: 'مركز الاتصال الذكي' },
-  organizationName: { en: 'Taqeef', ar: 'تقييف' },
+export const staticBranding = {
+  productName: { en: 'Call Center AI', ar: 'مركز الاتصال الذكي' } satisfies LocalizedText,
+  organizationName: { en: 'Taqeef', ar: 'تقييف' } satisfies LocalizedText,
   logoLightUrl: '/brand/logo-placeholder.svg',
   logoDarkUrl: '/brand/logo-placeholder.svg',
-};
-
-export const emptyBranding: Branding = {
-  productName: null,
-  organizationName: null,
-  logoLightUrl: null,
-  logoDarkUrl: null,
-  tokens: { light: {}, dark: {} },
-};
+  isPlaceholder: true,
+} as const;

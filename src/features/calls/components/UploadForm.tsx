@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { sortAgents, useAgents } from '@/features/agents';
 import { mapFieldIssues } from '@/shared/api/fieldIssues';
-import { describeError } from '@/shared/i18n/errorMessage';
+import { describeError, describeFieldIssue } from '@/shared/i18n/errorMessage';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import { Button, LinkButton } from '@/shared/ui/Button';
 import { Checkbox, Field } from '@/shared/ui/Field';
@@ -59,7 +59,9 @@ export function UploadForm() {
       toast('success', t('calls.upload.done', { id: accepted.callId }));
       navigate(`/calls/${encodeURIComponent(accepted.callId)}`);
     } catch (err) {
-      const mapped = mapFieldIssues(err, SERVER_UPLOAD_FIELD);
+      const mapped = mapFieldIssues(err, SERVER_UPLOAD_FIELD, (issue) =>
+        describeFieldIssue(issue, t),
+      );
       if (mapped) setErrors(mapped.fields);
       if (!mapped || mapped.unmapped.length > 0) {
         setFormError(mapped?.unmapped.join(' ') || describeError(err, t));
@@ -87,7 +89,11 @@ export function UploadForm() {
         </Field>
       </div>
       <div className={styles.row}>
-        <Field label={t('calls.upload.title')} required error={errors.title}>
+        <Field
+          label={t('calls.upload.title')}
+          hint={t('calls.upload.titleHint')}
+          error={errors.title}
+        >
           {(p) => (
             <input
               {...p}
