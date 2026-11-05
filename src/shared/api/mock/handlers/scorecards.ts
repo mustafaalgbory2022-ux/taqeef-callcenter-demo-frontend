@@ -88,8 +88,13 @@ export function scorecardRoutes(state: MockState, persist: () => void): Route[] 
         const error = validate(draft);
         if (error) return error;
         const latest = latestScorecard(state);
+        // One transaction: the new version becomes active, the previous one is retired.
+        for (const v of state.scorecards) v.status = 'retired';
+        state.seq += 1;
         const version: WireScorecard = {
           ...draft,
+          scorecard_version_id: `0193a000-0000-7000-8000-${state.seq.toString(16).padStart(12, '0')}`,
+          status: 'active',
           scorecard_id: latest.scorecard_id,
           version: latest.version + 1,
           change_note: draft.change_note.trim(),

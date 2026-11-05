@@ -108,9 +108,11 @@ function AgentDashboard({
           </>
         }
       />
-      <SampleNotice evaluatedCalls={derived.summary.scoredCalls} />
+      <SampleNotice evaluatedCalls={derived.summary.outcomes.scored} />
       <KpiRow summary={derived.summary} />
-      <VersionNotice versions={derived.summary.scorecardVersions} />
+      {derived.summary.scope === 'all_versions' && (
+        <VersionNotice versions={derived.availableVersions} />
+      )}
       <div className={layout.split}>
         <CriteriaPerformance summary={derived.summary} />
       </div>

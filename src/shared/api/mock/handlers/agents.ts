@@ -20,7 +20,7 @@ function validate(state: MockState, body: CreateBody) {
   if (name.trim().length > 80) return invalid('display_name', 'too_long');
   // Unique across all agents, retired included (names are never reused).
   if (state.agents.some((a) => normalize(a.display_name) === normalize(name)))
-    return invalid('display_name', 'duplicate');
+    return invalid('display_name', 'name_exists');
   const ext = body.extension;
   if (ext !== undefined && ext !== null && ext !== '') {
     if (typeof ext !== 'string' || !EXTENSION_PATTERN.test(ext))

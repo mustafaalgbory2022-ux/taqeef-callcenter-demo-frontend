@@ -82,6 +82,8 @@ const common = {
 export const scorecardVersions: WireScorecard[] = [
   {
     ...common,
+    scorecard_version_id: '0193a000-0000-7000-8000-0000000005c1',
+    status: 'retired',
     version: 1,
     prohibited_expressions: [
       { id: 'px-1', phrase: 'مو شغلي', language: 'ar' },
@@ -92,6 +94,8 @@ export const scorecardVersions: WireScorecard[] = [
   },
   {
     ...common,
+    scorecard_version_id: '0193a000-0000-7000-8000-0000000005c2',
+    status: 'active',
     version: 2,
     prohibited_expressions: [
       { id: 'px-1', phrase: 'مو شغلي', language: 'ar' },

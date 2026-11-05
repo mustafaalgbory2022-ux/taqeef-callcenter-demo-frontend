@@ -1,8 +1,12 @@
 import type { ScorecardDraft, ScorecardVersion } from '@/shared/types/domain';
 import { arrayOf, bool, nullable, num, object, oneOf, str, type Decoded } from '../decode';
 import { localizedText, utcTimestamp } from './common';
+import { opaqueId } from './ids';
 
 export const wireScorecardVersion = object({
+  // Contract v0.3 §10.5 (shape PROPOSED). The other fields stay PROVISIONAL Cloud names.
+  scorecard_version_id: opaqueId,
+  status: oneOf(['active', 'retired']),
   scorecard_id: str,
   version: num,
   name: localizedText,
@@ -26,6 +30,8 @@ export const wireScorecardVersion = object({
 
 export function scorecardFromWire(w: Decoded<typeof wireScorecardVersion>): ScorecardVersion {
   return {
+    scorecardVersionId: w.scorecard_version_id,
+    status: w.status,
     scorecardId: w.scorecard_id,
     version: w.version,
     name: w.name,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createFormatters } from '@/shared/i18n/format';
-import { exactMeanHundredths, hundredthsParts } from './score';
+import { hundredthsParts } from './score';
 
 describe('display_hundredths formatting (contract v0.1 3.4)', () => {
   it('splits with integer arithmetic only', () => {
@@ -17,21 +17,5 @@ describe('display_hundredths formatting (contract v0.1 3.4)', () => {
     expect(createFormatters('en').hundredthsDelta(720, 570)).toBe('−1.50');
     const ar = createFormatters('ar').hundredths(699);
     expect(ar.replace(/[^0-9]/g, '')).toBe('699');
-  });
-});
-
-describe('exactMeanHundredths (exact mean of ratios, truncated)', () => {
-  it('uses exact fractions', () => {
-    expect(
-      exactMeanHundredths([
-        { awarded: 2, assessable: 3 },
-        { awarded: 1, assessable: 3 },
-      ]),
-    ).toBe(500);
-    expect(exactMeanHundredths([{ awarded: 2, assessable: 3 }])).toBe(666);
-  });
-  it('returns null without runs and ignores zero denominators', () => {
-    expect(exactMeanHundredths([])).toBeNull();
-    expect(exactMeanHundredths([{ awarded: 0, assessable: 0 }])).toBeNull();
   });
 });

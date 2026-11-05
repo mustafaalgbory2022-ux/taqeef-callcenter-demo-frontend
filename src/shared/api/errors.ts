@@ -51,8 +51,8 @@ const CODE_BY_STATUS: Record<number, ApiErrorCode> = {
   429: 'rate_limited',
 };
 
-/** `<module.component.event>` (contract v0.2 item 9, CONFIRMED format). */
-const SERVER_CODE = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){2,}$/;
+/** `<module.component.event>`: exactly three parts (contract v0.3 §12.1, CONFIRMED format). */
+const SERVER_CODE = /^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*){2}$/;
 const SAFE_TOKEN = /^[a-z][a-z0-9_]{0,63}$/;
 const CORRELATION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

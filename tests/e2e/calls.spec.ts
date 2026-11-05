@@ -1,6 +1,12 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test } from '@playwright/test';
-import { clickNav, openSession, syntheticWav, gotoInApp } from './helpers';
+import {
+  clickNav,
+  openSession,
+  syntheticWav,
+  gotoInApp,
+  expectNoHorizontalOverflow,
+} from './helpers';
 
 test('evidence and transcript lines seek the synthetic recording', async ({ page }) => {
   await openSession(page, { path: '/calls/DEMO-003' });
@@ -219,6 +225,8 @@ test('audio shortcuts announce in Arabic and keep evidence highlighting', async 
   await openSession(page, { path: '/calls/DEMO-003', lang: 'ar' });
   await page.getByTestId('criterion-c-language').getByRole('button').first().click();
   await expect(page.locator('[data-segment-id][data-evidence]')).toHaveCount(1);
+  // Evidence excerpts and indicators never widen the page (mobile RTL regression check).
+  await expectNoHorizontalOverflow(page);
   await page.locator('body').click({ position: { x: 1, y: 1 } });
   await page.keyboard.press('KeyK');
   await expect(page.getByTestId('player-announcement')).toContainText('إيقاف مؤقت عند');

@@ -12,6 +12,18 @@ import { useCreateAgent } from '../hooks/useAgentData';
 import { emptyAgentInput, SERVER_FIELD, validateAgent, type AgentField } from '../model/agents';
 import styles from './AgentFormDialog.module.css';
 
+/** `POST /api/agents` display_name reasons (contract v0.3 §4.2; values CONFIRMED). */
+const NAME_REASONS = [
+  'name_invalid_char',
+  'name_digits',
+  'name_mixed_script',
+  'name_shape',
+  'name_length',
+  'name_exists',
+] as const;
+const isNameReason = (r: string): r is (typeof NAME_REASONS)[number] =>
+  (NAME_REASONS as readonly string[]).includes(r);
+
 export interface AgentFormDialogProps {
   /** All agents, retired included (names are unique across all of them). */
   agents: readonly Agent[];
@@ -43,13 +55,15 @@ export function AgentFormDialog({ agents, onClose }: AgentFormDialogProps) {
       onClose();
     } catch (err) {
       const mapped = mapFieldIssues(err, SERVER_FIELD, (issue) =>
-        issue.reason === 'duplicate'
-          ? t(
-              issue.field === 'extension'
-                ? 'agents.form.errors.extensionTaken'
-                : 'agents.form.errors.nameTaken',
-            )
-          : describeFieldIssue(issue, t),
+        issue.field === 'display_name' && isNameReason(issue.reason)
+          ? t(`agents.form.errors.${issue.reason}`)
+          : issue.reason === 'duplicate'
+            ? t(
+                issue.field === 'extension'
+                  ? 'agents.form.errors.extensionTaken'
+                  : 'agents.form.errors.nameTaken',
+              )
+            : describeFieldIssue(issue, t),
       );
       if (mapped) setErrors(mapped.fields);
       if (!mapped || mapped.unmapped.length > 0) {

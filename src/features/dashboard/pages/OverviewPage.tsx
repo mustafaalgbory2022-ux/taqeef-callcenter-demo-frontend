@@ -63,9 +63,11 @@ export function OverviewPage() {
         {() =>
           derived && (
             <div className={styles.stack}>
-              <SampleNotice evaluatedCalls={derived.summary.scoredCalls} />
+              <SampleNotice evaluatedCalls={derived.summary.outcomes.scored} />
               <KpiRow summary={derived.summary} />
-              <VersionNotice versions={derived.summary.scorecardVersions} />
+              {derived.summary.scope === 'all_versions' && (
+                <VersionNotice versions={derived.availableVersions} />
+              )}
               {!agentId && <AgentBreakdown agents={sortAgents(derived.agents)} />}
               <div className={layout.split}>
                 <CriteriaPerformance summary={derived.summary} />

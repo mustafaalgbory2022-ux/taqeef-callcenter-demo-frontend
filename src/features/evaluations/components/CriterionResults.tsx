@@ -1,3 +1,4 @@
+import { Fragment } from 'react';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import type { Evaluation, ScorecardVersion } from '@/shared/types/domain';
 import { Badge } from '@/shared/ui/Badge';
@@ -61,6 +62,11 @@ export function CriterionResults({
               <p className={styles.rationale} dir="auto">
                 {c.rationale}
               </p>
+              {c.explanationTruncated && (
+                <span className={styles.reason} data-testid="explanation-truncated">
+                  {t('evaluations.explanationTruncated')}
+                </span>
+              )}
             </div>
           ) : (
             c.result === 'not_assessable' && (
@@ -70,39 +76,49 @@ export function CriterionResults({
           {c.evidence.length > 0 && (
             <div className={styles.evidence}>
               {c.evidence.map((e) => {
+                // The reference is the served pair {revision, segment} (contract v0.3 §7.5).
                 const ref = {
                   segmentId: e.segmentId,
-                  transcriptRevisionId: evaluation.transcriptRevisionId,
+                  transcriptRevisionId: e.transcriptRevisionId,
                 };
-                const seg = resolveEvidence(ref);
+                const located = resolveEvidence(ref) !== null;
                 return (
-                  <button
-                    key={e.segmentId}
-                    type="button"
-                    className={styles.evidenceButton}
-                    data-evidence-segment={e.segmentId}
-                    onClick={() =>
-                      onEvidence(
-                        ref,
-                        c.evidence.map((x) => x.segmentId),
-                      )
-                    }
-                  >
-                    <Icon name="play" size={12} />
-                    <span className="visually-hidden">{t('evaluations.evidenceAt')}</span>
-                    {seg ? (
-                      <>
-                        <span className={styles.ts}>{formatDuration(seg.startMs)}</span>
-                        <span className={styles.quote} dir="auto">
-                          {seg.text}
-                        </span>
-                      </>
-                    ) : (
-                      <span className={styles.quote}>
+                  <Fragment key={e.segmentId}>
+                    <button
+                      type="button"
+                      className={styles.evidenceButton}
+                      data-evidence-segment={e.segmentId}
+                      onClick={() =>
+                        onEvidence(
+                          ref,
+                          c.evidence.map((x) => x.segmentId),
+                        )
+                      }
+                    >
+                      <Icon name="play" size={12} />
+                      <span className="visually-hidden">{t('evaluations.evidenceAt')}</span>
+                      <span className={styles.ts}>{formatDuration(e.startMs)}</span>
+                      {/* The server's masked excerpt, shown exactly as served. */}
+                      <span className={styles.quote} dir="auto" data-testid="evidence-excerpt">
+                        {e.excerpt}
+                      </span>
+                    </button>
+                    {e.excerptTruncated && (
+                      <span className={styles.reason} data-testid="excerpt-truncated">
+                        {t('evaluations.excerptTruncated')}
+                      </span>
+                    )}
+                    {!e.counted && (
+                      <span className={styles.reason} data-testid="evidence-not-counted">
+                        {t('evaluations.evidenceNotCounted')}
+                      </span>
+                    )}
+                    {!located && (
+                      <span className={styles.reason}>
                         {t('evaluations.evidenceUnresolved', { id: e.segmentId })}
                       </span>
                     )}
-                  </button>
+                  </Fragment>
                 );
               })}
             </div>

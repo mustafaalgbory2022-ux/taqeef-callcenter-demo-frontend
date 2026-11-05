@@ -21,6 +21,9 @@ export interface SimulateInput {
   createdAt: string;
 }
 
+/** Contract v0.3 §7.5: a displayed excerpt is at most 2,000 characters. */
+export const EXCERPT_MAX = 2000;
+
 type WireHit = WireEvaluation['prohibited_hits'][number];
 
 /** Points each synthetic judgment was written against (the approved default card). */
@@ -82,7 +85,21 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
     // Evidence references segments of the evaluated revision only.
     const evidence = (jd?.segmentIds ?? [])
       .filter((sid) => segmentIds.has(sid))
-      .map((sid) => ({ segment_id: sid }));
+      .map((sid) => {
+        const seg = input.segments.find((x) => x.segment_id === sid);
+        const text = seg?.text ?? '';
+        // SIMULATED server excerpt: the (already synthetic, digit-free) segment text, cut to
+        // at most 2,000 characters with the truncation flag (contract v0.3 §7.5).
+        return {
+          transcript_revision_id: input.transcriptRevisionId,
+          segment_id: sid,
+          start_ms: seg?.start_ms ?? 0,
+          end_ms: seg?.end_ms ?? 0,
+          excerpt: [...text].slice(0, EXCERPT_MAX).join(''),
+          excerpt_truncated: [...text].length > EXCERPT_MAX,
+          counted: true,
+        };
+      });
     if (!jd || jd.result !== 'scored' || jd.awardedPoints === null) {
       const reason: WireReasonCode = !jd
         ? 'no_evidence'
@@ -102,7 +119,8 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
         units_awarded: null,
         units_possible: criterion.max_points,
         penalty_points: 0,
-        rationale: jd?.rationale ?? 'Simulated: no synthetic judgment exists for this criterion.',
+        explanation: jd?.rationale ?? 'Simulated: no synthetic judgment exists for this criterion.',
+        explanation_truncated: false,
         evidence,
       };
     }
@@ -119,7 +137,8 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
       ),
       units_possible: criterion.max_points,
       penalty_points: 0,
-      rationale: jd.rationale,
+      explanation: jd.rationale,
+      explanation_truncated: false,
       evidence,
     };
   });
@@ -178,6 +197,7 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
       possibleUnits: c.units_possible,
       penaltyUnits: c.penalty_points,
       rationale: '',
+      explanationTruncated: false,
       evidence: [],
     })),
     scorecard.minimum_assessable_points,

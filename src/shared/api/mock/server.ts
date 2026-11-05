@@ -4,6 +4,7 @@ import { cachedAudioUrl, synthesizeCallAudio } from './audio';
 import { clearSavedState, loadState, saveState } from './db';
 import { agentRoutes } from './handlers/agents';
 import { callRoutes } from './handlers/calls';
+import { dashboardRoutes } from './handlers/dashboard';
 import { evaluationRoutes } from './handlers/evaluations';
 import { scorecardRoutes } from './handlers/scorecards';
 import { fail, findRoute, ok, type Route } from './router';
@@ -132,6 +133,7 @@ export function createMockBackend({ latencyMs = 160 }: MockTransportOptions = {}
     ...callRoutes(state, persist),
     ...evaluationRoutes(state, persist),
     ...scorecardRoutes(state, persist),
+    ...dashboardRoutes(state),
   ];
 
   const transport: Transport = async (req) => {

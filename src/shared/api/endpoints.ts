@@ -22,6 +22,8 @@ export const endpoints = {
   transcriptSegments: (revisionId: string) => `/transcripts/${seg(revisionId)}/segments`,
   rescore: (id: string) => `/calls/${seg(id)}/rescore`,
   evaluations: '/evaluations',
+  /** Contract v0.3 route #38 (PROPOSED). */
+  dashboard: '/dashboard',
   // Scorecard routes follow contract v0.1 §5 / v0.2 item D (PROPOSED); bodies are provisional.
   scorecardDraft: '/scorecard/draft',
   scorecardActivate: '/scorecard/activate',

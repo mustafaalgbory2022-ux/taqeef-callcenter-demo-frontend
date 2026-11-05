@@ -71,7 +71,7 @@
     "mockHint": "Simulated mode: a synthetic code has been generated for you.",
     "liveHint": "Normally supplied automatically by the launch link.",
     "codeRejected": "This launch code is invalid, expired or has already been used. Request a new one from the local application.",
-    "ended": "Session ended — reopen the demo from the launcher.",
+    "ended": "Session ended - reopen the demo from the Taqeef launcher.",
     "localName": "Local demo session"
   },
   "dashboard": {
@@ -104,7 +104,13 @@
       "lowNote": "Strictly below the scorecard threshold",
       "versions": "Scorecard versions",
       "versionsNote": "Used by the counted evaluations",
-      "lowMixed": "Calls below their own run's threshold"
+      "lowMixed": "Calls below their own run's threshold",
+      "notAssessableNote": "{k} not assessable — no score",
+      "failedNote": "{k} with a failed evaluation (shown separately)",
+      "averageThreshold": "(shared run threshold {threshold})",
+      "averageMixed": "The selected runs used different thresholds, so the average has no pass or low label.",
+      "calls": "Calls",
+      "callsNote": "{k} not yet evaluated"
     },
     "sample": {
       "title": "Sample only — n = {n} scored calls. Not a performance ranking.",
@@ -116,11 +122,12 @@
     },
     "criteria": {
       "title": "Criterion performance",
-      "caption": "Provisional visualization calculated in this browser from criterion points, normalized to 10. Not a backend evaluation score; no low-score threshold is applied.",
+      "caption": "Counted by the server from the selected runs, one row per criterion version. No browser-computed figures.",
       "n": "n = {n}",
       "notAssessable": "{n} not assessable",
       "insufficient": "{n} insufficient evidence",
-      "points": "{awarded} of {possible} points awarded"
+      "points": "{awarded} of {possible} points awarded",
+      "criterion": "Criterion"
     },
     "agents": {
       "title": "Agent pages",
@@ -179,7 +186,13 @@
         "nameTooLong": "Use at most 80 characters.",
         "extensionFormat": "Use 2–20 letters, digits or hyphens.",
         "extensionTaken": "This extension is already assigned to another agent.",
-        "nameTaken": "This name is already used by another agent, including retired agents."
+        "nameTaken": "This name is already used by another agent, including retired agents.",
+        "name_invalid_char": "The name contains a character that is not allowed (including invisible formatting).",
+        "name_digits": "Names cannot contain digits.",
+        "name_mixed_script": "Do not mix Arabic and Latin letters in one word.",
+        "name_shape": "Use a name made of words separated by single spaces.",
+        "name_length": "Use 1–80 characters.",
+        "name_exists": "This name is already used by another agent, including retired agents (spelling variants count as the same name)."
       },
       "immutableNote": "Names cannot be changed later. To rename an agent, retire it and create a new one."
     },
@@ -304,8 +317,8 @@
         "agentRequired": "Select the agent who handled the call.",
         "confirmRequired": "Confirm that the recording is synthetic.",
         "agent_required": "Select an agent.",
-        "agent_unknown": "The selected agent does not exist. Choose an agent from the list.",
-        "agent_retired": "The selected agent is retired. Choose an active agent."
+        "unknown_agent": "The selected agent does not exist. Choose an agent from the list.",
+        "already_retired": "The selected agent is retired. Choose an active agent."
       },
       "channelMap": "Channel map",
       "channelMapHint": "Which stereo channel carries the agent.",
@@ -447,7 +460,10 @@
         "not_applicable": "AI declared: not applicable"
       }
     },
-    "evidenceUnresolved": "Line {id} (not in the transcript revision shown)"
+    "evidenceUnresolved": "Line {id} is not in the transcript revision shown",
+    "excerptTruncated": "Excerpt truncated",
+    "evidenceNotCounted": "Not counted as evidence",
+    "explanationTruncated": "Explanation shortened"
   },
   "scorecards": {
     "page": {

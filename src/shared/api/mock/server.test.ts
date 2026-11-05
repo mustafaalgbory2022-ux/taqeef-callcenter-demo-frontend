@@ -46,11 +46,11 @@ describe('simulated backend', () => {
     await expect(api.retireAgent(target.id)).rejects.toMatchObject({ code: 'conflict' });
     await expect(
       api.createAgent({ displayName: ` ${target.displayName.toUpperCase()} `, extension: '' }),
-    ).rejects.toMatchObject({ fieldIssues: [{ field: 'display_name', reason: 'duplicate' }] });
+    ).rejects.toMatchObject({ fieldIssues: [{ field: 'display_name', reason: 'name_exists' }] });
     const wav = new File(['x'], 'a.wav', { type: 'audio/wav' });
     for (const [agentId, reason] of [
-      [target.id, 'agent_retired'],
-      ['agt-missing', 'agent_unknown'],
+      [target.id, 'already_retired'],
+      ['agt-missing', 'unknown_agent'],
       ['', 'agent_required'],
     ] as const) {
       const err = await api
@@ -160,7 +160,12 @@ describe('simulated backend', () => {
     expect(cited.length).toBeGreaterThan(0);
     expect(cited.every((id) => ids.has(id) && /^seg-\d{4}$/.test(id))).toBe(true);
     // Evidence carries no time or quote of its own.
-    expect(Object.keys(run?.criteria[0]?.evidence[0] ?? {})).toEqual(['segmentId']);
+    // v0.3 §7.5: the pair, times, the server excerpt (a prefix of the segment text) and flags.
+    const first = run?.criteria[0]?.evidence[0];
+    expect(first?.transcriptRevisionId).toBe(transcript.revisionId);
+    const seg = transcript.segments.find((x) => x.id === first?.segmentId);
+    expect(first).toMatchObject({ startMs: seg?.startMs, excerptTruncated: false, counted: true });
+    expect(seg?.text.startsWith(first?.excerpt ?? '#')).toBe(true);
     expect(run?.criteria.map((c) => c.result)).toContain('met');
   });
 
@@ -215,5 +220,40 @@ describe('simulated backend', () => {
     const saved = await api.saveScorecardVersion({ ...current, changeNote: 'Synthetic change' });
     expect(saved.version).toBe(current.version + 1);
     expect((await api.getLatestScorecardVersion()).version).toBe(saved.version);
+  });
+
+  it('computes dashboard figures server-side with the §11 rules', async () => {
+    const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
+    await api.openSession('SYN-DASH-DEMO');
+    const versions = await api.listScorecardVersions();
+    expect(versions.filter((v) => v.status === 'active')).toHaveLength(1);
+    const all = await api.getDashboard({ scorecardVersionId: null, agentId: null });
+    // Scored latest runs: DEMO-001 9.00, DEMO-002 8.00, DEMO-003 v2, DEMO-005 5.00 (+ DEMO-004 no score).
+    expect(all.outcomes).toMatchObject({ scored: 4, insufficientEvidence: 1 });
+    expect(all.average?.basedOnN).toBe(4);
+    expect(all.threshold.mode).toBe('single');
+    const v1 = versions.find((v) => v.version === 1);
+    const one = await api.getDashboard({
+      scorecardVersionId: v1?.scorecardVersionId ?? '',
+      agentId: null,
+    });
+    expect(one.scope).toBe('version');
+    // Version scope: each call's v1 run, including DEMO-003's older v1 run.
+    expect(one.outcomes.scored).toBe(4);
+    const agent = await api.getDashboard({ scorecardVersionId: null, agentId: 'agt-001' });
+    expect(agent.agentDisplayName).toBe('Agent A');
+    expect(agent.outcomes.scored).toBeLessThan(all.outcomes.scored);
+  });
+
+  it('activating a scorecard makes it the only active version', async () => {
+    const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
+    await api.openSession('SYN-ACT-DEMO');
+    const before = await api.getActiveScorecardVersion();
+    const saved = await api.saveScorecardVersion({ ...before, changeNote: 'Synthetic change' });
+    const active = await api.getActiveScorecardVersion();
+    expect(active.version).toBe(saved.version);
+    expect((await api.listScorecardVersions()).filter((v) => v.status === 'active')).toHaveLength(
+      1,
+    );
   });
 });

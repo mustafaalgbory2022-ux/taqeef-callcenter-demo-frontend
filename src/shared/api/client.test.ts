@@ -66,6 +66,8 @@ describe('ApiClient over a transport', () => {
 
   it('saves a scorecard as draft then activates it, and reads the newest version', async () => {
     const version = {
+      scorecard_version_id: 'scv-3',
+      status: 'active',
       scorecard_id: 'sc',
       version: 3,
       name: { en: 'S', ar: 'س' },
@@ -328,6 +330,20 @@ describe('ApiClient over a transport', () => {
     // Server text (which could echo input) is never kept.
     expect(JSON.stringify(err)).not.toContain('SYN-999');
     expect((err as ApiError).message).not.toContain('SYN-999');
+  });
+
+  it('keeps only error codes with exactly three parts (contract v0.3 §12.1)', async () => {
+    const env = (code: string) => ({
+      error: { code, message: 'x', correlation_id: null, fields: [] },
+    });
+    const ok = await createApiClient(respond(409, env('api.state.conflict')), 'live')
+      .listCalls()
+      .catch((e: unknown) => e);
+    expect(ok).toMatchObject({ serverCode: 'api.state.conflict' });
+    const four = await createApiClient(respond(409, env('api.state.conflict.extra')), 'live')
+      .listCalls()
+      .catch((e: unknown) => e);
+    expect(four).toMatchObject({ serverCode: null, code: 'conflict' });
   });
 
   it('maps 403, 413, 415 and 429 without an envelope', async () => {

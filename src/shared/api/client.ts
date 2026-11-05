@@ -10,6 +10,8 @@ import type {
   Session,
   Transcript,
   UploadAccepted,
+  DashboardQuery,
+  DashboardSummary,
 } from '@/shared/types/domain';
 import { apiConfig, type ApiMode } from './config';
 import { arrayOf, DecodeError, type Decoder } from './decode';
@@ -34,6 +36,7 @@ import {
 import { evaluationFromWire, wireEvaluation } from './wire/evaluations';
 import { scorecardDraftToWire, scorecardFromWire, wireScorecardVersion } from './wire/scorecards';
 import { wireSessionExchange, wireSessionResume } from './wire/session';
+import { dashboardFromWire, wireDashboard } from './wire/dashboard';
 
 export interface CallFilter {
   agentId?: string | undefined;
@@ -78,6 +81,10 @@ export interface ApiClient {
    * how the active version is reported, so the UI never labels this version as active.
    */
   getLatestScorecardVersion(): Promise<ScorecardVersion>;
+  /** The version the server reports as `status: "active"` (contract v0.3 §10.1/§10.5). */
+  getActiveScorecardVersion(): Promise<ScorecardVersion>;
+  /** Server-computed dashboard figures (contract v0.3 §11; route PROPOSED). */
+  getDashboard(query: DashboardQuery): Promise<DashboardSummary>;
   listScorecardVersions(): Promise<ScorecardVersion[]>;
   saveScorecardVersion(draft: ScorecardDraft): Promise<ScorecardVersion>;
 }
@@ -282,6 +289,32 @@ export function createApiClient(
       ),
     // The contract defines no active-version field or route yet; return the newest saved
     // version and let the UI say so (never "active" without authoritative information).
+    getActiveScorecardVersion: async () => {
+      const all = await send(
+        { method: 'GET', path: endpoints.scorecardVersions },
+        versions.decoder,
+        versions.map,
+      );
+      const active = all.filter((v) => v.status === 'active');
+      if (active.length !== 1) {
+        throw new ApiError('contract_mismatch', 200, 'Expected exactly one active version');
+      }
+      return active[0] as ScorecardVersion;
+    },
+    getDashboard: ({ scorecardVersionId, agentId }) =>
+      send(
+        {
+          method: 'GET',
+          path: endpoints.dashboard,
+          query: {
+            scope: scorecardVersionId ? 'version' : 'all_versions',
+            scorecard_version_id: scorecardVersionId ?? undefined,
+            agent_id: agentId ?? undefined,
+          },
+        },
+        wireDashboard,
+        dashboardFromWire,
+      ),
     getLatestScorecardVersion: async () => {
       const all = await send(
         { method: 'GET', path: endpoints.scorecardVersions },

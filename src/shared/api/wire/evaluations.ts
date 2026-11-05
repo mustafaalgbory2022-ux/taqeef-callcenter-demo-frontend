@@ -14,6 +14,7 @@ import {
 } from '../decode';
 import { isDisplayHundredths } from '@/shared/utils/score';
 import { utcTimestamp } from './common';
+import { wireTimeToMs } from './common';
 import { revisionId, segmentId } from './ids';
 
 const points = numInRange(0, 1000);
@@ -38,7 +39,15 @@ const hundredths: Decoder<number> = (v, path = '') => {
  * from the run's transcript revision. The optional word span is not decoded until its field
  * names are confirmed.
  */
-const wireEvidence = object({ segment_id: segmentId });
+const wireEvidence = object({
+  transcript_revision_id: revisionId,
+  segment_id: segmentId,
+  start_ms: num,
+  end_ms: num,
+  excerpt: str,
+  excerpt_truncated: bool,
+  counted: bool,
+});
 
 const REASON_CODES = [
   'roles_unreliable',
@@ -80,7 +89,9 @@ export const wireEvaluation = object({
       units_possible: units,
       // PROVISIONAL: penalty deduction, assumed in the same unit.
       penalty_points: units,
-      rationale: str,
+      // Contract v0.3 §7.4: masked by the server, ≤ 600 characters (truncation flag PROPOSED).
+      explanation: str,
+      explanation_truncated: bool,
       evidence: arrayOf(wireEvidence),
     }),
   ),
@@ -120,6 +131,19 @@ function assertConsistent(w: WireEvaluation): void {
       throw new DecodeError(`${at}.units_awarded`, 'at most units_possible');
     }
   });
+  w.criteria.forEach((c, i) =>
+    c.evidence.forEach((e, j) => {
+      if (e.transcript_revision_id !== w.transcript_revision_id) {
+        throw new DecodeError(
+          `criteria[${i}].evidence[${j}].transcript_revision_id`,
+          "the run's own transcript revision",
+        );
+      }
+      if (e.excerpt.length > 2000) {
+        throw new DecodeError(`criteria[${i}].evidence[${j}].excerpt`, 'at most 2,000 characters');
+      }
+    }),
+  );
   if (w.points_awarded_sum > w.points_possible_sum) {
     throw new DecodeError('points_awarded_sum', 'at most points_possible_sum');
   }
@@ -174,8 +198,17 @@ export function evaluationFromWire(w: WireEvaluation): Evaluation {
       awardedUnits: c.units_awarded,
       possibleUnits: c.units_possible,
       penaltyUnits: c.penalty_points,
-      rationale: c.rationale,
-      evidence: c.evidence.map((e) => ({ segmentId: e.segment_id })),
+      rationale: c.explanation,
+      explanationTruncated: c.explanation_truncated,
+      evidence: c.evidence.map((e) => ({
+        transcriptRevisionId: e.transcript_revision_id,
+        segmentId: e.segment_id,
+        startMs: wireTimeToMs(e.start_ms),
+        endMs: wireTimeToMs(e.end_ms),
+        excerpt: e.excerpt,
+        excerptTruncated: e.excerpt_truncated,
+        counted: e.counted,
+      })),
     })),
     prohibitedHits: w.prohibited_hits.map((h) => ({
       expressionId: h.expression_id,

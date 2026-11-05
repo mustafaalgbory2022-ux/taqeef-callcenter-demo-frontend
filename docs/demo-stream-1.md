@@ -382,6 +382,25 @@ units and display, missing/inconsistent point fields, `display_hundredths` integ
 mean across units, multiple runs without double counting, version-first population, run
 thresholds versus the current scorecard). `npm run test:e2e`: 68 passed.
 
+## Task 11 — contract v0.3 r2 alignment, first checkpoint (Stream 11)
+
+**Inputs (both read in full):** `demo-api-contract-v0.3.md` (r2, owner-authorized Cloud handoff;
+routes not frozen) and the updated `cloud-alignment-note` (adds §A5, §C2, §C3).
+
+**Implemented** (handoff §5c): server-computed dashboard with the §11.2 single/mixed threshold
+rules (browser aggregation removed), active scorecard version from `status`, evidence
+excerpts with separate "Excerpt truncated" indicator, explanation truncation indicator,
+three-part error codes, v0.3 agent and upload refusal reasons, v0.3 session-ended wording.
+Fixed a mobile RTL overflow found by the browser suite.
+
+**Not yet done:** the wider v0.3 payload renames (agents, calls, runs, hits, transcripts, lists,
+jobs, scorecard draft); exact list in handoff §6.
+
+**QA.** `npm run check`: 124 unit/component/mock-integration tests passed (new: dashboard
+decoding and threshold-mode consistency, mock server aggregation by scope/version/agent,
+single active version after activation, excerpt indicators EN/AR, three-part error codes).
+`npm run test:e2e`: 68 passed (new: no horizontal overflow after evidence selection, mobile AR).
+
 ## Proposed next tasks (prioritized, client-only unless noted)
 
 1. On approval: launch code in the URL fragment (Task 3a finding 9).

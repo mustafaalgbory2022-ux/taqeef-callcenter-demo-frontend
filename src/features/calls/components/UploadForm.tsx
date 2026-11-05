@@ -21,7 +21,8 @@ import {
 } from '../model/upload';
 import styles from './UploadForm.module.css';
 
-const AGENT_REASONS = ['agent_required', 'agent_unknown', 'agent_retired'] as const;
+// Contract v0.3 §5.1: as-built `unknown_agent`, `already_retired`; `agent_required` PROPOSED.
+const AGENT_REASONS = ['agent_required', 'unknown_agent', 'already_retired'] as const;
 const isAgentReason = (r: string): r is (typeof AGENT_REASONS)[number] =>
   (AGENT_REASONS as readonly string[]).includes(r);
 

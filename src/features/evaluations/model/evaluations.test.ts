@@ -35,6 +35,7 @@ const ev = (
     possibleUnits: 3,
     penaltyUnits: 0,
     rationale: '',
+    explanationTruncated: false,
     evidence: [],
   })),
   prohibitedHits: [],

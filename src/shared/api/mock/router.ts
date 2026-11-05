@@ -27,8 +27,9 @@ export type FieldReason =
   | 'invalid_format'
   | 'duplicate'
   | 'agent_required'
-  | 'agent_unknown'
-  | 'agent_retired'
+  | 'unknown_agent'
+  | 'already_retired'
+  | 'name_exists'
   | 'invalid';
 
 const correlationId = () => crypto.randomUUID();

@@ -10,6 +10,7 @@ const wrap = (ui: ReactNode) => render(<I18nProvider>{ui}</I18nProvider>);
 const base: CriterionEvaluation = {
   criterionId: 'c',
   rationale: '',
+  explanationTruncated: false,
   evidence: [],
   penaltyUnits: 0,
   result: 'partially_met',

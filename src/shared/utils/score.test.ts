@@ -28,6 +28,7 @@ const scored = (criterionId: string, awardedUnits: number): CriterionEvaluation 
   possibleUnits: 0,
   penaltyUnits: 0,
   rationale: '',
+  explanationTruncated: false,
   evidence: [],
 });
 const notScored = (

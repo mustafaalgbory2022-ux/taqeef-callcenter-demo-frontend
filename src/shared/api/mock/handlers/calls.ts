@@ -75,8 +75,8 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
         // Contract v0.2.1 §A: an existing, active agent is required (value never echoed).
         if (!agentId) return invalid('agent_id', 'agent_required');
         const agent = state.agents.find((a) => a.id === agentId);
-        if (!agent) return invalid('agent_id', 'agent_unknown');
-        if (agent.status !== 'active') return invalid('agent_id', 'agent_retired');
+        if (!agent) return invalid('agent_id', 'unknown_agent');
+        if (agent.status !== 'active') return invalid('agent_id', 'already_retired');
 
         const id = nextId(state, 'UPL').toUpperCase();
         const call: WireCall = {

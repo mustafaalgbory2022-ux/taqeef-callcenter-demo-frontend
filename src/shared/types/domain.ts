@@ -178,6 +178,10 @@ export interface ProhibitedExpression {
 }
 
 export interface ScorecardVersion {
+  /** `scorecard_version_id` (contract v0.3 §10.5). */
+  scorecardVersionId: string;
+  /** Derived by the server: exactly one version is active (§10.1, CONFIRMED). */
+  status: 'active' | 'retired';
   scorecardId: string;
   version: number;
   name: LocalizedText;
@@ -222,8 +226,20 @@ export type AiDeclaredReason = 'insufficient_evidence' | 'not_applicable';
  * Evidence is a reference to a segment of the evaluation's own transcript revision. Times and
  * text are always taken from that revision, never from model output.
  */
+/**
+ * Evidence item (contract v0.3 §7.5, fields CONFIRMED). The reference is always the pair
+ * {transcriptRevisionId, segmentId}. `excerpt` is the server's masked prefix of the segment
+ * text (at most 2,000 characters); `excerptTruncated` drives a separate indicator.
+ */
 export interface Evidence {
+  transcriptRevisionId: string;
   segmentId: string;
+  startMs: number;
+  endMs: number;
+  excerpt: string;
+  excerptTruncated: boolean;
+  /** Whether the item counts as valid evidence for the result. */
+  counted: boolean;
 }
 
 export interface CriterionEvaluation {
@@ -242,7 +258,10 @@ export interface CriterionEvaluation {
   possibleUnits: number;
   /** Units deducted by an applied prohibited-expression penalty (0 if none). PROVISIONAL. */
   penaltyUnits: number;
+  /** `explanation`: AI text, masked by the server, plain text only, at most 600 characters. */
   rationale: string;
+  /** `explanation_truncated` (field name PROPOSED): the masked text was shortened. */
+  explanationTruncated: boolean;
   evidence: readonly Evidence[];
 }
 
@@ -307,4 +326,44 @@ export interface BrandTokens {
   primaryHover?: string | undefined;
   primarySoft?: string | undefined;
   primaryText?: string | undefined;
+}
+
+/**
+ * Dashboard figures computed by the SERVER (contract v0.3 §11, CONFIRMED: the frontend never
+ * recomputes averages or classifications). Response shape PROPOSED (§11.4).
+ */
+export interface DashboardSummary {
+  scope: 'all_versions' | 'version';
+  scorecardVersionId: string | null;
+  agentId: string | null;
+  agentDisplayName: string | null;
+  asOf: string;
+  callsTotal: number;
+  outcomes: { scored: number; insufficientEvidence: number; notAssessable: number };
+  /** Overlaps `outcomes` (a failed re-evaluation keeps the earlier run); shown separately. */
+  evaluationFailed: number;
+  notYetEvaluated: number;
+  /** Null when no scored run is selected. */
+  average: { displayHundredths: number; basedOnN: number } | null;
+  threshold:
+    | { mode: 'single'; thresholdHundredths: number; averageBelowThreshold: boolean }
+    | { mode: 'mixed' | 'none'; thresholdHundredths: null; averageBelowThreshold: null };
+  /** Selected scored runs whose stored below_threshold is true. */
+  belowThresholdCount: number;
+  criteria: readonly {
+    criterionId: string;
+    criterionVersion: number;
+    name: LocalizedText;
+    met: number;
+    partiallyMet: number;
+    notMet: number;
+    notAssessable: number;
+  }[];
+  prohibitedHits: { penalty: number; reviewFlag: number; none: number };
+}
+
+export interface DashboardQuery {
+  /** null = all versions. */
+  scorecardVersionId: string | null;
+  agentId: string | null;
 }

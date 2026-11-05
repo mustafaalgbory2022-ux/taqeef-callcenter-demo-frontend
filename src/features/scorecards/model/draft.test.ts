@@ -21,6 +21,8 @@ const criterion = (id: string, maxPoints: number) => ({
 
 /** Approved default card: 1 + 1 + 2 + 3 + 2 + 1 = 10 points, minimum 6 assessable. */
 const version: ScorecardVersion = {
+  scorecardVersionId: 'scv-1',
+  status: 'active',
   scorecardId: 'sc',
   version: 1,
   name: { en: 'Card', ar: 'بطاقة' },

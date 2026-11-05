@@ -41,35 +41,6 @@ export function hundredthsParts(d: number): { whole: number; fraction: string } 
   return { whole: Math.floor(d / 100), fraction: String(d % 100).padStart(2, '0') };
 }
 
-/**
- * Average quality score as the EXACT mean of the runs' ratios A/P (interface v1 §8: "exact
- * mean of ratios"), truncated to hundredths of the 0–10 scale: floor(1000 · Σ(Aᵢ/Pᵢ) / n).
- * Exact rational arithmetic (BigInt), never floats and never an average of truncated values.
- * A and P are each run's awarded and assessable points as served by the backend.
- */
-export function exactMeanHundredths(
-  runs: readonly { awarded: number; assessable: number }[],
-): number | null {
-  const valid = runs.filter((r) => r.assessable > 0);
-  if (valid.length === 0) return null;
-  for (const r of valid) {
-    if (!Number.isInteger(r.awarded) || !Number.isInteger(r.assessable)) {
-      throw new RangeError('Points must be whole numbers');
-    }
-  }
-  // Σ Aᵢ/Pᵢ = num / den, kept exact.
-  let num = 0n;
-  let den = 1n;
-  for (const r of valid) {
-    const a = BigInt(r.awarded);
-    const p = BigInt(r.assessable);
-    num = num * p + a * den;
-    den = den * p;
-  }
-  const result = (1000n * num) / (den * BigInt(valid.length)); // BigInt division truncates
-  return Number(result);
-}
-
 /** Points expressed on the 0–10 display scale. Null when nothing was possible. */
 export function normalizeToTen(awarded: number, possible: number): number | null {
   return possible > 0 ? (awarded / possible) * SCORE_MAX : null;
