@@ -329,7 +329,8 @@
       "unavailable": "Evidence location unavailable.",
       "reasons": {
         "segment_missing": "The cited transcript line was not found.",
-        "revision_mismatch": "The evidence refers to a different transcript revision than the one shown."
+        "revision_mismatch": "The evidence refers to a different transcript revision than the one shown.",
+        "transcript_loading": "The transcript is still loading. Try again in a moment."
       },
       "lineLabel": "Evidence line."
     },

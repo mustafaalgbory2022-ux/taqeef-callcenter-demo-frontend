@@ -10,12 +10,19 @@ import {
   oneOf,
   str,
   type Decoded,
+  type Decoder,
 } from '../decode';
+import { isDisplayHundredths } from '@/shared/utils/score';
 import { utcTimestamp } from './common';
 import { revisionId, segmentId } from './ids';
 
-const score = numInRange(0, 10);
 const points = numInRange(0, 1000);
+/** Integer 0–1000 (contract v0.1 3.4). */
+const hundredths: Decoder<number> = (v, path = '') => {
+  const n = num(v, path);
+  if (!isDisplayHundredths(n)) throw new DecodeError(path, 'an integer 0–1000');
+  return n;
+};
 /**
  * Evidence is a segment reference only (v0.2 change list item 6). Times and text are taken
  * from the run's transcript revision. The optional word span is not decoded until its field
@@ -44,7 +51,11 @@ export const wireEvaluation = object({
   assessable_points: points,
   possible_points: points,
   minimum_assessable_points: points,
-  overall_score: nullable(score),
+  // CONFIRMED (contract v0.1 3.4, 3.7): the displayed score and low-score flag come from the
+  // backend. `overall_score` (a float) is no longer read.
+  display_hundredths: nullable(hundredths),
+  below_threshold: nullable(bool),
+  threshold_hundredths: nullable(hundredths),
   criteria: arrayOf(
     object({
       criterion_id: str,
@@ -97,8 +108,12 @@ function assertConsistent(w: WireEvaluation): void {
       throw new DecodeError(`criteria[${i}].awarded_points`, 'at most possible_points');
     }
   });
-  if ((w.outcome === 'scored') !== (w.overall_score !== null)) {
-    throw new DecodeError('overall_score', 'a score exactly when outcome is "scored"');
+  const scored = w.outcome === 'scored';
+  if (scored !== (w.display_hundredths !== null)) {
+    throw new DecodeError('display_hundredths', 'a value exactly when outcome is "scored"');
+  }
+  if (scored !== (w.below_threshold !== null)) {
+    throw new DecodeError('below_threshold', 'a value exactly when outcome is "scored"');
   }
 }
 
@@ -116,7 +131,9 @@ export function evaluationFromWire(w: WireEvaluation): Evaluation {
     assessablePoints: w.assessable_points,
     possiblePoints: w.possible_points,
     minimumAssessablePoints: w.minimum_assessable_points,
-    overallScore: w.overall_score,
+    displayHundredths: w.display_hundredths,
+    belowThreshold: w.below_threshold,
+    thresholdHundredths: w.threshold_hundredths,
     criteria: w.criteria.map((c) => ({
       criterionId: c.criterion_id,
       result: c.result,

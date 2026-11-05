@@ -50,6 +50,14 @@ describe('EvidenceStatus', () => {
     expect(h.onShowLine).toHaveBeenCalledWith('seg-0009');
   });
 
+  it('says the transcript is still loading instead of "not found"', () => {
+    renderStatus({
+      selection: { evidence, location: { status: 'unavailable', reason: 'transcript_loading' } },
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('still loading');
+    expect(screen.getByRole('status')).not.toHaveTextContent('not found');
+  });
+
   it('keeps an empty live region mounted when nothing is selected', () => {
     renderStatus();
     expect(screen.getByRole('status')).toBeEmptyDOMElement();

@@ -23,13 +23,27 @@ describe('result presentation in the UI', () => {
   it('shows the explicit no-score outcomes distinctly and never a score', () => {
     wrap(
       <>
-        <OverallValue evaluation={{ outcome: 'not_assessable', overallScore: null }} />
-        <OverallValue evaluation={{ outcome: 'insufficient_evidence', overallScore: null }} />
+        <OverallValue evaluation={{ outcome: 'not_assessable', displayHundredths: null }} />
+        <OverallValue evaluation={{ outcome: 'insufficient_evidence', displayHundredths: null }} />
       </>,
     );
     expect(screen.getByText('Not assessable — No score')).toBeInTheDocument();
     expect(screen.getByText('Insufficient evidence — No score')).toBeInTheDocument();
     expect(screen.queryByText(/\/ 10/)).toBeNull();
+  });
+
+  it('renders the backend display_hundredths exactly, truncated: 699 → 6.99, 1000 → 10.00', () => {
+    wrap(
+      <>
+        <OverallValue evaluation={{ outcome: 'scored', displayHundredths: 699 }} />
+        <OverallValue evaluation={{ outcome: 'scored', displayHundredths: 1000 }} />
+        <OverallValue evaluation={{ outcome: 'scored', displayHundredths: 5 }} />
+      </>,
+    );
+    expect(screen.getByText('6.99')).toBeInTheDocument();
+    expect(screen.getByText('10.00')).toBeInTheDocument();
+    expect(screen.getByText('0.05')).toBeInTheDocument();
+    expect(screen.queryByText('7.00')).toBeNull();
   });
 
   it('writes points in words, singular and plural, with the criterion result', () => {

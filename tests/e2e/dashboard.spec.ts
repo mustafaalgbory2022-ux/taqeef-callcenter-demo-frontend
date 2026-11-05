@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { clickNav, openSession } from './helpers';
+import { clickNav, gotoInApp, openSession } from './helpers';
 
 test('overall dashboard pools per call and labels the sample', async ({ page }) => {
   await openSession(page);
@@ -64,4 +64,18 @@ test('an agent page shows the agent’s own average, with no name in the title',
   await expect(page.getByTestId('kpi-average')).toContainText('Based on');
   await expect(page).toHaveTitle(/Agent performance/);
   await expect(page).not.toHaveTitle(/Agent A/);
+});
+
+test('scores render from the backend display_hundredths, truncated', async ({ page }) => {
+  await openSession(page, { path: '/calls/DEMO-001' });
+  const value = page.getByTestId('overall-score').locator('[data-hundredths]');
+  await expect(value).toHaveAttribute('data-hundredths', '900');
+  await expect(value).toContainText('9.00');
+  await gotoInApp(page, '/calls');
+  const scored = page.locator('[data-hundredths]');
+  await expect(scored.first()).toBeVisible();
+  for (const el of await scored.all()) {
+    const d = Number(await el.getAttribute('data-hundredths'));
+    await expect(el).toContainText(`${Math.floor(d / 100)}.${String(d % 100).padStart(2, '0')}`);
+  }
 });

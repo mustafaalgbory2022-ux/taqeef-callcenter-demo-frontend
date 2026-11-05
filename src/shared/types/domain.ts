@@ -273,8 +273,16 @@ export interface Evaluation {
   /** Total points on the scorecard version. */
   possiblePoints: number;
   minimumAssessablePoints: number;
-  /** awardedPoints / assessablePoints × 10 when scored; null for insufficient evidence. */
-  overallScore: number | null;
+  /**
+   * The displayed score in hundredths of the 0–10 scale, from the backend (contract v0.1 3.4,
+   * CONFIRMED): integer 0–1000, non-null exactly when the outcome is `scored`. 699 = "6.99 / 10".
+   * The frontend never computes it.
+   */
+  displayHundredths: number | null;
+  /** Backend's low-score flag, fixed with the run's own threshold; null unless scored (3.7). */
+  belowThreshold: boolean | null;
+  /** The run's own low-score threshold in hundredths (3.7); null when not served. */
+  thresholdHundredths: number | null;
   criteria: readonly CriterionEvaluation[];
   prohibitedHits: readonly ProhibitedHit[];
   trigger: 'initial' | 'rescore';

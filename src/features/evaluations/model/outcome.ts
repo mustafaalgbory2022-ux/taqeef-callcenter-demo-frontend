@@ -12,8 +12,9 @@ import type { Evaluation } from '@/shared/types/domain';
 export type ResultPresentation = 'scored' | 'insufficient_evidence' | 'not_assessable';
 
 export function resultPresentation(
-  e: Pick<Evaluation, 'outcome' | 'overallScore'>,
+  e: Pick<Evaluation, 'outcome' | 'displayHundredths'>,
 ): ResultPresentation {
-  if (e.outcome === 'scored') return e.overallScore !== null ? 'scored' : 'insufficient_evidence';
+  if (e.outcome === 'scored')
+    return e.displayHundredths !== null ? 'scored' : 'insufficient_evidence';
   return e.outcome;
 }

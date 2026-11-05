@@ -21,7 +21,9 @@ const ev = (
   assessablePoints: 0,
   possiblePoints: 10,
   minimumAssessablePoints: 6,
-  overallScore: overall,
+  displayHundredths: overall === null ? null : Math.round(overall * 100),
+  belowThreshold: overall === null ? null : overall < 7,
+  thresholdHundredths: 700,
   criteria: Object.entries(points).map(([criterionId, awardedPoints]) => ({
     criterionId,
     result: awardedPoints === null ? 'not_assessable' : 'partially_met',
@@ -58,7 +60,7 @@ describe('compareEvaluations', () => {
     const before = ev('e1', '2026-10-01T00:00:00Z', 6, { a: 1, b: null });
     const after = ev('e2', '2026-10-02T00:00:00Z', 7.5, { a: 3, b: 2, c: 1 }, 2);
     const result = compareEvaluations(before, after, []);
-    expect(result.overallDelta).toBe(1.5);
+    expect(result.overallDelta).toBe(150); // display_hundredths difference
     expect(result.versionChanged).toBe(true);
     expect(result.criteria.map((c) => [c.criterionId, c.pointsDelta])).toEqual([
       ['a', 2],

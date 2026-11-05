@@ -2,7 +2,7 @@ import type { Evaluation, LocalizedText, ScorecardVersion } from '@/shared/types
 import {
   DEFAULT_LOW_SCORE_THRESHOLD,
   isAssessed,
-  isLowScore,
+  exactMeanHundredths,
   normalizeToTen,
 } from '@/shared/utils/score';
 import { isScored } from '@/features/evaluations/model';
@@ -35,7 +35,8 @@ export interface PerformanceSummary {
   /** Calls whose current evaluation is "Insufficient evidence — no score". */
   insufficientCalls: number;
   /** Pooled per call: Σ call scores / scored calls. Never a mean of agent averages. */
-  averageScore: number | null;
+  /** Average quality score in hundredths (exact mean, truncated); null without scored calls. */
+  averageHundredths: number | null;
   /** Scored calls strictly below the threshold of the version that evaluated them. */
   lowScoreCalls: number;
   /** Threshold used for meters/labels: the selected version's, else the newest version's. */
@@ -95,12 +96,16 @@ export function summarize(
     return row;
   });
 
-  const scores = scored.map((e) => e.overallScore ?? 0);
   return {
     scoredCalls: scored.length,
     insufficientCalls: current.length - scored.length,
-    averageScore: scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : null,
-    lowScoreCalls: scored.filter((e) => isLowScore(e.overallScore ?? 0, thresholdOf(e))).length,
+    // Exact mean of the runs' ratios (interface v1 §8), from the backend's run-level points,
+    // truncated to hundredths. Never an average of displayed (truncated) scores.
+    averageHundredths: exactMeanHundredths(
+      scored.map((e) => ({ awarded: e.awardedPoints, assessable: e.assessablePoints })),
+    ),
+    // The backend's below_threshold per run (contract v0.1 3.7); never recomputed here.
+    lowScoreCalls: scored.filter((e) => e.belowThreshold === true).length,
     threshold: reference?.lowScoreThreshold ?? DEFAULT_LOW_SCORE_THRESHOLD,
     thresholdVersion: reference?.version ?? null,
     mixedThresholds: new Set(scored.map(thresholdOf)).size > 1,

@@ -75,7 +75,7 @@ function CallDetail({ call }: { call: Call }) {
     (evidence: EvidenceSelection, group: readonly string[]) => {
       const location: EvidenceLocation = loaded
         ? locateEvidence(loaded, evidence)
-        : { status: 'unavailable', reason: 'segment_missing' };
+        : { status: 'unavailable', reason: 'transcript_loading' };
       setSelection((prev) => ({ evidence, location, key: (prev?.key ?? 0) + 1 }));
       setHighlight(location.status === 'located' ? new Set(group) : new Set());
       if (location.status === 'located') seek(location.startMs, true);

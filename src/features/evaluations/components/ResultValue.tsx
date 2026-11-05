@@ -3,7 +3,7 @@ import type { CriterionEvaluation, Evaluation } from '@/shared/types/domain';
 import { Badge } from '@/shared/ui/Badge';
 import { Icon } from '@/shared/ui/Icon';
 import { ScoreValue } from '@/shared/ui/ScoreValue';
-import { floorTo2, isAssessed } from '@/shared/utils/score';
+import { isAssessed } from '@/shared/utils/score';
 import { resultPresentation } from '../model/outcome';
 import styles from './Evaluation.module.css';
 
@@ -87,11 +87,11 @@ export function NoScoreBadge({
 export function OverallValue({
   evaluation,
 }: {
-  evaluation: Pick<Evaluation, 'outcome' | 'overallScore'>;
+  evaluation: Pick<Evaluation, 'outcome' | 'displayHundredths'>;
 }) {
   const kind = resultPresentation(evaluation);
-  return kind === 'scored' && evaluation.overallScore !== null ? (
-    <ScoreValue score={evaluation.overallScore} />
+  return kind === 'scored' && evaluation.displayHundredths !== null ? (
+    <ScoreValue hundredths={evaluation.displayHundredths} />
   ) : (
     <NoScoreBadge kind={kind === 'not_assessable' ? 'not_assessable' : 'insufficient_evidence'} />
   );
@@ -114,11 +114,11 @@ function DeltaView({ d, text }: { d: number; text: string }) {
   );
 }
 
-/** Signed change of the 0–10 evaluation score (each side floored first). */
+/** Signed change between two runs' `display_hundredths` (integer difference, no rounding). */
 export function Delta({ from, to }: { from: number | null; to: number | null }) {
   const { fmt } = useI18n();
   if (from === null || to === null) return <span className={styles.same}>—</span>;
-  return <DeltaView d={floorTo2(to) - floorTo2(from)} text={fmt.scoreDelta(from, to)} />;
+  return <DeltaView d={(to - from) / 100} text={fmt.hundredthsDelta(from, to)} />;
 }
 
 /** Signed change in ACTUAL criterion points, e.g. "+1 point"; none when the maximum changed. */

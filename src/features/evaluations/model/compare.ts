@@ -51,9 +51,10 @@ export function compareEvaluations(
     };
   });
   return {
+    /** Difference of the backend's display_hundredths (integers), e.g. 21 = +0.21. */
     overallDelta:
-      before.overallScore !== null && after.overallScore !== null
-        ? after.overallScore - before.overallScore
+      before.displayHundredths !== null && after.displayHundredths !== null
+        ? after.displayHundredths - before.displayHundredths
         : null,
     criteria,
     hitsBefore: before.prohibitedHits.length,

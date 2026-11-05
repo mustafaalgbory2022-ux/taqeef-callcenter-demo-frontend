@@ -30,7 +30,8 @@ export function EvaluationHistory({
   // Failed, not assessable and insufficient evidence stay distinct; no score is ever implied.
   function outcomeLabel(e: Evaluation): string {
     const kind = resultPresentation(e);
-    if (kind === 'scored' && e.overallScore !== null) return fmt.score(e.overallScore);
+    if (kind === 'scored' && e.displayHundredths !== null)
+      return `${fmt.hundredths(e.displayHundredths)} ${t('common.outOfTen')}`;
     return kind === 'not_assessable'
       ? t('evaluations.notAssessableOverall.title')
       : t('evaluations.insufficient.title');

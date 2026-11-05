@@ -339,6 +339,26 @@ tests, including the live-bundle exclusion test. `npm run test:e2e` passed: 66 P
 (desktop + mobile, EN/AR × light/dark with axe, transcript search, evidence, shortcuts, reload
 resume, retire flow, no comparative agent figures, generic agent page title).
 
+## Task 9 — score presentation from display_hundredths (Stream 9)
+
+**Sources:** contract v0.1 3.4, 3.6 and 3.7 (CONFIRMED), the alignment note v0.2.1 §B, and interface v1 §7–8. The
+score field shape and semantics are fully documented, so nothing was invented.
+
+**Implemented** (handoff §5a): every evaluation score renders from the backend's integer
+`display_hundredths` with integer-only formatting (no float arithmetic, no rounding); low-score flags and counts use the backend's
+`below_threshold`; the float `overall_score` is no longer read; averages are the exact mean of
+ratios (rational arithmetic, truncated), never a mean of displayed scores; no score for unscored
+runs; mock payloads carry the new fields. Also fixed an evidence-while-loading message race.
+
+**Gaps:** handoff §6 (contract 3.5 point-field names and half-point `unit`; normalized
+criterion figures; `threshold_hundredths` display).
+
+**QA.** `npm run check`: typecheck, lint, format and 126 unit/component/mock-integration tests
+passed (new: hundredths formatting EN/AR, range and integer validation, presence-iff-scored,
+`overall_score` ignored, exact mean versus mean of truncated scores, backend low flag kept
+after threshold changes, still-loading evidence). `npm run test:e2e`: 68 passed (new: score
+rendered from `data-hundredths` on call detail and the calls list).
+
 ## Proposed next tasks (prioritized, client-only unless noted)
 
 1. On approval: launch code in the URL fragment (Task 3a finding 9).

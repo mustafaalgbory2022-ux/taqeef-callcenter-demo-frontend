@@ -17,7 +17,7 @@ export function KpiRow({ summary }: { summary: PerformanceSummary }) {
       <StatTile
         testId="kpi-average"
         label={t('dashboard.kpi.average')}
-        value={summary.averageScore === null ? '—' : fmt.score(summary.averageScore)}
+        value={summary.averageHundredths === null ? '—' : fmt.hundredths(summary.averageHundredths)}
         unit={t('common.outOfTen')}
         footnote={t('dashboard.kpi.averageNote', { n: fmt.integer(n) })}
       />

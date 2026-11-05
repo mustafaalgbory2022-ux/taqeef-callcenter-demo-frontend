@@ -105,13 +105,16 @@ describe('simulated backend', () => {
       outcome: 'scored',
       awardedPoints: 9,
       assessablePoints: 10,
-      overallScore: 9,
+      displayHundredths: 900,
+      belowThreshold: false,
+      thresholdHundredths: 700,
     });
     const [demo4] = await api.listEvaluations({ callId: 'DEMO-004' });
     expect(demo4).toMatchObject({
       outcome: 'insufficient_evidence',
       assessablePoints: 4,
-      overallScore: null,
+      displayHundredths: null,
+      belowThreshold: null,
     });
   });
 

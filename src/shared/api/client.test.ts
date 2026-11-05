@@ -117,73 +117,68 @@ describe('ApiClient over a transport', () => {
     await expect(client.listCalls()).rejects.toMatchObject({ code: 'contract_mismatch' });
   });
 
-  it('rejects out-of-range scores and scored criteria without a score', async () => {
-    const evaluation = {
-      id: 'e',
-      call_id: 'c',
-      agent_id: null,
-      scorecard_id: 's',
-      scorecard_version: 1,
-      status: 'completed',
-      outcome: 'scored',
-      awarded_points: 8,
-      assessable_points: 10,
-      possible_points: 10,
-      minimum_assessable_points: 6,
-      overall_score: 85,
-      criteria: [],
-      prohibited_hits: [],
-      trigger: 'initial',
-      supersedes_id: null,
-      created_at: '2026-10-01T00:00:00Z',
-      simulated: false,
-    };
-    const badCriterion = {
-      criterion_id: 'a',
-      result: 'scored',
-      score: null,
-      rationale: '',
-      evidence: [],
-    };
-    await expect(
-      createApiClient(respond(200, [evaluation]), 'live').listEvaluations(),
-    ).rejects.toMatchObject({
-      code: 'contract_mismatch',
-    });
-    await expect(
-      createApiClient(
-        respond(200, [{ ...evaluation, overall_score: 8, criteria: [badCriterion] }]),
-        'live',
-      ).listEvaluations(),
-    ).rejects.toMatchObject({ code: 'contract_mismatch' });
+  const run = {
+    id: 'e',
+    call_id: 'c',
+    agent_id: null,
+    scorecard_id: 's',
+    scorecard_version: 1,
+    transcript_revision_id: 'rev-1',
+    outcome: 'scored',
+    awarded_points: 7,
+    assessable_points: 10,
+    possible_points: 10,
+    minimum_assessable_points: 6,
+    display_hundredths: 700,
+    below_threshold: false,
+    threshold_hundredths: 700,
+    criteria: [],
+    prohibited_hits: [],
+    trigger: 'initial',
+    supersedes_id: null,
+    created_at: '2026-10-01T00:00:00.000Z',
+    simulated: false,
+  };
+
+  it('reads the displayed score from display_hundredths, ignoring any overall_score', async () => {
+    const [e] = await createApiClient(
+      respond(200, [{ ...run, display_hundredths: 699, overall_score: 7.0 }]),
+      'live',
+    ).listEvaluations();
+    expect(e).toMatchObject({ displayHundredths: 699, belowThreshold: false });
+    expect(e).not.toHaveProperty('overallScore');
   });
 
-  it('rejects an insufficient-evidence outcome that still carries a score', async () => {
-    const evaluation = {
-      id: 'e',
-      call_id: 'c',
-      agent_id: null,
-      scorecard_id: 's',
-      scorecard_version: 1,
-      status: 'completed',
-      outcome: 'insufficient_evidence',
-      awarded_points: 3,
-      assessable_points: 4,
-      possible_points: 10,
-      minimum_assessable_points: 6,
-      overall_score: 7.5,
-      criteria: [],
-      prohibited_hits: [],
-      trigger: 'initial',
-      supersedes_id: null,
-      created_at: '2026-10-01T00:00:00Z',
-      simulated: false,
-    };
-    await expect(
-      createApiClient(respond(200, [evaluation]), 'live').listEvaluations(),
-    ).rejects.toMatchObject({
-      code: 'contract_mismatch',
-    });
+  it('rejects non-integer or out-of-range display_hundredths', async () => {
+    for (const d of [699.5, -1, 1001, '699']) {
+      await expect(
+        createApiClient(
+          respond(200, [{ ...run, display_hundredths: d }]),
+          'live',
+        ).listEvaluations(),
+      ).rejects.toMatchObject({ code: 'contract_mismatch' });
+    }
+  });
+
+  it('requires display_hundredths and below_threshold exactly when scored', async () => {
+    const bad = [
+      { ...run, display_hundredths: null },
+      { ...run, below_threshold: null },
+      { ...run, outcome: 'insufficient_evidence' },
+      { ...run, outcome: 'not_assessable', display_hundredths: null },
+    ];
+    for (const body of bad) {
+      await expect(
+        createApiClient(respond(200, [body]), 'live').listEvaluations(),
+      ).rejects.toMatchObject({ code: 'contract_mismatch' });
+    }
+    const [none] = await createApiClient(
+      respond(200, [
+        { ...run, outcome: 'not_assessable', display_hundredths: null, below_threshold: null },
+      ]),
+      'live',
+    ).listEvaluations();
+    expect(none).toMatchObject({ displayHundredths: null, belowThreshold: null });
   });
 
   it('rejects a run without an explicit outcome (a failed evaluation creates no run)', async () => {
@@ -199,7 +194,9 @@ describe('ApiClient over a transport', () => {
       assessable_points: 0,
       possible_points: 10,
       minimum_assessable_points: 6,
-      overall_score: null,
+      display_hundredths: null,
+      below_threshold: null,
+      threshold_hundredths: null,
       criteria: [],
       prohibited_hits: [],
       trigger: 'rescore',
@@ -214,7 +211,7 @@ describe('ApiClient over a transport', () => {
       respond(200, [{ ...failed, outcome: 'not_assessable' }]),
       'live',
     ).listEvaluations();
-    expect(na).toMatchObject({ outcome: 'not_assessable', overallScore: null });
+    expect(na).toMatchObject({ outcome: 'not_assessable', displayHundredths: null });
   });
 
   it('treats revision and segment ids as opaque, rejecting only empty ids (v0.2.1 §C)', async () => {

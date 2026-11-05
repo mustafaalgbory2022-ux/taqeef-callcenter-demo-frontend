@@ -45,10 +45,10 @@ export function EvaluationPanel({
         t('evaluations.rescore.done', {
           version: result.scorecardVersion,
           score:
-            result.overallScore === null
+            result.displayHundredths === null
               ? t('evaluations.noScore')
-              : fmt.score(result.overallScore),
-          previous: previous === null ? t('evaluations.noScore') : fmt.score(previous),
+              : fmt.hundredths(result.displayHundredths),
+          previous: previous === null ? t('evaluations.noScore') : fmt.hundredths(previous),
         }),
       );
     } catch (err) {
@@ -84,7 +84,7 @@ export function EvaluationPanel({
                     size="sm"
                     loading={rescore.isPending}
                     disabled={!canRescore}
-                    onClick={() => runRescore(latest.overallScore)}
+                    onClick={() => runRescore(latest.displayHundredths)}
                   >
                     {t('evaluations.rescore.action')}
                   </Button>
@@ -102,7 +102,8 @@ export function EvaluationPanel({
                       })}
                     </span>
                   </>
-                ) : latest.outcome === 'insufficient_evidence' || latest.overallScore === null ? (
+                ) : latest.outcome === 'insufficient_evidence' ||
+                  latest.displayHundredths === null ? (
                   <>
                     <NoScoreBadge />
                     <span className={styles.summary}>
@@ -116,12 +117,9 @@ export function EvaluationPanel({
                 ) : (
                   <>
                     <span className={styles.overallValue}>
-                      <ScoreValue score={latest.overallScore} />
+                      <ScoreValue hundredths={latest.displayHundredths} />
                     </span>
-                    <ScoreFlag
-                      score={latest.overallScore}
-                      threshold={version?.lowScoreThreshold ?? 7}
-                    />
+                    <ScoreFlag belowThreshold={latest.belowThreshold === true} />
                   </>
                 )}
                 <Badge tone={latest.trigger === 'rescore' ? 'accent' : 'neutral'}>

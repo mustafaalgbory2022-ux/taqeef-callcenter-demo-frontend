@@ -1,27 +1,31 @@
 import { useI18n } from '@/shared/i18n/I18nProvider';
-import { isLowScore } from '@/shared/utils/score';
 import { Icon } from './Icon';
 import styles from './Score.module.css';
 
-/** "6.66 / 10" with the approved rounding (two decimals, rounded down). */
-export function ScoreValue({ score }: { score: number }) {
+/**
+ * An evaluation score, "6.99 / 10", from the backend's integer `display_hundredths`
+ * (contract v0.1 3.4): truncated, never rounded, no float arithmetic.
+ */
+export function ScoreValue({ hundredths }: { hundredths: number }) {
   const { t, fmt } = useI18n();
   return (
-    <span className={styles.value}>
-      <bdi>{fmt.score(score)}</bdi>
+    <span className={styles.value} data-hundredths={hundredths}>
+      <bdi>{fmt.hundredths(hundredths)}</bdi>
       <span className={styles.max}>{t('common.outOfTen')}</span>
     </span>
   );
 }
 
-/** Text + shape indicator for the low-score rule (never colour alone). */
-export function ScoreFlag({ score, threshold }: { score: number; threshold: number }) {
+/**
+ * Text + shape indicator for the low-score rule (never colour alone). The flag is the
+ * backend's `below_threshold` for the run (contract v0.1 3.7); the frontend never recomputes it.
+ */
+export function ScoreFlag({ belowThreshold }: { belowThreshold: boolean }) {
   const { t } = useI18n();
-  const low = isLowScore(score, threshold);
   return (
-    <span className={`${styles.flag} ${low ? styles.low : styles.ok}`}>
-      <Icon name={low ? 'alert' : 'check'} />
-      {low ? t('common.belowThreshold') : t('common.meetsThreshold')}
+    <span className={`${styles.flag} ${belowThreshold ? styles.low : styles.ok}`}>
+      <Icon name={belowThreshold ? 'alert' : 'check'} />
+      {belowThreshold ? t('common.belowThreshold') : t('common.meetsThreshold')}
     </span>
   );
 }

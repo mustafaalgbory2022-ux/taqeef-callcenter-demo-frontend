@@ -51,7 +51,7 @@ export function ComparisonTable({
               <OverallValue evaluation={after} />
             </td>
             <td>
-              <Delta from={before.overallScore} to={after.overallScore} />
+              <Delta from={before.displayHundredths} to={after.displayHundredths} />
             </td>
           </tr>
           {cmp.criteria.map((row) => (

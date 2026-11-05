@@ -69,7 +69,11 @@ const ev = (
     assessablePoints: score === null ? 0 : 10,
     possiblePoints: 10,
     minimumAssessablePoints: 6,
-    overallScore: score,
+    // Simulated backend values: score × 100 for a single 10-point criterion; the low flag is
+    // fixed with the evaluating version's threshold (v1: 7.00, v2: 8.00 in these tests).
+    displayHundredths: score === null ? null : score * 100,
+    belowThreshold: score === null ? null : score < (v === 2 ? 8 : 7),
+    thresholdHundredths: v === 2 ? 800 : 700,
     criteria: [criterion],
     prohibitedHits: [],
     trigger: 'initial',
@@ -95,6 +99,45 @@ describe('currentEvaluations', () => {
   });
 });
 
+describe('summarize — exact mean and backend flags', () => {
+  const scoredRun = (id: string, awarded: number, assessable: number, d: number, low: boolean) => ({
+    ...ev(id, 'a', 1, T),
+    awardedPoints: awarded,
+    assessablePoints: assessable,
+    displayHundredths: d,
+    belowThreshold: low,
+  });
+
+  it('averages the exact ratios, not the truncated displayed scores', () => {
+    // 2/3 → 6.666… (shown 6.66) and 1/3 → 3.333… (shown 3.33). Exact mean = 5.00;
+    // averaging the displayed values would give 4.99.
+    const s = summarize(
+      [scoredRun('1', 2, 3, 666, true), scoredRun('2', 1, 3, 333, true)],
+      [version(1)],
+    );
+    expect(s.averageHundredths).toBe(500);
+  });
+
+  it('truncates the exact mean, never rounds up', () => {
+    const s = summarize(
+      [
+        scoredRun('1', 7, 10, 700, false),
+        scoredRun('2', 6, 9, 666, true),
+        scoredRun('3', 3, 4, 750, false),
+      ],
+      [version(1)],
+    );
+    // (0.7 + 0.6667 + 0.75) / 3 = 0.70555… → 705
+    expect(s.averageHundredths).toBe(705);
+  });
+
+  it('counts low scores from the backend flag, even when the threshold changed later', () => {
+    // A 7.50 run flagged low by its own (older, higher) threshold stays low.
+    const s = summarize([scoredRun('1', 3, 4, 750, true)], [version(1)]);
+    expect(s.lowScoreCalls).toBe(1);
+  });
+});
+
 describe('summarize', () => {
   it('pools per call instead of averaging agent averages', () => {
     const current = [
@@ -103,7 +146,7 @@ describe('summarize', () => {
       ev('3', 'a', 9, T),
       ev('4', 'b', 5, T),
     ];
-    expect(summarize(current, [version(1)]).averageScore).toBe(8); // not (9 + 5) / 2 = 7
+    expect(summarize(current, [version(1)]).averageHundredths).toBe(800); // not (9 + 5) / 2
   });
 
   it('excludes insufficient-evidence evaluations from averages, low counts and criterion points', () => {
@@ -112,7 +155,7 @@ describe('summarize', () => {
     expect(s).toMatchObject({
       scoredCalls: 2,
       insufficientCalls: 1,
-      averageScore: 6,
+      averageHundredths: 600,
       lowScoreCalls: 1,
     });
     expect(s.criteria[0]).toMatchObject({
@@ -151,7 +194,7 @@ describe('summarize', () => {
   it('handles no data', () => {
     expect(summarize([], [version(1)])).toMatchObject({
       scoredCalls: 0,
-      averageScore: null,
+      averageHundredths: null,
       lowScoreCalls: 0,
     });
   });

@@ -2,7 +2,7 @@ import type { Evaluation } from '@/shared/types/domain';
 
 /** Counts in scored averages and low-score counts. */
 export function isScored(e: Evaluation): boolean {
-  return e.outcome === 'scored' && e.overallScore !== null;
+  return e.outcome === 'scored' && e.displayHundredths !== null;
 }
 
 const newerThan = (a: Evaluation, b: Evaluation) =>

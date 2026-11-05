@@ -132,6 +132,7 @@ test('evidence segments are located in the run revision, marked and playable by 
   page,
 }) => {
   await openSession(page, { path: '/calls/DEMO-003' });
+  await expect(page.getByTestId('transcript-revision')).toBeVisible();
   const evidenceButton = page.getByTestId('criterion-c-language').getByRole('button').first();
   await evidenceButton.focus();
   await page.keyboard.press('Enter');
@@ -162,6 +163,7 @@ test('evidence segments are located in the run revision, marked and playable by 
 
 test('evidence location feedback is available in Arabic', async ({ page }) => {
   await openSession(page, { path: '/calls/DEMO-003', lang: 'ar', theme: 'dark' });
+  await expect(page.getByTestId('transcript-revision')).toBeVisible();
   await page.getByTestId('criterion-c-language').getByRole('button').first().click();
   await expect(page.getByTestId('evidence-status')).toContainText('تم تحديد موضع الدليل');
   await expect(page.locator('[data-segment-id][data-evidence]')).toBeVisible();

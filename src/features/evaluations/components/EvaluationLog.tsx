@@ -65,7 +65,7 @@ export function EvaluationLog({
               </td>
               <td>
                 {prev ? (
-                  <Delta from={prev.overallScore} to={e.overallScore} />
+                  <Delta from={prev.displayHundredths} to={e.displayHundredths} />
                 ) : (
                   <span className={tableStyles.muted}>—</span>
                 )}

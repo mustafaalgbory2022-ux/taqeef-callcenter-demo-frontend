@@ -51,7 +51,8 @@ describe('simulated scoring — prohibited expressions', () => {
       disposition: 'flagged_for_review',
       penalty_points: 0,
     });
-    expect(e.overall_score).toBe(10);
+    expect(e.display_hundredths).toBe(1000);
+    expect(e.below_threshold).toBe(false);
   });
 
   it('applies the active penalty rule to reliably attributed agent speech', () => {
@@ -65,7 +66,7 @@ describe('simulated scoring — prohibited expressions', () => {
       awarded_points: 1,
       penalty_points: 1,
     });
-    expect(e).toMatchObject({ awarded_points: 9, assessable_points: 10, overall_score: 9 });
+    expect(e).toMatchObject({ awarded_points: 9, assessable_points: 10, display_hundredths: 900 });
   });
 
   it('never penalises customer speech or unknown speakers on a mixed channel', () => {
@@ -75,7 +76,7 @@ describe('simulated scoring — prohibited expressions', () => {
     expect(
       run(withPenalty, { layout: 'mixed', speaker: 'unknown' }).prohibited_hits[0]?.disposition,
     ).toBe('flagged_for_review');
-    expect(run(withPenalty, { layout: 'mixed', speaker: 'agent' }).overall_score).toBe(10);
+    expect(run(withPenalty, { layout: 'mixed', speaker: 'agent' }).display_hundredths).toBe(1000);
   });
 });
 
@@ -95,7 +96,8 @@ describe('simulated scoring — minimum assessable points', () => {
     expect(e).toMatchObject({
       outcome: 'not_assessable',
       assessable_points: 0,
-      overall_score: null,
+      display_hundredths: null,
+      below_threshold: null,
       transcript_revision_id: REV,
     });
     expect(e.criteria.every((c) => c.reason_code === 'roles_unreliable')).toBe(true);

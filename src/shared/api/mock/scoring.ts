@@ -182,6 +182,12 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
     scorecard.minimum_assessable_points,
   );
 
+  const displayHundredths =
+    score.outcome === 'scored' && score.assessablePoints > 0
+      ? Math.floor((1000 * score.awardedPoints) / score.assessablePoints)
+      : null;
+  const thresholdHundredths = Math.round(scorecard.low_score_threshold * 100);
+
   return {
     id: input.id,
     call_id: call.id,
@@ -194,7 +200,11 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
     assessable_points: score.assessablePoints,
     possible_points: score.possiblePoints,
     minimum_assessable_points: scorecard.minimum_assessable_points,
-    overall_score: score.overallScore,
+    // SIMULATED backend values (contract v0.1 3.4 / 3.7): integer division as in the M2 CHECK
+    // display_hundredths = (1000·A)/P, and the low flag fixed with this run's threshold.
+    display_hundredths: displayHundredths,
+    below_threshold: displayHundredths === null ? null : displayHundredths < thresholdHundredths,
+    threshold_hundredths: thresholdHundredths,
     criteria,
     prohibited_hits: hits,
     trigger: input.trigger,

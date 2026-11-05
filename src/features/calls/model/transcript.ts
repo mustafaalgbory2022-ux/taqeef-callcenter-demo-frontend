@@ -91,7 +91,10 @@ export type EvidenceLocation =
       /** The segment text from the transcript revision (never model output). */
       text: string;
     }
-  | { status: 'unavailable'; reason: 'segment_missing' | 'revision_mismatch' };
+  | {
+      status: 'unavailable';
+      reason: 'segment_missing' | 'revision_mismatch' | 'transcript_loading';
+    };
 
 /**
  * Resolve an evidence reference against a loaded transcript revision — without guessing.

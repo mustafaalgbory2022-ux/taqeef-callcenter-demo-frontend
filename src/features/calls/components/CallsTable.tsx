@@ -5,7 +5,6 @@ import type { Agent, Call, Evaluation, ScorecardVersion } from '@/shared/types/d
 import { Badge, SyntheticBadge } from '@/shared/ui/Badge';
 import { ScoreFlag, ScoreValue } from '@/shared/ui/ScoreValue';
 import { tableStyles, TableRegion } from '@/shared/ui/Table';
-import { DEFAULT_LOW_SCORE_THRESHOLD } from '@/shared/utils/score';
 import { formatDuration } from '@/shared/utils/time';
 import { CallStatusBadge } from './CallStatusBadge';
 
@@ -14,16 +13,14 @@ export interface CallsTableProps {
   agents: readonly Agent[];
   /** Current (latest eligible) evaluation per call id. */
   current: ReadonlyMap<string, Evaluation>;
+  /** Kept for callers; low-score flags now come from each run (contract v0.1 3.7). */
   versions: readonly ScorecardVersion[];
   label: string;
 }
 
-export function CallsTable({ calls, agents, current, versions, label }: CallsTableProps) {
+export function CallsTable({ calls, agents, current, label }: CallsTableProps) {
   const { t, fmt } = useI18n();
   const agentOf = (id: string | null) => agents.find((a) => a.id === id);
-  const thresholdOf = (e: Evaluation) =>
-    versions.find((v) => v.scorecardId === e.scorecardId && v.version === e.scorecardVersion)
-      ?.lowScoreThreshold ?? DEFAULT_LOW_SCORE_THRESHOLD;
 
   return (
     <TableRegion label={label}>
@@ -69,13 +66,10 @@ export function CallsTable({ calls, agents, current, versions, label }: CallsTab
                 <CallStatusBadge status={call.status} />
               </td>
               <td>
-                {evaluation?.overallScore != null ? (
+                {evaluation?.displayHundredths != null ? (
                   <>
-                    <ScoreValue score={evaluation.overallScore} />{' '}
-                    <ScoreFlag
-                      score={evaluation.overallScore}
-                      threshold={thresholdOf(evaluation)}
-                    />
+                    <ScoreValue hundredths={evaluation.displayHundredths} />{' '}
+                    <ScoreFlag belowThreshold={evaluation.belowThreshold === true} />
                   </>
                 ) : evaluation && resultPresentation(evaluation) === 'not_assessable' ? (
                   <Badge icon="minus">{t('calls.table.noScoreNotAssessable')}</Badge>
