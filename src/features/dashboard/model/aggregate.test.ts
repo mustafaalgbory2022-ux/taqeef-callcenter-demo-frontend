@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { CriterionEvaluation, Evaluation, ScorecardVersion } from '@/shared/types/domain';
-import { currentEvaluations, filterByVersion, summarize } from './aggregate';
+import { currentEvaluations, dashboardPopulation, summarize } from './aggregate';
 
 const version = (v: number, threshold = 7): ScorecardVersion => ({
   scorecardId: 'sc',
@@ -40,9 +40,10 @@ const ev = (
           result: 'not_assessable',
           reasonCode: 'ai_declared',
           aiDeclaredReason: 'insufficient_evidence',
-          awardedPoints: null,
-          possiblePoints: 10,
-          penaltyPoints: 0,
+          unit: 1,
+          awardedUnits: null,
+          possibleUnits: 10,
+          penaltyUnits: 0,
           rationale: '',
           evidence: [],
         }
@@ -51,9 +52,10 @@ const ev = (
           result: 'partially_met',
           reasonCode: null,
           aiDeclaredReason: null,
-          awardedPoints: score,
-          possiblePoints: 10,
-          penaltyPoints: 0,
+          unit: 1,
+          awardedUnits: score,
+          possibleUnits: 10,
+          penaltyUnits: 0,
           rationale: '',
           evidence: [],
         };
@@ -65,10 +67,11 @@ const ev = (
     scorecardVersion: v,
     transcriptRevisionId: '0193a000-0000-7000-8000-000000000001',
     outcome: score === null ? 'insufficient_evidence' : 'scored',
-    awardedPoints: score ?? 0,
-    assessablePoints: score === null ? 0 : 10,
-    possiblePoints: 10,
-    minimumAssessablePoints: 6,
+    unit: 1,
+    awardedUnits: score ?? 0,
+    assessableUnits: score === null ? 0 : 10,
+    possibleUnits: 10,
+    minimumAssessableUnits: 6,
     // Simulated backend values: score × 100 for a single 10-point criterion; the low flag is
     // fixed with the evaluating version's threshold (v1: 7.00, v2: 8.00 in these tests).
     displayHundredths: score === null ? null : score * 100,
@@ -102,8 +105,8 @@ describe('currentEvaluations', () => {
 describe('summarize — exact mean and backend flags', () => {
   const scoredRun = (id: string, awarded: number, assessable: number, d: number, low: boolean) => ({
     ...ev(id, 'a', 1, T),
-    awardedPoints: awarded,
-    assessablePoints: assessable,
+    awardedUnits: awarded,
+    assessableUnits: assessable,
     displayHundredths: d,
     belowThreshold: low,
   });
@@ -159,36 +162,71 @@ describe('summarize', () => {
       lowScoreCalls: 1,
     });
     expect(s.criteria[0]).toMatchObject({
-      awardedPoints: 12,
-      possiblePoints: 20,
+      // Half-points: 12 of 20 whole points.
+      awardedHalfPoints: 24,
+      possibleHalfPoints: 40,
       normalized: 6,
       scoredCount: 2,
     });
   });
 
-  it('counts low scores strictly below the threshold of the evaluating version', () => {
+  it('counts low scores from each run and labels thresholds from the runs, not the scorecard', () => {
     const current = [ev('1', 'a', 7, T, 1), ev('2', 'a', 6, T, 1), ev('3', 'a', 7, T, 2)];
     const s = summarize(current, [version(1, 7), version(2, 8)]);
+    // v1 runs: 6 is low; v2 run: 7 is low under its own 8.00 threshold.
     expect(s).toMatchObject({
       lowScoreCalls: 2,
-      threshold: 8,
-      mixedThresholds: true,
+      runThresholdHundredths: null,
       scorecardVersions: [1, 2],
     });
   });
 
-  it("can be restricted to one scorecard version with that version's threshold", () => {
-    const current = [ev('1', 'a', 7, T, 1), ev('2', 'a', 7, T, 2)];
-    const versions = [version(1, 7), version(2, 8)];
-    expect(summarize(filterByVersion(current, 1), versions, 1)).toMatchObject({
-      scoredCalls: 1,
-      lowScoreCalls: 0,
-      threshold: 7,
-    });
-    expect(summarize(filterByVersion(current, 2), versions, 2)).toMatchObject({
-      lowScoreCalls: 1,
-      threshold: 8,
-    });
+  it('shows a single run threshold only when every scored run reports the same one', () => {
+    const v1 = [ev('1', 'a', 7, T, 1), ev('2', 'a', 6, T, 1)];
+    // The current scorecard (v2, 8.00) must not relabel v1 runs scored under 7.00.
+    expect(summarize(v1, [version(1, 7), version(2, 8)]).runThresholdHundredths).toBe(700);
+    const missing = [{ ...ev('1', 'a', 7, T, 1), thresholdHundredths: null }];
+    expect(summarize(missing, [version(1, 7)]).runThresholdHundredths).toBeNull();
+  });
+
+  it('restricts to the selected version before taking the latest run per call', () => {
+    const v1 = ev('call1', 'a', 5, T, 1);
+    const v2 = ev('call1', 'a', 9, '2026-10-02T00:00:00.000Z', 2);
+    expect(dashboardPopulation([v1, v2], 1)).toEqual([v1]);
+    expect(dashboardPopulation([v1, v2], 2)).toEqual([v2]);
+    // All versions: one run per call, never both.
+    expect(dashboardPopulation([v1, v2], null)).toEqual([v2]);
+  });
+
+  it('never double-counts re-evaluations in averages', () => {
+    const runs = [
+      ev('call1', 'a', 2, T),
+      ev('call1', 'a', 8, '2026-10-02T00:00:00.000Z'),
+      ev('call2', 'a', 6, T),
+    ];
+    const s = summarize(dashboardPopulation(runs, null), [version(1)]);
+    expect(s.scoredCalls).toBe(2);
+    expect(s.averageHundredths).toBe(700); // (8 + 6) / 2, the older 2 is not counted
+  });
+
+  it('pools criterion points across half-point and whole-point runs', () => {
+    const base = ev('1', 'a', 5, T);
+    const [criterion] = base.criteria;
+    if (!criterion) throw new Error('fixture');
+    const half = {
+      ...base,
+      unit: 2 as const,
+      awardedUnits: 3,
+      assessableUnits: 4,
+      displayHundredths: 750,
+      criteria: [{ ...criterion, unit: 2 as const, awardedUnits: 3, possibleUnits: 4 }],
+    };
+    const whole = ev('2', 'a', 5, T); // 5 of 10 whole points
+    const s = summarize([half, whole], [version(1)]);
+    // 1.5 of 2 points + 5 of 10 points = 6.5 of 12 points → 13 of 24 half-points.
+    expect(s.criteria[0]).toMatchObject({ awardedHalfPoints: 13, possibleHalfPoints: 24 });
+    // Exact mean of ratios: (3/4 + 5/10) / 2 = 0.625 → 6.25.
+    expect(s.averageHundredths).toBe(625);
   });
 
   it('handles no data', () => {

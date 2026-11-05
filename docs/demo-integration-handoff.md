@@ -1,6 +1,6 @@
 # Five-call demo frontend — integration handoff for Local Claude
 
-Status: aligned with **demo API contract v0.2 + amendment v0.2.1** (authoritative) as of Stream 9. Nothing here
+Status: aligned with **demo API contract v0.2 + amendment v0.2.1** (authoritative) as of Stream 10. Nothing here
 creates or freezes an endpoint or schema; every route stays PROPOSED until M4 / v0.3.
 
 ## 1. Where it is
@@ -9,7 +9,7 @@ creates or freezes an endpoint or schema; every route stays PROPOSED until M4 / 
 - Branch: `demo/ord-0035-cloud-stream-1` (dedicated demo branch; never merged into `main`)
 - Commit: the commit that last changed this file —
   `git log -1 --format=%H -- docs/demo-integration-handoff.md`; the exact hash is in the
-  Stream 9 report. Previous checkpoint: `6063d4d6`.
+  Stream 10 report. Previous checkpoint: `c8c2b3af`.
 - Untouched: `main`, the preserved original demo branch, `feature/taqeef-full-frontend`.
 
 ## 2. How to run
@@ -73,6 +73,18 @@ builds (`src/test/liveBundle.test.ts`).
 | Mock                                                                                                                                                                                                   | Simulated `display_hundredths = floor(1000·A/P)` (as the M2 CHECK), `below_threshold`, `threshold_hundredths`                                                                                                                                               | `mock/scoring.ts`                                                                                                                                                                 |
 
 Also fixed: clicking evidence before the transcript has loaded now says "still loading" instead of "line not found" (found as an intermittent browser-test failure).
+
+## 5b. Implemented in Stream 10 (scoring-data alignment)
+
+| Rule (source)                                                                                                         | Frontend behaviour                                                                                                                                                                                                                                                              | Files                                                                              |
+| --------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Run points `points_awarded_sum`, `points_possible_sum`, `unit` (1, or 2 = half points) (contract v0.1 3.5, CONFIRMED) | Decoded as integer units and stored as units (`awardedUnits`, `assessableUnits`, `unit`); shown as points with `fmt.points(units, unit)` (unit 2: 13 units = "6.5"); never as a quality score. `awarded_points` / `assessable_points` are no longer read                        | `wire/evaluations.ts`, `domain.ts`, `shared/i18n/format.ts`, `EvaluationPanel.tsx` |
+| Criterion `units_awarded`, `units_possible` (3.2, CONFIRMED)                                                          | Decoded and displayed in the run's unit ("1.5 of 2 points")                                                                                                                                                                                                                     | `wire/evaluations.ts`, `ResultValue.tsx`, `CriterionResults.tsx`                   |
+| Integrity                                                                                                             | Rejected as a contract mismatch: missing or non-integer units, a unit other than 1/2, awarded > possible, a scored run with 0 assessed points, or a `display_hundredths` that differs from `floor(1000·A/P)` (M2 CHECK). The displayed value is still only `display_hundredths` | `wire/evaluations.ts`                                                              |
+| Mixed units                                                                                                           | Comparisons and pooled criterion figures use half-points as a common basis                                                                                                                                                                                                      | `toHalfPoints` in `score.ts`, `compare.ts`, `ComparisonTable.tsx`, `aggregate.ts`  |
+| Average population (4.6, CONFIRMED: "per call, the latest Scored run on the Active scorecard version")                | Exactly one run per call (re-evaluations never double-count); the selected version is applied FIRST, then the latest run per call                                                                                                                                               | `dashboardPopulation` in `aggregate.ts`, `usePerformance.ts`                       |
+| Historical thresholds (3.7)                                                                                           | Low counts use each run's `below_threshold`; the KPI label shows the runs' own `threshold_hundredths` only when all scored runs share one, otherwise "below their own run's threshold". The current scorecard's threshold is never used to label historical runs                | `aggregate.ts` (`runThresholdHundredths`), `KpiRow.tsx`                            |
+| Criterion figures                                                                                                     | Clearly labelled a PROVISIONAL VISUALIZATION computed in the browser (normalized to 10, not a backend score); no low-score threshold tick or flag is applied to them                                                                                                            | `CriteriaPerformance.tsx`, `ScoreMeter.tsx`, locales                               |
 
 ## 6. Remaining gaps — decisions for Local Claude
 

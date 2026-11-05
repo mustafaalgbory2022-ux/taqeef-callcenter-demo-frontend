@@ -1,3 +1,4 @@
+import { toHalfPoints } from '@/shared/utils/score';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import type { Evaluation, ScorecardVersion } from '@/shared/types/domain';
 import { Notice } from '@/shared/ui/Notice';
@@ -66,8 +67,12 @@ export function ComparisonTable({
               <td>
                 <PointsDelta
                   delta={row.pointsDelta}
-                  possibleFrom={row.before?.possiblePoints}
-                  possibleTo={row.after?.possiblePoints}
+                  possibleFrom={
+                    row.before ? toHalfPoints(row.before.possibleUnits, row.before.unit) : undefined
+                  }
+                  possibleTo={
+                    row.after ? toHalfPoints(row.after.possibleUnits, row.after.unit) : undefined
+                  }
                 />
               </td>
             </tr>

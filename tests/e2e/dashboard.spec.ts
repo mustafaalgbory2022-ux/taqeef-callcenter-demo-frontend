@@ -28,7 +28,10 @@ test('overall dashboard pools per call and labels the sample', async ({ page }) 
   // Compare like with like: one scorecard version only.
   await page.getByRole('combobox', { name: 'Scorecard' }).selectOption('1');
   await expect(page).toHaveURL(/version=1/);
-  await expect(page.getByTestId('kpi-evaluated')).toContainText('3');
+  // Version first, then the latest run per call (contract v0.1 4.6): DEMO-003 counts with its
+  // v1 run even though a newer v2 re-score exists. Scored v1 calls: DEMO-001/002/003/005.
+  await expect(page.getByTestId('kpi-evaluated')).toContainText('4');
+  await expect(page.getByTestId('kpi-evaluated')).toContainText('1 with insufficient evidence');
 });
 
 test('agent filter is stored in the URL and carries to Calls', async ({ page }) => {

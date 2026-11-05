@@ -37,6 +37,18 @@ export function createFormatters(lang: Language) {
   return {
     integer: (v: number) => integer.format(v),
     /**
+     * Point values from integer units (contract v0.1 3.5): unit 1 → "3"; unit 2 → 3 units =
+     * "1.5", 4 units = "2". Integer arithmetic only. Never a quality score.
+     */
+    points: (units: number, unit: 1 | 2) => {
+      if (!Number.isInteger(units) || units < 0) throw new RangeError(`Invalid units: ${units}`);
+      const whole = unit === 2 ? Math.floor(units / 2) : units;
+      const half = unit === 2 && units % 2 === 1;
+      return half
+        ? `${integer.format(whole)}${decimal}${integer.format(5)}`
+        : integer.format(whole);
+    },
+    /**
      * Evaluation scores from the backend's integer `display_hundredths` (contract v0.1 3.4):
      * truncated, never rounded, no float arithmetic.
      */

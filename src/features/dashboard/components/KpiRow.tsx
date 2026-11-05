@@ -24,9 +24,10 @@ export function KpiRow({ summary }: { summary: PerformanceSummary }) {
       <StatTile
         testId="kpi-low"
         label={
-          summary.mixedThresholds
+          // The runs' own thresholds (contract v0.1 3.7), never the current scorecard's.
+          summary.runThresholdHundredths === null
             ? t('dashboard.kpi.lowMixed')
-            : t('dashboard.kpi.low', { threshold: fmt.score(summary.threshold) })
+            : t('dashboard.kpi.low', { threshold: fmt.hundredths(summary.runThresholdHundredths) })
         }
         value={fmt.integer(summary.lowScoreCalls)}
         unit={t('dashboard.kpi.ofN', { n: fmt.integer(n) })}

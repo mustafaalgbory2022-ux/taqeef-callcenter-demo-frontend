@@ -63,10 +63,15 @@ describe('simulated scoring — prohibited expressions', () => {
       speaker: 'agent',
     });
     expect(e.criteria.find((c) => c.criterion_id === 'c-language')).toMatchObject({
-      awarded_points: 1,
+      units_awarded: 1,
       penalty_points: 1,
     });
-    expect(e).toMatchObject({ awarded_points: 9, assessable_points: 10, display_hundredths: 900 });
+    expect(e).toMatchObject({
+      points_awarded_sum: 9,
+      points_possible_sum: 10,
+      unit: 1,
+      display_hundredths: 900,
+    });
   });
 
   it('never penalises customer speech or unknown speakers on a mixed channel', () => {
@@ -95,7 +100,7 @@ describe('simulated scoring — minimum assessable points', () => {
     });
     expect(e).toMatchObject({
       outcome: 'not_assessable',
-      assessable_points: 0,
+      points_possible_sum: 0,
       display_hundredths: null,
       below_threshold: null,
       transcript_revision_id: REV,
@@ -149,7 +154,7 @@ describe('simulated scoring — penalty accounting', () => {
       ['flagged_for_review', 0],
     ]);
     expect(e.criteria.find((c) => c.criterion_id === 'c-language')).toMatchObject({
-      awarded_points: 0,
+      units_awarded: 0,
       penalty_points: 1,
     });
   });
@@ -206,8 +211,8 @@ describe('simulated scoring — configurable points and partial credit', () => {
       createdAt: '2026-10-01T00:00:00Z',
     });
     expect(e.criteria.find((c) => c.criterion_id === 'c-needs')).toMatchObject({
-      awarded_points: 0,
-      possible_points: 2,
+      units_awarded: 0,
+      units_possible: 2,
     });
   });
 });

@@ -6,19 +6,14 @@ import type { PerformanceSummary } from '../model/aggregate';
 import styles from './Dashboard.module.css';
 
 /**
- * Criterion meters are NORMALIZED to 10 (pooled awarded ÷ possible points); the actual
- * points behind each meter are always shown next to it.
+ * PROVISIONAL VISUALIZATION: criterion meters are computed in the browser, NORMALIZED to 10
+ * (pooled awarded ÷ possible points). They are not backend evaluation scores and no low-score
+ * threshold is applied to them. The actual points behind each meter are shown next to it.
  */
 export function CriteriaPerformance({ summary }: { summary: PerformanceSummary }) {
   const { t, pick, fmt } = useI18n();
   return (
-    <Card
-      title={t('dashboard.criteria.title')}
-      caption={t('dashboard.criteria.caption', {
-        threshold: fmt.score(summary.threshold),
-        version: summary.thresholdVersion ?? '—',
-      })}
-    >
+    <Card title={t('dashboard.criteria.title')} caption={t('dashboard.criteria.caption')}>
       {summary.scoredCalls === 0 ? (
         <EmptyState title={t('dashboard.empty')} />
       ) : (
@@ -28,13 +23,13 @@ export function CriteriaPerformance({ summary }: { summary: PerformanceSummary }
               <ScoreMeter
                 label={pick(c.label)}
                 score={c.normalized}
-                threshold={summary.threshold}
+                threshold={null}
                 meta={
                   <span className={styles.counts}>
                     <bdi>
                       {t('dashboard.criteria.points', {
-                        awarded: fmt.integer(c.awardedPoints),
-                        possible: fmt.integer(c.possiblePoints),
+                        awarded: fmt.points(c.awardedHalfPoints, 2),
+                        possible: fmt.points(c.possibleHalfPoints, 2),
                       })}
                     </bdi>
                     {' · '}

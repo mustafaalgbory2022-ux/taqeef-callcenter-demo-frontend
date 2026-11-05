@@ -17,21 +17,23 @@ const ev = (
   scorecardVersion: version,
   transcriptRevisionId: '0193a000-0000-7000-8000-000000000001',
   outcome: overall === null ? 'insufficient_evidence' : 'scored',
-  awardedPoints: 0,
-  assessablePoints: 0,
-  possiblePoints: 10,
-  minimumAssessablePoints: 6,
+  unit: 1,
+  awardedUnits: 0,
+  assessableUnits: 0,
+  possibleUnits: 10,
+  minimumAssessableUnits: 6,
   displayHundredths: overall === null ? null : Math.round(overall * 100),
   belowThreshold: overall === null ? null : overall < 7,
   thresholdHundredths: 700,
-  criteria: Object.entries(points).map(([criterionId, awardedPoints]) => ({
+  criteria: Object.entries(points).map(([criterionId, awardedUnits]) => ({
     criterionId,
-    result: awardedPoints === null ? 'not_assessable' : 'partially_met',
-    reasonCode: awardedPoints === null ? 'no_evidence' : null,
+    result: awardedUnits === null ? 'not_assessable' : 'partially_met',
+    reasonCode: awardedUnits === null ? 'no_evidence' : null,
     aiDeclaredReason: null,
-    awardedPoints,
-    possiblePoints: 3,
-    penaltyPoints: 0,
+    unit: 1,
+    awardedUnits,
+    possibleUnits: 3,
+    penaltyUnits: 0,
     rationale: '',
     evidence: [],
   })),
@@ -62,8 +64,9 @@ describe('compareEvaluations', () => {
     const result = compareEvaluations(before, after, []);
     expect(result.overallDelta).toBe(150); // display_hundredths difference
     expect(result.versionChanged).toBe(true);
+    // Deltas are in half-points: +1 point = 2.
     expect(result.criteria.map((c) => [c.criterionId, c.pointsDelta])).toEqual([
-      ['a', 2],
+      ['a', 4],
       ['b', null],
       ['c', null],
     ]);
@@ -74,7 +77,7 @@ describe('compareEvaluations', () => {
     const after = ev('e2', '2026-10-02T00:00:00Z', 6, { a: 2 });
     const changed = {
       ...after,
-      criteria: after.criteria.map((c) => ({ ...c, possiblePoints: 4 })),
+      criteria: after.criteria.map((c) => ({ ...c, possibleUnits: 4 })),
     };
     expect(compareEvaluations(before, changed, []).criteria[0]?.pointsDelta).toBeNull();
   });

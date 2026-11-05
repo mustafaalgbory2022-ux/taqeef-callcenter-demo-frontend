@@ -359,6 +359,29 @@ passed (new: hundredths formatting EN/AR, range and integer validation, presence
 after threshold changes, still-loading evidence). `npm run test:e2e`: 68 passed (new: score
 rendered from `data-hundredths` on call detail and the calls list).
 
+## Task 10 — scoring-data alignment and aggregation checks (Stream 10)
+
+**Sources:** contract v0.1 3.2, 3.5, 3.7 and 4.6 (CONFIRMED).
+
+**Implemented** (handoff §5b): unit-based point fields (`points_awarded_sum`,
+`points_possible_sum`, `unit`, criterion `units_awarded` / `units_possible`) with half-point
+display; integrity checks including `display_hundredths = floor(1000·A/P)`; one run per call
+with the selected version applied first; KPI threshold labels from the runs' own thresholds;
+criterion figures labelled as a provisional browser visualization with no threshold applied.
+`display_hundredths` remains the only source for evaluation scores and `below_threshold` the
+only source for low flags.
+
+**Behaviour change:** filtering the dashboard by a scorecard version now counts each call's run
+on THAT version (for example DEMO-003's v1 run when its newest run is v2), instead of dropping
+calls whose newest run is on another version.
+
+**Open:** Active version not reported; "latest Scored run" fallback ambiguity (handoff §6).
+
+**QA.** `npm run check`: 131 unit/component/mock-integration tests passed (new: half-point
+units and display, missing/inconsistent point fields, `display_hundredths` integrity, exact
+mean across units, multiple runs without double counting, version-first population, run
+thresholds versus the current scorecard). `npm run test:e2e`: 68 passed.
+
 ## Proposed next tasks (prioritized, client-only unless noted)
 
 1. On approval: launch code in the URL fragment (Task 3a finding 9).

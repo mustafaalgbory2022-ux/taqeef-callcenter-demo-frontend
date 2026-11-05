@@ -18,14 +18,15 @@ const card: Criterion[] = [
   description: { en: '', ar: '' },
 }));
 
-const scored = (criterionId: string, awardedPoints: number): CriterionEvaluation => ({
+const scored = (criterionId: string, awardedUnits: number): CriterionEvaluation => ({
   criterionId,
   result: 'partially_met',
   reasonCode: null,
   aiDeclaredReason: null,
-  awardedPoints,
-  possiblePoints: 0,
-  penaltyPoints: 0,
+  unit: 1,
+  awardedUnits,
+  possibleUnits: 0,
+  penaltyUnits: 0,
   rationale: '',
   evidence: [],
 });
@@ -37,7 +38,8 @@ const notScored = (
   result: 'not_assessable',
   reasonCode: 'ai_declared',
   aiDeclaredReason: kind === 'insufficient_evidence' ? 'insufficient_evidence' : 'not_applicable',
-  awardedPoints: null,
+  unit: 1,
+  awardedUnits: null,
 });
 
 describe('floorTo2', () => {
@@ -78,9 +80,9 @@ describe('scoreEvaluation', () => {
       scored('closing', 1),
     ];
     expect(scoreEvaluation(card, results, 6)).toEqual({
-      awardedPoints: 9,
-      assessablePoints: 10,
-      possiblePoints: 10,
+      awardedUnits: 9,
+      assessableUnits: 10,
+      possibleUnits: 10,
       outcome: 'scored',
       overallScore: 9,
     });
@@ -96,7 +98,7 @@ describe('scoreEvaluation', () => {
       scored('closing', 1),
     ];
     const s = scoreEvaluation(card, results, 6);
-    expect(s).toMatchObject({ awardedPoints: 8, assessablePoints: 9, outcome: 'scored' });
+    expect(s).toMatchObject({ awardedUnits: 8, assessableUnits: 9, outcome: 'scored' });
     expect(floorTo2(s.overallScore ?? 0)).toBe(8.88);
   });
 
@@ -110,8 +112,8 @@ describe('scoreEvaluation', () => {
       notScored('closing', 'insufficient_evidence'),
     ];
     expect(scoreEvaluation(card, results, 6)).toMatchObject({
-      assessablePoints: 6,
-      awardedPoints: 5,
+      assessableUnits: 6,
+      awardedUnits: 5,
       outcome: 'scored',
     });
   });
@@ -126,7 +128,7 @@ describe('scoreEvaluation', () => {
       notScored('closing', 'insufficient_evidence'),
     ];
     expect(scoreEvaluation(card, results, 6)).toMatchObject({
-      assessablePoints: 4,
+      assessableUnits: 4,
       outcome: 'insufficient_evidence',
       overallScore: null,
     });

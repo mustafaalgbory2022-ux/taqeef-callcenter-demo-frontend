@@ -103,8 +103,9 @@ describe('simulated backend', () => {
     const [demo1] = await api.listEvaluations({ callId: 'DEMO-001' });
     expect(demo1).toMatchObject({
       outcome: 'scored',
-      awardedPoints: 9,
-      assessablePoints: 10,
+      unit: 1,
+      awardedUnits: 9,
+      assessableUnits: 10,
       displayHundredths: 900,
       belowThreshold: false,
       thresholdHundredths: 700,
@@ -112,7 +113,7 @@ describe('simulated backend', () => {
     const [demo4] = await api.listEvaluations({ callId: 'DEMO-004' });
     expect(demo4).toMatchObject({
       outcome: 'insufficient_evidence',
-      assessablePoints: 4,
+      assessableUnits: 4,
       displayHundredths: null,
       belowThreshold: null,
     });

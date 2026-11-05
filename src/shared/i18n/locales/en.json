@@ -104,7 +104,7 @@
       "lowNote": "Strictly below the scorecard threshold",
       "versions": "Scorecard versions",
       "versionsNote": "Used by the counted evaluations",
-      "lowMixed": "Calls below their version's threshold"
+      "lowMixed": "Calls below their own run's threshold"
     },
     "sample": {
       "title": "Sample only — n = {n} scored calls. Not a performance ranking.",
@@ -116,7 +116,7 @@
     },
     "criteria": {
       "title": "Criterion performance",
-      "caption": "Normalized to 10 from actual points · threshold {threshold} (v{version})",
+      "caption": "Provisional visualization calculated in this browser from criterion points, normalized to 10. Not a backend evaluation score; no low-score threshold is applied.",
       "n": "n = {n}",
       "notAssessable": "{n} not assessable",
       "insufficient": "{n} insufficient evidence",

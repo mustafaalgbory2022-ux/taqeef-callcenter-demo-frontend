@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CALL_STATUSES } from '@/shared/types/domain';
+import { createFormatters } from '@/shared/i18n/format';
 import { createApiClient } from './client';
 import { endpoints } from './endpoints';
 import { ApiError } from './errors';
@@ -125,8 +126,9 @@ describe('ApiClient over a transport', () => {
     scorecard_version: 1,
     transcript_revision_id: 'rev-1',
     outcome: 'scored',
-    awarded_points: 7,
-    assessable_points: 10,
+    points_awarded_sum: 7,
+    points_possible_sum: 10,
+    unit: 1,
     possible_points: 10,
     minimum_assessable_points: 6,
     display_hundredths: 700,
@@ -142,11 +144,65 @@ describe('ApiClient over a transport', () => {
 
   it('reads the displayed score from display_hundredths, ignoring any overall_score', async () => {
     const [e] = await createApiClient(
-      respond(200, [{ ...run, display_hundredths: 699, overall_score: 7.0 }]),
+      respond(200, [
+        {
+          ...run,
+          points_awarded_sum: 699,
+          points_possible_sum: 1000,
+          display_hundredths: 699,
+          overall_score: 7.0,
+        },
+      ]),
       'live',
     ).listEvaluations();
     expect(e).toMatchObject({ displayHundredths: 699, belowThreshold: false });
     expect(e).not.toHaveProperty('overallScore');
+  });
+
+  it('decodes half-point units and displays them as points, not scores', async () => {
+    const [e] = await createApiClient(
+      respond(200, [
+        {
+          ...run,
+          unit: 2,
+          points_awarded_sum: 13,
+          points_possible_sum: 20,
+          possible_points: 20,
+          minimum_assessable_points: 12,
+          display_hundredths: 650,
+        },
+      ]),
+      'live',
+    ).listEvaluations();
+    expect(e).toMatchObject({
+      unit: 2,
+      awardedUnits: 13,
+      assessableUnits: 20,
+      displayHundredths: 650,
+    });
+    const fmt = createFormatters('en');
+    expect(fmt.points(13, 2)).toBe('6.5');
+    expect(fmt.points(20, 2)).toBe('10');
+    expect(fmt.points(3, 1)).toBe('3');
+  });
+
+  it('rejects missing or inconsistent point fields', async () => {
+    const bad = [
+      { ...run, points_awarded_sum: undefined },
+      { ...run, points_possible_sum: undefined },
+      { ...run, unit: 3 },
+      { ...run, unit: undefined },
+      { ...run, points_awarded_sum: 7.5 },
+      { ...run, points_awarded_sum: 11 },
+      // display_hundredths must equal floor(1000·A/P) (M2 CHECK).
+      { ...run, display_hundredths: 701 },
+      { ...run, points_possible_sum: 0, points_awarded_sum: 0, display_hundredths: 0 },
+    ];
+    for (const body of bad) {
+      await expect(
+        createApiClient(respond(200, [body]), 'live').listEvaluations(),
+      ).rejects.toMatchObject({ code: 'contract_mismatch' });
+    }
   });
 
   it('rejects non-integer or out-of-range display_hundredths', async () => {
@@ -190,8 +246,9 @@ describe('ApiClient over a transport', () => {
       scorecard_version: 1,
       transcript_revision_id: REV,
       outcome: null,
-      awarded_points: 0,
-      assessable_points: 0,
+      points_awarded_sum: 0,
+      points_possible_sum: 0,
+      unit: 1,
       possible_points: 10,
       minimum_assessable_points: 6,
       display_hundredths: null,

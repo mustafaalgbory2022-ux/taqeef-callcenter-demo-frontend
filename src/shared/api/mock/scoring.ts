@@ -99,8 +99,8 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
             : jd?.result === 'insufficient_evidence'
               ? 'insufficient_evidence'
               : 'not_applicable',
-        awarded_points: null,
-        possible_points: criterion.max_points,
+        units_awarded: null,
+        units_possible: criterion.max_points,
         penalty_points: 0,
         rationale: jd?.rationale ?? 'Simulated: no synthetic judgment exists for this criterion.',
         evidence,
@@ -112,12 +112,12 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
       result: 'met',
       reason_code: null,
       na_reason: null,
-      awarded_points: remapAward(
+      units_awarded: remapAward(
         jd.awardedPoints,
         JUDGED_OUT_OF.get(criterion.id) ?? criterion.max_points,
         criterion,
       ),
-      possible_points: criterion.max_points,
+      units_possible: criterion.max_points,
       penalty_points: 0,
       rationale: jd.rationale,
       evidence,
@@ -130,7 +130,7 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
   const target = ruleActive
     ? criteria.find((c) => c.criterion_id === rule.criterion_id)
     : undefined;
-  let capacity = target?.awarded_points ?? 0;
+  let capacity = target?.units_awarded ?? 0;
   const hits: WireHit[] = scorecard.prohibited_expressions.flatMap((px) =>
     input.segments
       .filter((seg) => seg.text.toLowerCase().includes(px.phrase.toLowerCase()))
@@ -148,16 +148,16 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
       }),
   );
   const deducted = hits.reduce((sum, h) => sum + h.penalty_points, 0);
-  if (target && deducted > 0 && target.awarded_points !== null) {
-    target.awarded_points -= deducted;
+  if (target && deducted > 0 && target.units_awarded !== null) {
+    target.units_awarded -= deducted;
     target.penalty_points = deducted;
   }
   for (const c of criteria) {
-    if (c.awarded_points === null) continue;
+    if (c.units_awarded === null) continue;
     c.result =
-      c.awarded_points >= c.possible_points
+      c.units_awarded >= c.units_possible
         ? 'met'
-        : c.awarded_points === 0
+        : c.units_awarded === 0
           ? 'not_met'
           : 'partially_met';
   }
@@ -173,9 +173,10 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
       result: c.result,
       reasonCode: c.reason_code,
       aiDeclaredReason: c.na_reason,
-      awardedPoints: c.awarded_points,
-      possiblePoints: c.possible_points,
-      penaltyPoints: c.penalty_points,
+      unit: 1 as const,
+      awardedUnits: c.units_awarded,
+      possibleUnits: c.units_possible,
+      penaltyUnits: c.penalty_points,
       rationale: '',
       evidence: [],
     })),
@@ -183,8 +184,8 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
   );
 
   const displayHundredths =
-    score.outcome === 'scored' && score.assessablePoints > 0
-      ? Math.floor((1000 * score.awardedPoints) / score.assessablePoints)
+    score.outcome === 'scored' && score.assessableUnits > 0
+      ? Math.floor((1000 * score.awardedUnits) / score.assessableUnits)
       : null;
   const thresholdHundredths = Math.round(scorecard.low_score_threshold * 100);
 
@@ -196,9 +197,11 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
     scorecard_version: scorecard.version,
     transcript_revision_id: input.transcriptRevisionId,
     outcome: score.outcome,
-    awarded_points: score.awardedPoints,
-    assessable_points: score.assessablePoints,
-    possible_points: score.possiblePoints,
+    // The synthetic scorecards use whole points, so every simulated run has unit 1.
+    points_awarded_sum: score.awardedUnits,
+    points_possible_sum: score.assessableUnits,
+    unit: 1,
+    possible_points: score.possibleUnits,
     minimum_assessable_points: scorecard.minimum_assessable_points,
     // SIMULATED backend values (contract v0.1 3.4 / 3.7): integer division as in the M2 CHECK
     // display_hundredths = (1000·A)/P, and the low flag fixed with this run's threshold.

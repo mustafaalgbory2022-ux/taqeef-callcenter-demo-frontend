@@ -1,3 +1,4 @@
+import { toHalfPoints } from '@/shared/utils/score';
 import type {
   CriterionEvaluation,
   Evaluation,
@@ -36,12 +37,16 @@ export function compareEvaluations(
   const criteria = ids.map((criterionId) => {
     const b = before.criteria.find((c) => c.criterionId === criterionId) ?? null;
     const a = after.criteria.find((c) => c.criterionId === criterionId) ?? null;
-    // Points are only comparable when the criterion's maximum did not change.
-    const sameScale = b !== null && a !== null && b.possiblePoints === a.possiblePoints;
+    // Compared in half-points (runs may use different units). Points are only comparable when
+    // the criterion's maximum did not change.
+    const half = (u: number | null, c: { unit: 1 | 2 }) =>
+      u === null ? null : toHalfPoints(u, c.unit);
+    const sameScale =
+      b !== null && a !== null && half(b.possibleUnits, b) === half(a.possibleUnits, a);
+    const bAwarded = b ? half(b.awardedUnits, b) : null;
+    const aAwarded = a ? half(a.awardedUnits, a) : null;
     const pointsDelta =
-      sameScale && b.awardedPoints != null && a.awardedPoints != null
-        ? a.awardedPoints - b.awardedPoints
-        : null;
+      sameScale && bAwarded !== null && aAwarded !== null ? aAwarded - bAwarded : null;
     return {
       criterionId,
       label: labels.get(criterionId) ?? { en: criterionId, ar: criterionId },

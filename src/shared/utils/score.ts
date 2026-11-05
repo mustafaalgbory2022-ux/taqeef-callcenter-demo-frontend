@@ -84,24 +84,34 @@ export function isValidAward(
   return criterion.allowPartialCredit || points === 0 || points === criterion.maxPoints;
 }
 
+/**
+ * Integer units expressed as half-points, a common basis for comparing or summing values that
+ * may come in different units (unit 1: 1 unit = 2 half-points; unit 2: 1 unit = 1 half-point).
+ */
+export function toHalfPoints(units: number, unit: 1 | 2): number {
+  return unit === 1 ? units * 2 : units;
+}
+
 /** A criterion counts as assessed (in the denominator) unless it is not assessable. */
 export function isAssessed(
-  r: Pick<CriterionEvaluation, 'result' | 'awardedPoints'>,
-): r is Pick<CriterionEvaluation, 'result'> & { awardedPoints: number } {
-  return r.result !== 'not_assessable' && r.awardedPoints !== null;
+  r: Pick<CriterionEvaluation, 'result' | 'awardedUnits'>,
+): r is Pick<CriterionEvaluation, 'result'> & { awardedUnits: number } {
+  return r.result !== 'not_assessable' && r.awardedUnits !== null;
 }
 
 export interface EvaluationScore {
-  awardedPoints: number;
-  assessablePoints: number;
-  possiblePoints: number;
+  awardedUnits: number;
+  assessableUnits: number;
+  possibleUnits: number;
   outcome: 'scored' | 'insufficient_evidence' | 'not_assessable';
   /** awarded / assessable × 10, or null when below the minimum assessable points. */
   overallScore: number | null;
 }
 
 /**
- * Deterministic reference scoring from actual points (the backend is authoritative):
+ * SIMULATED backend reference scoring for the mock (whole points, unit 1). The real backend is
+ * authoritative; the UI never uses this to display scores.
+ * Deterministic reference scoring from actual points:
  * - only criteria with result "scored" are assessable (count in the denominator);
  * - if assessable points < the scorecard minimum (approved: 6 of 10), the whole evaluation
  *   is "Insufficient evidence — no score";
@@ -113,27 +123,27 @@ export function scoreEvaluation(
   minimumAssessablePoints: number,
 ): EvaluationScore {
   const byId = new Map(results.map((r) => [r.criterionId, r]));
-  let awardedPoints = 0;
-  let assessablePoints = 0;
-  let possiblePoints = 0;
+  let awardedUnits = 0;
+  let assessableUnits = 0;
+  let possibleUnits = 0;
   for (const criterion of criteria) {
-    possiblePoints += criterion.maxPoints;
+    possibleUnits += criterion.maxPoints;
     const r = byId.get(criterion.id);
     if (!r || !isAssessed(r)) continue;
-    assessablePoints += criterion.maxPoints;
-    awardedPoints += Math.min(criterion.maxPoints, Math.max(0, r.awardedPoints));
+    assessableUnits += criterion.maxPoints;
+    awardedUnits += Math.min(criterion.maxPoints, Math.max(0, r.awardedUnits));
   }
-  const sufficient = assessablePoints > 0 && assessablePoints >= minimumAssessablePoints;
+  const sufficient = assessableUnits > 0 && assessableUnits >= minimumAssessablePoints;
   return {
-    awardedPoints,
-    assessablePoints,
-    possiblePoints,
+    awardedUnits,
+    assessableUnits,
+    possibleUnits,
     // Reference rule used by the SIMULATED backend only; the real outcome comes from the API.
     outcome: sufficient
       ? 'scored'
-      : assessablePoints === 0
+      : assessableUnits === 0
         ? 'not_assessable'
         : 'insufficient_evidence',
-    overallScore: sufficient ? normalizeToTen(awardedPoints, assessablePoints) : null,
+    overallScore: sufficient ? normalizeToTen(awardedUnits, assessableUnits) : null,
   };
 }

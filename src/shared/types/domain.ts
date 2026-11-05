@@ -231,12 +231,17 @@ export interface CriterionEvaluation {
   result: CriterionResultKind;
   reasonCode: NotAssessableReason | null;
   aiDeclaredReason: AiDeclaredReason | null;
-  /** Actual points awarded (after any penalty) when assessed, otherwise null. */
-  awardedPoints: number | null;
-  /** Points available for the criterion in the evaluating scorecard version. */
-  possiblePoints: number;
-  /** Points deducted by an applied prohibited-expression penalty (0 if none). */
-  penaltyPoints: number;
+  /**
+   * All point values are stored INTEGER UNITS (contract v0.1 3.2, 3.5): with `unit = 2`, one
+   * unit is half a point. Display with `fmt.points(units, unit)`; never as a quality score.
+   */
+  unit: PointUnit;
+  /** `units_awarded` (after any penalty) when assessed, otherwise null. */
+  awardedUnits: number | null;
+  /** `units_possible` for the criterion in the evaluating scorecard version. */
+  possibleUnits: number;
+  /** Units deducted by an applied prohibited-expression penalty (0 if none). PROVISIONAL. */
+  penaltyUnits: number;
   rationale: string;
   evidence: readonly Evidence[];
 }
@@ -250,6 +255,9 @@ export interface ProhibitedHit {
   disposition: 'penalty_applied' | 'flagged_for_review';
   penaltyPoints: number;
 }
+
+/** Point unit (contract v0.1 3.5): 1 = whole points, 2 = half points. */
+export type PointUnit = 1 | 2;
 
 export type EvaluationOutcome = 'scored' | 'insufficient_evidence' | 'not_assessable';
 
@@ -266,13 +274,16 @@ export interface Evaluation {
    * reported by the call status.
    */
   outcome: EvaluationOutcome;
-  /** Points awarded across assessable criteria. */
-  awardedPoints: number;
-  /** Points of criteria that could be assessed (scored), i.e. the denominator. */
-  assessablePoints: number;
-  /** Total points on the scorecard version. */
-  possiblePoints: number;
-  minimumAssessablePoints: number;
+  /** Point unit of every point value on this run: 1, or 2 for half points (3.5). */
+  unit: PointUnit;
+  /** `points_awarded_sum` (A), in units. */
+  awardedUnits: number;
+  /** `points_possible_sum` (P), in units: points of the assessed criteria (the denominator). */
+  assessableUnits: number;
+  /** Total points on the scorecard version, in units. PROVISIONAL field. */
+  possibleUnits: number;
+  /** Minimum assessable points, in units. PROVISIONAL field. */
+  minimumAssessableUnits: number;
   /**
    * The displayed score in hundredths of the 0–10 scale, from the backend (contract v0.1 3.4,
    * CONFIRMED): integer 0–1000, non-null exactly when the outcome is `scored`. 699 = "6.99 / 10".

@@ -27,14 +27,17 @@ export function ResultValue({ result }: { result: CriterionEvaluation | null }) 
           <span className="visually-hidden">{t(`evaluations.result.${result.result}`)}: </span>
         )}
         <bdi>
-          {t(result.possiblePoints === 1 ? 'evaluations.pointsOne' : 'evaluations.points', {
-            awarded: fmt.integer(result.awardedPoints),
-            possible: fmt.integer(result.possiblePoints),
-          })}
+          {t(
+            result.possibleUnits === result.unit ? 'evaluations.pointsOne' : 'evaluations.points',
+            {
+              awarded: fmt.points(result.awardedUnits, result.unit),
+              possible: fmt.points(result.possibleUnits, result.unit),
+            },
+          )}
         </bdi>
-        {result.penaltyPoints > 0 && (
+        {result.penaltyUnits > 0 && (
           <span className={styles.penalty}>
-            {t('evaluations.penaltyNote', { n: fmt.integer(result.penaltyPoints) })}
+            {t('evaluations.penaltyNote', { n: fmt.points(result.penaltyUnits, result.unit) })}
           </span>
         )}
       </span>
@@ -122,6 +125,7 @@ export function Delta({ from, to }: { from: number | null; to: number | null }) 
 }
 
 /** Signed change in ACTUAL criterion points, e.g. "+1 point"; none when the maximum changed. */
+/** Change in criterion points; `delta` and the possible values are in HALF-POINTS. */
 export function PointsDelta({
   delta,
   possibleFrom,
@@ -136,8 +140,8 @@ export function PointsDelta({
     return (
       <span className={styles.same}>
         {t('evaluations.compare.possibleChanged', {
-          from: fmt.integer(possibleFrom),
-          to: fmt.integer(possibleTo),
+          from: fmt.points(possibleFrom, 2),
+          to: fmt.points(possibleTo, 2),
         })}
       </span>
     );
@@ -147,9 +151,9 @@ export function PointsDelta({
   return (
     <DeltaView
       d={delta}
-      text={t(Math.abs(delta) === 1 ? 'evaluations.pointsDeltaOne' : 'evaluations.pointsDelta', {
+      text={t(Math.abs(delta) === 2 ? 'evaluations.pointsDeltaOne' : 'evaluations.pointsDelta', {
         sign,
-        n: fmt.integer(Math.abs(delta)),
+        n: fmt.points(Math.abs(delta), 2),
       })}
     />
   );

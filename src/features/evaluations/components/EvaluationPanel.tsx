@@ -98,7 +98,7 @@ export function EvaluationPanel({
                     <NoScoreBadge kind="not_assessable" />
                     <span className={styles.summary}>
                       {t('evaluations.notAssessableOverall.body', {
-                        minimum: fmt.integer(latest.minimumAssessablePoints),
+                        minimum: fmt.points(latest.minimumAssessableUnits, latest.unit),
                       })}
                     </span>
                   </>
@@ -108,9 +108,9 @@ export function EvaluationPanel({
                     <NoScoreBadge />
                     <span className={styles.summary}>
                       {t('evaluations.insufficient.body', {
-                        assessable: fmt.integer(latest.assessablePoints),
-                        possible: fmt.integer(latest.possiblePoints),
-                        minimum: fmt.integer(latest.minimumAssessablePoints),
+                        assessable: fmt.points(latest.assessableUnits, latest.unit),
+                        possible: fmt.points(latest.possibleUnits, latest.unit),
+                        minimum: fmt.points(latest.minimumAssessableUnits, latest.unit),
                       })}
                     </span>
                   </>
@@ -129,9 +129,9 @@ export function EvaluationPanel({
                 {latest.outcome === 'scored' && (
                   <span className={styles.summary}>
                     {t('evaluations.awardedSummary', {
-                      awarded: fmt.integer(latest.awardedPoints),
-                      assessable: fmt.integer(latest.assessablePoints),
-                      possible: fmt.integer(latest.possiblePoints),
+                      awarded: fmt.points(latest.awardedUnits, latest.unit),
+                      assessable: fmt.points(latest.assessableUnits, latest.unit),
+                      possible: fmt.points(latest.possibleUnits, latest.unit),
                     })}
                   </span>
                 )}

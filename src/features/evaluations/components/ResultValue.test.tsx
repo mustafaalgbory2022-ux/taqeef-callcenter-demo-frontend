@@ -11,12 +11,13 @@ const base: CriterionEvaluation = {
   criterionId: 'c',
   rationale: '',
   evidence: [],
-  penaltyPoints: 0,
+  penaltyUnits: 0,
   result: 'partially_met',
   reasonCode: null,
   aiDeclaredReason: null,
-  awardedPoints: 2,
-  possiblePoints: 3,
+  unit: 1,
+  awardedUnits: 2,
+  possibleUnits: 3,
 };
 
 describe('result presentation in the UI', () => {
@@ -50,7 +51,7 @@ describe('result presentation in the UI', () => {
     wrap(
       <>
         <ResultValue result={base} />
-        <ResultValue result={{ ...base, result: 'met', awardedPoints: 1, possiblePoints: 1 }} />
+        <ResultValue result={{ ...base, result: 'met', awardedUnits: 1, possibleUnits: 1 }} />
       </>,
     );
     expect(screen.getByText('2 of 3 points')).toBeInTheDocument();
@@ -67,7 +68,7 @@ describe('result presentation in the UI', () => {
             ...base,
             result: 'not_assessable',
             reasonCode: 'roles_unreliable',
-            awardedPoints: null,
+            awardedUnits: null,
           }}
         />
         <ResultValue
@@ -76,7 +77,8 @@ describe('result presentation in the UI', () => {
             result: 'not_assessable',
             reasonCode: 'ai_declared',
             aiDeclaredReason: 'insufficient_evidence',
-            awardedPoints: null,
+            unit: 1,
+            awardedUnits: null,
           }}
         />
       </>,

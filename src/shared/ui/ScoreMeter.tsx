@@ -7,7 +7,8 @@ import styles from './Score.module.css';
 export interface ScoreMeterProps {
   label: string;
   score: number | null;
-  threshold: number;
+  /** Low-score tick and flag; null = none (criterion visualizations). */
+  threshold: number | null;
   meta?: ReactNode;
 }
 
@@ -19,7 +20,7 @@ export interface ScoreMeterProps {
 export function ScoreMeter({ label, score, threshold, meta }: ScoreMeterProps) {
   const { t, fmt } = useI18n();
   const pct = (v: number) => `${(Math.max(0, Math.min(SCORE_MAX, v)) / SCORE_MAX) * 100}%`;
-  const low = score !== null && isLowScore(score, threshold);
+  const low = score !== null && threshold !== null && isLowScore(score, threshold);
   return (
     <div className={styles.meter}>
       <div className={styles.meterHeader}>
@@ -43,7 +44,9 @@ export function ScoreMeter({ label, score, threshold, meta }: ScoreMeterProps) {
         aria-valuetext={
           score === null
             ? t('common.noScore')
-            : `${fmt.score(score)} ${t('common.outOfTen')}, ${low ? t('common.belowThreshold') : t('common.meetsThreshold')}`
+            : threshold === null
+              ? `${fmt.score(score)} ${t('common.outOfTen')}`
+              : `${fmt.score(score)} ${t('common.outOfTen')}, ${low ? t('common.belowThreshold') : t('common.meetsThreshold')}`
         }
       >
         {score !== null && (
@@ -52,10 +55,12 @@ export function ScoreMeter({ label, score, threshold, meta }: ScoreMeterProps) {
             style={{ inlineSize: pct(score) }}
           />
         )}
-        <div className={styles.target} style={{ insetInlineStart: pct(threshold) }} />
+        {threshold !== null && (
+          <div className={styles.target} style={{ insetInlineStart: pct(threshold) }} />
+        )}
       </div>
       <div className={styles.meterMeta}>
-        {score !== null ? (
+        {score !== null && threshold !== null ? (
           <span className={`${styles.flag} ${low ? styles.low : styles.ok}`}>
             <Icon name={low ? 'alert' : 'check'} />
             {low ? t('common.belowThreshold') : t('common.meetsThreshold')}
