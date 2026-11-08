@@ -36,10 +36,7 @@ export function CriterionResults({
   onEvidence,
 }: CriterionResultsProps) {
   const { t, pick } = useI18n();
-  const labelOf = (id: string) => {
-    const c = version?.criteria.find((x) => x.id === id);
-    return c ? pick(c.label) : id;
-  };
+  void version;
   return (
     <ul className={styles.list} aria-label={t('evaluations.criteria')}>
       {evaluation.criteria.map((c) => (
@@ -49,9 +46,21 @@ export function CriterionResults({
           data-testid={`criterion-${c.criterionId}`}
         >
           <div className={styles.criterionHead}>
-            <span className={styles.label}>{labelOf(c.criterionId)}</span>
+            {/* Names come from the run's own scorecard version (contract v0.3 §7.4). */}
+            <span className={styles.label}>{pick(c.name)}</span>
             <ResultValue result={c} />
           </div>
+          {c.aiOriginalDecision && (
+            <p className={styles.reason} data-testid="ai-original-decision">
+              {t('evaluations.aiOriginal', {
+                result: t(
+                  c.aiOriginalDecision.result === 'not_assessable'
+                    ? 'evaluations.result.notAssessable'
+                    : `evaluations.result.${c.aiOriginalDecision.result}`,
+                ),
+              })}
+            </p>
+          )}
           {c.rationale ? (
             <div className={styles.aiExplanation}>
               <span className={styles.aiLabel}>
@@ -129,59 +138,80 @@ export function CriterionResults({
   );
 }
 
+/**
+ * Prohibited-phrase hits (contract v0.3 §7.6). A hit carries no excerpt: it is shown by its
+ * location (time and the masked line of the run's revision), never with its own text.
+ */
 export function ProhibitedHits({
   evaluation,
+  version,
   resolveEvidence,
   onEvidence,
 }: {
   evaluation: Evaluation;
+  version: ScorecardVersion | undefined;
   resolveEvidence: CriterionResultsProps['resolveEvidence'];
   onEvidence: CriterionResultsProps['onEvidence'];
 }) {
   const { t, fmt } = useI18n();
+  // PROVISIONAL label: the phrase text from the run's scorecard version, else the phrase id.
+  const phraseOf = (id: string) =>
+    version?.prohibitedExpressions.find((p) => p.id.replace(/-/g, '_') === id)?.phrase ?? id;
   return (
     <section className={styles.section} aria-label={t('evaluations.prohibited.title')}>
       <h3 className={styles.sectionTitle}>{t('evaluations.prohibited.title')}</h3>
       {evaluation.prohibitedHits.length === 0 ? (
         <p className={styles.rationale}>{t('evaluations.prohibited.none')}</p>
       ) : (
-        <div className={styles.evidence}>
+        <ul className={styles.evidence} aria-label={t('evaluations.prohibited.title')}>
           {evaluation.prohibitedHits.map((h) => {
-            const ref = {
-              segmentId: h.segmentId,
-              transcriptRevisionId: evaluation.transcriptRevisionId,
-            };
-            const seg = resolveEvidence(ref);
+            // The hit's own pair {revision, segment} (§7.6).
+            const ref = { segmentId: h.segmentId, transcriptRevisionId: h.transcriptRevisionId };
+            const located = resolveEvidence(ref);
             return (
-              <span key={`${h.expressionId}-${h.segmentId}`} className={styles.hit}>
+              <li
+                key={`${h.phraseId}-${h.segmentId}-${h.wordSpan[0]}`}
+                className={styles.hit}
+                data-testid="prohibited-hit"
+                data-outcome={h.outcome}
+              >
                 <button
                   type="button"
                   className={styles.evidenceButton}
                   onClick={() => onEvidence(ref, [h.segmentId])}
                 >
                   <Icon name="flag" size={12} />
-                  {seg && <span className={styles.ts}>{formatDuration(seg.startMs)}</span>}
-                  <bdi>“{h.phrase}”</bdi>
+                  <span className={styles.ts}>{formatDuration(h.startMs)}</span>
+                  <bdi>“{phraseOf(h.phraseId)}”</bdi>
+                  <span className="visually-hidden">
+                    {' '}
+                    {t('evaluations.prohibited.words', {
+                      from: fmt.integer(h.wordSpan[0] + 1),
+                      to: fmt.integer(h.wordSpan[1] + 1),
+                    })}
+                  </span>
                 </button>
-                <Badge>{t(`evaluations.speaker.${h.speaker}`)}</Badge>
-                {h.disposition === 'penalty_applied' ? (
+                <Badge>{t(`evaluations.speaker.${h.speakerRole}`)}</Badge>
+                {h.outcome === 'penalty' ? (
                   <Badge tone="danger" icon="minus">
-                    {t(
-                      h.penaltyPoints === 1
-                        ? 'evaluations.prohibited.penaltyAppliedOne'
-                        : 'evaluations.prohibited.penaltyApplied',
-                      { n: fmt.integer(h.penaltyPoints) },
-                    )}
+                    {t('evaluations.prohibited.penalty')}
                   </Badge>
-                ) : (
+                ) : h.outcome === 'review_flag' ? (
                   <Badge tone="warning" icon="flag">
                     {t('evaluations.prohibited.flagged')}
                   </Badge>
+                ) : (
+                  <Badge>{t('evaluations.prohibited.noAction')}</Badge>
                 )}
-              </span>
+                {!located && (
+                  <span className={styles.reason}>
+                    {t('evaluations.evidenceUnresolved', { id: h.segmentId })}
+                  </span>
+                )}
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
       <p className={styles.rationale}>{t('evaluations.prohibited.note')}</p>
     </section>

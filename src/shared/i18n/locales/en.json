@@ -291,7 +291,15 @@
       "matchLabel": "Matches search.",
       "unknown": "Speaker unknown",
       "revision": "Transcript revision {n}",
-      "olderRevision": "This evaluation was scored on an earlier transcript revision, shown here. A newer revision exists and has not been scored."
+      "olderRevision": "This evaluation was scored on an earlier transcript revision, shown here. A newer revision exists and has not been scored.",
+      "channel": {
+        "CH-L": "Left channel",
+        "CH-R": "Right channel",
+        "MONO": "Mono"
+      },
+      "nonParty": "not a call party",
+      "lowConfidence": "low-confidence speech",
+      "revisionUnknown": "Transcript revision"
     },
     "upload": {
       "open": "Upload call",
@@ -386,7 +394,8 @@
     },
     "trigger": {
       "initial": "Initial",
-      "rescore": "Re-score"
+      "rescore": "Re-score",
+      "rescore_all": "Re-score all"
     },
     "delta": {
       "up": "increase",
@@ -402,8 +411,9 @@
       "none": "None detected.",
       "note": "Expressions affect the score only under the scorecard's approved penalty rule and when reliably attributed to the agent; otherwise they are flagged for review.",
       "flagged": "Flagged for review",
-      "penaltyApplied": "Penalty applied: {n} points deducted",
-      "penaltyAppliedOne": "Penalty applied: {n} point deducted"
+      "penalty": "Penalty applied",
+      "noAction": "No action",
+      "words": "words {from} to {to}"
     },
     "history": {
       "title": "Evaluation history",
@@ -436,7 +446,6 @@
     },
     "points": "{awarded} of {possible} points",
     "pointsTitle": "Actual points awarded",
-    "penaltyNote": "includes a {n}-point penalty",
     "noScore": "No score",
     "insufficient": {
       "title": "Insufficient evidence — No score",
@@ -475,7 +484,11 @@
     "evidenceUnresolved": "Line {id} is not in the transcript revision shown",
     "excerptTruncated": "Excerpt truncated",
     "evidenceNotCounted": "Not counted as evidence",
-    "explanationTruncated": "Explanation shortened"
+    "explanationTruncated": "Explanation shortened",
+    "preliminary": "Preliminary",
+    "aiDeclaredCount": "AI declared {n} criteria not assessable",
+    "codeNaCount": "The system set {n} criteria not assessable",
+    "aiOriginal": "AI originally decided: {result}"
   },
   "scorecards": {
     "page": {

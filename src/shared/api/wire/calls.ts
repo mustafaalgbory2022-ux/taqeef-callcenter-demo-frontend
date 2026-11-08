@@ -4,6 +4,7 @@ import {
   REJECTION_REASONS,
   type Call,
   type Transcript,
+  type TranscriptRevision,
   type UploadAccepted,
 } from '@/shared/types/domain';
 import {
@@ -129,39 +130,66 @@ export function uploadAcceptedFromWire(w: Decoded<typeof wireUploadAccepted>): U
   return { callId: w.call_id, jobId: w.job_id };
 }
 
-/**
- * One transcript revision. Revision identity and segment id format are CONFIRMED; the segment
- * field set (and the per-segment `speaker`, which will move to the run's role resolution) is
- * PROVISIONAL.
- */
+/** Segments `GET /api/transcripts/{id}/segments` (contract v0.3 §6.2; shape PROPOSED). */
 export const wireTranscript = object({
-  call_id: str,
   transcript_revision_id: revisionId,
-  revision_no: num,
-  segments: arrayOf(
+  items: arrayOf(
     object({
       segment_id: segmentId,
       start_ms: num,
       end_ms: num,
-      speaker: oneOf(['agent', 'customer', 'unknown']),
-      language: oneOf(['ar', 'en']),
+      channel: oneOf(['L', 'R', 'M']),
+      speaker_label: oneOf(['CH-L', 'CH-R', 'MONO']),
       text: str,
+      language: str,
+      asr_confidence_permille: num,
+      low_confidence: bool,
+      flags: arrayOf(str),
     }),
   ),
 });
 
 export function transcriptFromWire(w: Decoded<typeof wireTranscript>): Transcript {
   return {
-    callId: w.call_id,
     revisionId: w.transcript_revision_id,
-    revisionNo: w.revision_no,
-    segments: w.segments.map((s) => ({
+    segments: w.items.map((s) => ({
       id: s.segment_id,
       startMs: wireTimeToMs(s.start_ms),
       endMs: wireTimeToMs(s.end_ms),
-      speaker: s.speaker,
-      language: s.language,
+      channel: s.channel,
+      speakerLabel: s.speaker_label,
       text: s.text,
+      language: s.language,
+      asrConfidencePermille: s.asr_confidence_permille,
+      lowConfidence: s.low_confidence,
+      flags: s.flags,
     })),
+  };
+}
+
+/** Revision list item `GET /api/calls/{id}/transcripts` (§6.1; fields CONFIRMED). */
+export const wireTranscriptRevision = object({
+  transcript_revision_id: revisionId,
+  revision_no: num,
+  trigger: oneOf(['initial', 'retranscribe']),
+  is_current: bool,
+  created_at: utcTimestamp,
+  channel_mode: oneOf(['stereo_mapped', 'stereo_unmapped', 'stereo_as_mono', 'mono']),
+  channel_map: oneOf(['left_agent', 'right_agent', 'none']),
+  channel_map_source: oneOf(['configured', 'suggested', 'none']),
+});
+
+export function transcriptRevisionFromWire(
+  w: Decoded<typeof wireTranscriptRevision>,
+): TranscriptRevision {
+  return {
+    revisionId: w.transcript_revision_id,
+    revisionNo: w.revision_no,
+    trigger: w.trigger,
+    isCurrent: w.is_current,
+    createdAt: w.created_at,
+    channelMode: w.channel_mode,
+    channelMap: w.channel_map,
+    channelMapSource: w.channel_map_source,
   };
 }

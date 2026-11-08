@@ -10,6 +10,7 @@ import {
 
 test('evidence and transcript lines seek the synthetic recording', async ({ page }) => {
   await openSession(page, { path: '/calls/DEMO-003' });
+  await expect(page.getByTestId('transcript-revision')).toBeVisible();
   await expect(page.getByTestId('criterion-c-language')).toContainText('0 of 2 points');
   await page.getByTestId('criterion-c-language').getByRole('button').first().click();
   await expect(page.locator('[data-segment-id="seg-0005"]')).toHaveAttribute(
@@ -223,6 +224,7 @@ test('audio keyboard shortcuts play, seek and focus the player but never fire wh
 
 test('audio shortcuts announce in Arabic and keep evidence highlighting', async ({ page }) => {
   await openSession(page, { path: '/calls/DEMO-003', lang: 'ar' });
+  await expect(page.getByTestId('transcript-revision')).toBeVisible();
   await page.getByTestId('criterion-c-language').getByRole('button').first().click();
   await expect(page.locator('[data-segment-id][data-evidence]')).toHaveCount(1);
   // Evidence excerpts and indicators never widen the page (mobile RTL regression check).
@@ -304,4 +306,21 @@ test('hiding a call is a soft delete that can be restored (contract v0.3 §5.4)'
 test('Arabic shows the hide and restore wording', async ({ page }) => {
   await openSession(page, { path: '/calls/DEMO-005', lang: 'ar', theme: 'dark' });
   await expect(page.getByRole('button', { name: 'إخفاء المكالمة' })).toBeVisible();
+});
+
+test('the transcript shows speaker roles from the selected run (contract v0.3 §6.2)', async ({
+  page,
+}) => {
+  await openSession(page, { path: '/calls/DEMO-001' });
+  await expect(page.getByTestId('transcript-revision')).toBeVisible();
+  const first = page.locator('[data-segment-id="seg-0001"]');
+  await expect(first.locator('[data-speaker="agent"]')).toContainText('Agent');
+  await expect(
+    page.locator('[data-segment-id="seg-0002"] [data-speaker="customer"]'),
+  ).toBeVisible();
+  // The panel shows the confirmed run labels.
+  await expect(page.getByTestId('overall-score')).toContainText('Preliminary');
+  await expect(page.getByTestId('na-counts')).toContainText(
+    'AI declared 0 criteria not assessable',
+  );
 });

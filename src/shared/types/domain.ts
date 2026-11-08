@@ -153,21 +153,38 @@ export interface UploadAccepted {
 /** 'unknown' until speaker attribution is supported by evidence (e.g. mixed channel). */
 export type Speaker = 'agent' | 'customer' | 'unknown';
 
+/** One segment of a transcript revision (contract v0.3 §6.2; fields CONFIRMED, shape PROPOSED). */
 export interface TranscriptSegment {
+  /** `segment_id`: unique within its revision only. */
   id: string;
   startMs: number;
   endMs: number;
-  speaker: Speaker;
-  language: Language;
+  channel: 'L' | 'R' | 'M';
+  speakerLabel: 'CH-L' | 'CH-R' | 'MONO';
+  /** Masked by the server (§2.2). */
   text: string;
+  language: string;
+  asrConfidencePermille: number;
+  lowConfidence: boolean;
+  flags: readonly string[];
 }
 
-/** One immutable transcript revision. Segment ids are unique within a revision only. */
+/** One immutable transcript revision's segments. Speaker roles come from a run (§6.2). */
 export interface Transcript {
-  callId: string;
+  revisionId: string;
+  segments: readonly TranscriptSegment[];
+}
+
+/** Revision list item (contract v0.3 §6.1). */
+export interface TranscriptRevision {
   revisionId: string;
   revisionNo: number;
-  segments: readonly TranscriptSegment[];
+  trigger: 'initial' | 'retranscribe';
+  isCurrent: boolean;
+  createdAt: string;
+  channelMode: 'stereo_mapped' | 'stereo_unmapped' | 'stereo_as_mono' | 'mono';
+  channelMap: ChannelMap;
+  channelMapSource: 'configured' | 'suggested' | 'none';
 }
 
 export interface Criterion {
@@ -271,12 +288,24 @@ export interface CriterionEvaluation {
    * unit is half a point. Display with `fmt.points(units, unit)`; never as a quality score.
    */
   unit: PointUnit;
-  /** `units_awarded` (after any penalty) when assessed, otherwise null. */
+  /** `units_awarded` when assessed; null when not assessable (the wire sends 0 of 0). */
   awardedUnits: number | null;
-  /** `units_possible` for the criterion in the evaluating scorecard version. */
+  /** `units_possible`; 0 when not assessable. */
   possibleUnits: number;
-  /** Units deducted by an applied prohibited-expression penalty (0 if none). PROVISIONAL. */
-  penaltyUnits: number;
+  criterionVersion: number;
+  /** Names from the run's own scorecard version (masked, §2.2). */
+  name: LocalizedText;
+  order: number;
+  /** Set exactly when `partially_met`. */
+  levelId: string | null;
+  source: 'ai' | 'code_override' | 'code_na';
+  /** What the AI decided when the code overrode it (`source = code_override`); no explanation. */
+  aiOriginalDecision: {
+    result: CriterionResultKind;
+    levelId: string | null;
+    aiDeclaredReason: AiDeclaredReason | null;
+    evidenceSegmentIds: readonly string[];
+  } | null;
   /** `explanation`: AI text, masked by the server, plain text only, at most 600 characters. */
   rationale: string;
   /** `explanation_truncated` (field name PROPOSED): the masked text was shortened. */
@@ -284,26 +313,58 @@ export interface CriterionEvaluation {
   evidence: readonly Evidence[];
 }
 
+/** Prohibited-phrase hit (contract v0.3 §7.6). It carries no excerpt: the UI shows its location. */
 export interface ProhibitedHit {
-  expressionId: string;
-  phrase: string;
+  phraseId: string;
+  matchMode: 'whole_words_clitic' | 'whole_words' | 'contains';
+  transcriptRevisionId: string;
   segmentId: string;
-  speaker: Speaker;
-  /** Penalty only under the active rule with reliable agent attribution; otherwise review. */
-  disposition: 'penalty_applied' | 'flagged_for_review';
-  penaltyPoints: number;
+  wordSpan: readonly [number, number];
+  startMs: number;
+  endMs: number;
+  speakerRole: Speaker;
+  reliabilityPermille: number;
+  outcome: 'penalty' | 'review_flag' | 'none';
+  flagType: string | null;
 }
+
+/** Review flag on a run (§7.7). Marking it reviewed never changes a score. */
+export interface ReviewFlag {
+  flagId: string;
+  flagType: string;
+  segmentId: string | null;
+  reviewed: boolean;
+  reviewedAt: string | null;
+}
+
+/** Speaker role of a segment as resolved by a run (§7.3 `segment_roles`). */
+export interface SegmentRole {
+  role: Speaker;
+  nonParty: boolean;
+}
+
+/** Run history item (contract v0.3 §7.2): the call's `latest_run` shape plus trigger and link. */
+export interface RunSummary extends CallLatestRun {
+  trigger: RunTrigger;
+  previousRunId: string | null;
+}
+
+export type RunTrigger = 'initial' | 'rescore' | 'rescore_all';
 
 /** Point unit (contract v0.1 3.5): 1 = whole points, 2 = half points. */
 export type PointUnit = 1 | 2;
 
 export type EvaluationOutcome = 'scored' | 'insufficient_evidence' | 'not_assessable';
 
+/** Run detail (contract v0.3 §7.3; shape PROPOSED, field names as-built). Sealed once written. */
 export interface Evaluation {
+  /** `run_id`. */
   id: string;
   callId: string;
+  /** Not on the run: filled from the call when runs are listed for an agent; else null. */
   agentId: string | null;
-  scorecardId: string;
+  scorecardVersionId: string;
+  /** `scorecard_version_number`. */
   scorecardVersion: number;
   /** The transcript revision this run evaluated; its evidence refers to that revision. */
   transcriptRevisionId: string;
@@ -318,9 +379,9 @@ export interface Evaluation {
   awardedUnits: number;
   /** `points_possible_sum` (P), in units: points of the assessed criteria (the denominator). */
   assessableUnits: number;
-  /** Total points on the scorecard version, in units. PROVISIONAL field. */
+  /** Total units of the scorecard: 10 × unit (contract v0.3 §10.1, CONFIRMED). */
   possibleUnits: number;
-  /** Minimum assessable points, in units. PROVISIONAL field. */
+  /** `min_assessable_units`. */
   minimumAssessableUnits: number;
   /**
    * The displayed score in hundredths of the 0–10 scale, from the backend (contract v0.1 3.4,
@@ -330,14 +391,22 @@ export interface Evaluation {
   displayHundredths: number | null;
   /** Backend's low-score flag, fixed with the run's own threshold; null unless scored (3.7). */
   belowThreshold: boolean | null;
-  /** The run's own low-score threshold in hundredths (3.7); null when not served. */
+  /** The run's own low-score threshold in hundredths (3.7). */
   thresholdHundredths: number | null;
+  aiDeclaredCount: number;
+  codeNaCount: number;
+  /** Always true in the demo: every run is labelled "Preliminary". */
+  preliminary: boolean;
   criteria: readonly CriterionEvaluation[];
   prohibitedHits: readonly ProhibitedHit[];
-  trigger: 'initial' | 'rescore';
+  reviewFlags: readonly ReviewFlag[];
+  /** Speaker role per segment id of `transcriptRevisionId`, as resolved by this run. */
+  segmentRoles: ReadonlyMap<string, SegmentRole>;
+  trigger: RunTrigger;
+  /** `previous_run_id`. */
   supersedesId: string | null;
+  /** `completed_at`. */
   createdAt: string;
-  simulated: boolean;
 }
 
 export interface BrandTokens {

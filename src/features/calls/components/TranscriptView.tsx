@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useI18n } from '@/shared/i18n/I18nProvider';
-import type { TranscriptSegment } from '@/shared/types/domain';
+import type { SegmentRole, TranscriptSegment } from '@/shared/types/domain';
 import { Button } from '@/shared/ui/Button';
 import { Checkbox } from '@/shared/ui/Field';
 import { formatDuration } from '@/shared/utils/time';
@@ -20,6 +20,11 @@ export interface TranscriptViewProps {
   highlightIds?: ReadonlySet<string> | undefined;
   /** The located evidence line (the whole segment is the evidence). */
   evidence?: { segmentId: string; key: number } | null;
+  /**
+   * Speaker roles resolved by the run being viewed, for THIS revision (contract v0.3 §6.2:
+   * roles are per run, not per transcript). Without it, segments show their channel label.
+   */
+  roles?: ReadonlyMap<string, SegmentRole> | undefined;
   onSeek: (ms: number) => void;
 }
 
@@ -32,6 +37,7 @@ export function TranscriptView({
   currentMs,
   highlightIds,
   evidence,
+  roles,
   onSeek,
 }: TranscriptViewProps) {
   const { t, fmt } = useI18n();
@@ -158,7 +164,21 @@ export function TranscriptView({
                   {formatDuration(seg.startMs)}
                 </span>
                 <span>
-                  <span className={styles.speaker}>{t(`calls.transcript.${seg.speaker}`)}</span>
+                  <span
+                    className={styles.speaker}
+                    data-speaker={roles?.get(seg.id)?.role ?? 'none'}
+                  >
+                    {roles?.get(seg.id)
+                      ? t(`calls.transcript.${roles.get(seg.id)?.role ?? 'unknown'}`)
+                      : t(`calls.transcript.channel.${seg.speakerLabel}`)}
+                    {roles?.get(seg.id)?.nonParty && ` · ${t('calls.transcript.nonParty')}`}
+                  </span>
+                  {seg.lowConfidence && (
+                    <span className={styles.speaker} data-testid="low-confidence">
+                      {' '}
+                      · {t('calls.transcript.lowConfidence')}
+                    </span>
+                  )}
                   {seg.id === evidenceId && (
                     <span className="visually-hidden">{t('calls.evidence.lineLabel')} </span>
                   )}

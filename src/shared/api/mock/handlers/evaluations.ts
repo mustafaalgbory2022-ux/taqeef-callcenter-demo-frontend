@@ -3,6 +3,7 @@ import { latestScorecard } from '../processing';
 import { created, fail, ok, type Route } from '../router';
 import { simulateEvaluation } from '../scoring';
 import type { MockState } from '../types';
+import { serializeRunDetail, serializeRunSummary } from '../serialize';
 
 const byCreatedDesc = (a: { created_at: string }, b: { created_at: string }) =>
   Date.parse(b.created_at) - Date.parse(a.created_at);
@@ -10,16 +11,26 @@ const byCreatedDesc = (a: { created_at: string }, b: { created_at: string }) =>
 export function evaluationRoutes(state: MockState, persist: () => void): Route[] {
   return [
     {
+      // Run history of one call (contract v0.3 #18): newest first, ties by greater run_id.
       method: 'GET',
-      pattern: '/evaluations',
-      handler: ({ query }) =>
-        ok({
-          items: state.evaluations
-            .filter((e) => !query.call_id || e.call_id === query.call_id)
-            .filter((e) => !query.agent_id || e.agent_id === query.agent_id)
-            .sort(byCreatedDesc),
-          truncated: false,
-        }),
+      pattern: '/calls/:id/evaluations',
+      handler: ({ params }) => {
+        if (!state.calls.some((c) => c.call_id === params.id)) return fail(404, 'Call not found.');
+        const items = state.evaluations
+          .filter((e) => e.call_id === params.id)
+          .sort((a, b) => byCreatedDesc(a, b) || (b.id > a.id ? 1 : -1))
+          .map((e) => serializeRunSummary(state, e));
+        return ok({ items, truncated: false });
+      },
+    },
+    {
+      // Run detail (#19).
+      method: 'GET',
+      pattern: '/evaluations/:runId',
+      handler: ({ params }) => {
+        const run = state.evaluations.find((e) => e.id === params.runId);
+        return run ? ok(serializeRunDetail(state, run)) : fail(404, 'Run not found.');
+      },
     },
     {
       method: 'POST',
@@ -54,7 +65,9 @@ export function evaluationRoutes(state: MockState, persist: () => void): Route[]
         state.evaluations.push(evaluation);
         call.status = evaluation.outcome;
         persist();
-        return created(evaluation);
+        // PROVISIONAL: v0.3 §8 returns 202 {job_id, call_id, state}; the demo still answers
+        // with the new run's detail until jobs are implemented.
+        return created(serializeRunDetail(state, evaluation));
       },
     },
   ];

@@ -13,7 +13,7 @@ const ev = (
   id,
   callId: 'call',
   agentId: 'a',
-  scorecardId: 'sc',
+  scorecardVersionId: `scv-${version}`,
   scorecardVersion: version,
   transcriptRevisionId: '0193a000-0000-7000-8000-000000000001',
   outcome: overall === null ? 'insufficient_evidence' : 'scored',
@@ -25,6 +25,11 @@ const ev = (
   displayHundredths: overall === null ? null : Math.round(overall * 100),
   belowThreshold: overall === null ? null : overall < 7,
   thresholdHundredths: 700,
+  aiDeclaredCount: 0,
+  codeNaCount: 0,
+  preliminary: true,
+  reviewFlags: [],
+  segmentRoles: new Map(),
   criteria: Object.entries(points).map(([criterionId, awardedUnits]) => ({
     criterionId,
     result: awardedUnits === null ? 'not_assessable' : 'partially_met',
@@ -33,7 +38,12 @@ const ev = (
     unit: 1,
     awardedUnits,
     possibleUnits: 3,
-    penaltyUnits: 0,
+    criterionVersion: 1,
+    name: { en: 'c', ar: 'c' },
+    order: 1,
+    levelId: null,
+    source: 'ai' as const,
+    aiOriginalDecision: null,
     rationale: '',
     explanationTruncated: false,
     evidence: [],
@@ -42,7 +52,6 @@ const ev = (
   trigger: 'initial',
   supersedesId: null,
   createdAt,
-  simulated: true,
 });
 
 describe('currentEvaluations / historyByCall', () => {

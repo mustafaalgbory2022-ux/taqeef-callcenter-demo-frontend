@@ -90,7 +90,7 @@ export interface EvaluationScore {
  */
 export function scoreEvaluation(
   criteria: readonly Criterion[],
-  results: readonly CriterionEvaluation[],
+  results: readonly Pick<CriterionEvaluation, 'criterionId' | 'result' | 'awardedUnits'>[],
   minimumAssessablePoints: number,
 ): EvaluationScore {
   const byId = new Map(results.map((r) => [r.criterionId, r]));

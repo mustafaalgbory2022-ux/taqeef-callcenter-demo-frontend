@@ -436,6 +436,21 @@ soft delete keeps runs and transcripts, dashboard exclusion, replay without a re
 effect, request-id conflict, CSRF on DELETE, missing request id). `npm run test:e2e`: 74 passed
 (new: hide → excluded from the list → restore; Arabic wording).
 
+## Task 14 — runs, transcripts and hits, contract v0.3 r4 (Stream 14)
+
+**Completed** (handoff §5f): separate run history and run detail routes; v0.3 run, criterion,
+evidence, hit, review-flag and segment-role fields; v0.3 segments and revision list; speaker
+roles from the selected run on its own revision; hits shown by location without excerpts;
+mock serializers to the v0.3 shapes.
+
+**Gaps** (handoff §5f): phrase text lookup, word-span highlighting, undecoded run metadata,
+review-flag actions, compare route, re-score job response.
+
+**QA.** `npm run check`: 134 unit/component/mock-integration tests passed (new: run summary and
+detail decoding incl. roles, hits, flags and counts; revision-mismatch, level-id, 0-of-0 and
+override rules; separate routes; mock history order, per-run roles, hits without excerpts).
+`npm run test:e2e`: 76 passed (new: speaker roles from the run, Preliminary label and counts).
+
 ## Proposed next tasks (prioritized, client-only unless noted)
 
 1. On approval: launch code in the URL fragment (Task 3a finding 9).

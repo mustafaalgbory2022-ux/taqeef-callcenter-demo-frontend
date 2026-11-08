@@ -35,11 +35,6 @@ export function ResultValue({ result }: { result: CriterionEvaluation | null }) 
             },
           )}
         </bdi>
-        {result.penaltyUnits > 0 && (
-          <span className={styles.penalty}>
-            {t('evaluations.penaltyNote', { n: fmt.points(result.penaltyUnits, result.unit) })}
-          </span>
-        )}
       </span>
     );
   }

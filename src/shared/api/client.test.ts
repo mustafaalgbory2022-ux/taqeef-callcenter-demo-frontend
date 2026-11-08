@@ -37,6 +37,11 @@ const wireCall = {
 
 /** Wraps array bodies in the v0.3 list shape `{items, truncated}` (§2). */
 const asList = (body: unknown) => (Array.isArray(body) ? { items: body, truncated: false } : body);
+/** Decode one run detail via GET /evaluations/{run_id} (contract v0.3 #19). */
+const runsOf = (body: unknown) =>
+  createApiClient(vi.fn<Transport>().mockResolvedValue({ status: 200, body }), 'live')
+    .getRun('r')
+    .then((r) => [r]);
 const respond = (status: number, body: unknown) =>
   vi.fn<Transport>().mockResolvedValue({ status, body: asList(body) });
 
@@ -215,62 +220,54 @@ describe('ApiClient over a transport', () => {
     await expect(client.listCalls()).rejects.toMatchObject({ code: 'contract_mismatch' });
   });
 
+  /** A v0.3 run detail (contract §7.3). */
   const run = {
-    id: 'e',
+    run_id: 'r',
     call_id: 'c',
-    agent_id: null,
-    scorecard_id: 's',
-    scorecard_version: 1,
+    trigger: 'initial',
+    previous_run_id: null,
     transcript_revision_id: 'rev-1',
+    scorecard_version_id: 'scv-1',
+    scorecard_version_number: 1,
+    completed_at: '2026-10-01T00:00:00.000Z',
     outcome: 'scored',
+    unit: 1,
+    min_assessable_units: 6,
     points_awarded_sum: 7,
     points_possible_sum: 10,
-    unit: 1,
-    possible_points: 10,
-    minimum_assessable_points: 6,
     display_hundredths: 700,
-    below_threshold: false,
     threshold_hundredths: 700,
+    below_threshold: false,
+    ai_declared_count: 0,
+    code_na_count: 0,
+    preliminary: true,
     criteria: [],
     prohibited_hits: [],
-    trigger: 'initial',
-    supersedes_id: null,
-    created_at: '2026-10-01T00:00:00.000Z',
-    simulated: false,
+    review_flags: [],
+    segment_roles: [],
   };
 
   it('reads the displayed score from display_hundredths, ignoring any overall_score', async () => {
-    const [e] = await createApiClient(
-      respond(200, [
-        {
-          ...run,
-          points_awarded_sum: 699,
-          points_possible_sum: 1000,
-          display_hundredths: 699,
-          overall_score: 7.0,
-        },
-      ]),
-      'live',
-    ).listEvaluations();
+    const [e] = await runsOf({
+      ...run,
+      points_awarded_sum: 699,
+      points_possible_sum: 1000,
+      display_hundredths: 699,
+      overall_score: 7.0,
+    });
     expect(e).toMatchObject({ displayHundredths: 699, belowThreshold: false });
     expect(e).not.toHaveProperty('overallScore');
   });
 
   it('decodes half-point units and displays them as points, not scores', async () => {
-    const [e] = await createApiClient(
-      respond(200, [
-        {
-          ...run,
-          unit: 2,
-          points_awarded_sum: 13,
-          points_possible_sum: 20,
-          possible_points: 20,
-          minimum_assessable_points: 12,
-          display_hundredths: 650,
-        },
-      ]),
-      'live',
-    ).listEvaluations();
+    const [e] = await runsOf({
+      ...run,
+      unit: 2,
+      points_awarded_sum: 13,
+      points_possible_sum: 20,
+      min_assessable_units: 12,
+      display_hundredths: 650,
+    });
     expect(e).toMatchObject({
       unit: 2,
       awardedUnits: 13,
@@ -296,20 +293,169 @@ describe('ApiClient over a transport', () => {
       { ...run, points_possible_sum: 0, points_awarded_sum: 0, display_hundredths: 0 },
     ];
     for (const body of bad) {
-      await expect(
-        createApiClient(respond(200, [body]), 'live').listEvaluations(),
-      ).rejects.toMatchObject({ code: 'contract_mismatch' });
+      await expect(runsOf(body)).rejects.toMatchObject({ code: 'contract_mismatch' });
     }
+  });
+
+  it('decodes v0.3 run detail: roles, hits, flags, counts, names (§7.3–7.7)', async () => {
+    const [e] = await runsOf({
+      ...run,
+      ai_declared_count: 1,
+      code_na_count: 2,
+      criteria: [
+        {
+          criterion_id: 'greeting',
+          criterion_version: 1,
+          name_en: 'Greeting',
+          name_ar: 'الترحيب',
+          order: 1,
+          result: 'not_assessable',
+          level_id: null,
+          units_awarded: 0,
+          units_possible: 0,
+          source: 'code_na',
+          reason_code: 'roles_unreliable',
+          na_reason: null,
+          explanation: 'x',
+          explanation_truncated: false,
+          retried: false,
+          evidence: [],
+          ai_original_decision: null,
+        },
+      ],
+      prohibited_hits: [
+        {
+          phrase_id: 'not_my_problem',
+          match_mode: 'contains',
+          transcript_revision_id: 'rev-1',
+          segment_id: 'seg-0003',
+          word_span: [2, 4],
+          start_ms: 4000,
+          end_ms: 6000,
+          speaker_role: 'agent',
+          reliability_permille: 980,
+          outcome: 'review_flag',
+          flag_type: 'prohibited_phrase',
+        },
+      ],
+      review_flags: [
+        {
+          flag_id: 'f1',
+          flag_type: 'prohibited_phrase',
+          segment_id: 'seg-0003',
+          reviewed: false,
+          reviewed_at: null,
+        },
+      ],
+      segment_roles: [{ segment_id: 'seg-0003', speaker_role: 'agent', non_party: true }],
+    });
+    expect(e).toMatchObject({
+      aiDeclaredCount: 1,
+      codeNaCount: 2,
+      preliminary: true,
+      possibleUnits: 10,
+    });
+    // Not assessable: no points (the wire's 0 of 0 never becomes a score).
+    expect(e?.criteria[0]).toMatchObject({
+      name: { en: 'Greeting' },
+      awardedUnits: null,
+      source: 'code_na',
+    });
+    expect(e?.prohibitedHits[0]).toMatchObject({
+      phraseId: 'not_my_problem',
+      wordSpan: [2, 4],
+      outcome: 'review_flag',
+    });
+    expect(e?.prohibitedHits[0]).not.toHaveProperty('excerpt');
+    expect(e?.segmentRoles.get('seg-0003')).toEqual({ role: 'agent', nonParty: true });
+    expect(e?.reviewFlags).toHaveLength(1);
+  });
+
+  it('rejects run details that break the revision and criterion rules', async () => {
+    const hit = {
+      phrase_id: 'p',
+      match_mode: 'contains',
+      transcript_revision_id: 'rev-OTHER',
+      segment_id: 'seg-0001',
+      word_span: [0, 0],
+      start_ms: 0,
+      end_ms: 1,
+      speaker_role: 'agent',
+      reliability_permille: 900,
+      outcome: 'none',
+      flag_type: null,
+    };
+    const criterion = {
+      criterion_id: 'c',
+      criterion_version: 1,
+      name_en: 'c',
+      name_ar: 'c',
+      order: 1,
+      result: 'met',
+      level_id: null,
+      units_awarded: 1,
+      units_possible: 1,
+      source: 'ai',
+      reason_code: null,
+      na_reason: null,
+      explanation: '',
+      explanation_truncated: false,
+      evidence: [],
+      ai_original_decision: null,
+    };
+    for (const body of [
+      { ...run, prohibited_hits: [hit] }, // hit on another revision
+      { ...run, criteria: [{ ...criterion, result: 'partially_met' }] }, // no level_id
+      {
+        ...run,
+        criteria: [{ ...criterion, result: 'not_assessable', reason_code: 'no_evidence' }],
+      }, // not 0 of 0
+      { ...run, criteria: [{ ...criterion, source: 'code_override' }] }, // no AI original decision
+      { ...run, trigger: 'manual' },
+    ]) {
+      await expect(runsOf(body)).rejects.toMatchObject({ code: 'contract_mismatch' });
+    }
+  });
+
+  it('loads run history and run detail from separate routes (#18, #19)', async () => {
+    const summary = {
+      run_id: 'r',
+      scorecard_version_id: 'scv-1',
+      scorecard_version_number: 1,
+      outcome: 'insufficient_evidence',
+      display_hundredths: null,
+      below_threshold: null,
+      threshold_hundredths: 700,
+      completed_at: '2026-10-01T00:00:00.000Z',
+      trigger: 'rescore_all',
+      previous_run_id: 'r0',
+    };
+    const transport = vi
+      .fn<Transport>()
+      .mockResolvedValueOnce({ status: 200, body: { items: [summary], truncated: false } })
+      .mockResolvedValueOnce({ status: 200, body: run });
+    const api = createApiClient(transport, 'live');
+    const [h] = await api.listRunHistory('call 1');
+    expect(h).toMatchObject({ runId: 'r', displayHundredths: null, trigger: 'rescore_all' });
+    await api.getRun('r');
+    expect(transport.mock.calls.map(([r]) => r.path)).toEqual([
+      '/calls/call%201/evaluations',
+      '/evaluations/r',
+    ]);
+    // A summary without a score must not carry one.
+    await expect(
+      createApiClient(
+        respond(200, [{ ...summary, display_hundredths: 500 }]),
+        'live',
+      ).listRunHistory('c'),
+    ).rejects.toMatchObject({ code: 'contract_mismatch' });
   });
 
   it('rejects non-integer or out-of-range display_hundredths', async () => {
     for (const d of [699.5, -1, 1001, '699']) {
-      await expect(
-        createApiClient(
-          respond(200, [{ ...run, display_hundredths: d }]),
-          'live',
-        ).listEvaluations(),
-      ).rejects.toMatchObject({ code: 'contract_mismatch' });
+      await expect(runsOf({ ...run, display_hundredths: d })).rejects.toMatchObject({
+        code: 'contract_mismatch',
+      });
     }
   });
 
@@ -321,71 +467,54 @@ describe('ApiClient over a transport', () => {
       { ...run, outcome: 'not_assessable', display_hundredths: null },
     ];
     for (const body of bad) {
-      await expect(
-        createApiClient(respond(200, [body]), 'live').listEvaluations(),
-      ).rejects.toMatchObject({ code: 'contract_mismatch' });
+      await expect(runsOf(body)).rejects.toMatchObject({ code: 'contract_mismatch' });
     }
-    const [none] = await createApiClient(
-      respond(200, [
-        { ...run, outcome: 'not_assessable', display_hundredths: null, below_threshold: null },
-      ]),
-      'live',
-    ).listEvaluations();
+    const [none] = await runsOf({
+      ...run,
+      outcome: 'not_assessable',
+      display_hundredths: null,
+      below_threshold: null,
+    });
     expect(none).toMatchObject({ displayHundredths: null, belowThreshold: null });
   });
 
   it('rejects a run without an explicit outcome (a failed evaluation creates no run)', async () => {
     const failed = {
-      id: 'e',
-      call_id: 'c',
-      agent_id: null,
-      scorecard_id: 's',
-      scorecard_version: 1,
+      ...run,
       transcript_revision_id: REV,
       outcome: null,
-      points_awarded_sum: 0,
-      points_possible_sum: 0,
-      unit: 1,
-      possible_points: 10,
-      minimum_assessable_points: 6,
       display_hundredths: null,
       below_threshold: null,
-      threshold_hundredths: null,
-      criteria: [],
-      prohibited_hits: [],
-      trigger: 'rescore',
-      supersedes_id: null,
-      created_at: '2026-10-01T00:00:00.000Z',
-      simulated: false,
     };
-    await expect(
-      createApiClient(respond(200, [failed]), 'live').listEvaluations(),
-    ).rejects.toMatchObject({ code: 'contract_mismatch' });
-    const [na] = await createApiClient(
-      respond(200, [{ ...failed, outcome: 'not_assessable' }]),
-      'live',
-    ).listEvaluations();
+    await expect(runsOf(failed)).rejects.toMatchObject({ code: 'contract_mismatch' });
+    const [na] = await runsOf({ ...failed, outcome: 'not_assessable' });
     expect(na).toMatchObject({ outcome: 'not_assessable', displayHundredths: null });
   });
 
   it('treats revision and segment ids as opaque, rejecting only empty ids (v0.2.1 §C)', async () => {
     const opaque = createApiClient(
-      respond(200, { call_id: 'c', transcript_revision_id: 'rev-1', revision_no: 0, segments: [] }),
+      respond(200, { transcript_revision_id: 'rev-1', items: [] }),
       'live',
     );
     await expect(opaque.getTranscript('rev-1')).resolves.toMatchObject({ revisionId: 'rev-1' });
-    const api = createApiClient(
-      respond(200, { call_id: 'c', transcript_revision_id: '', revision_no: 0, segments: [] }),
-      'live',
-    );
+    const api = createApiClient(respond(200, { transcript_revision_id: '', items: [] }), 'live');
     await expect(api.getTranscript('x')).rejects.toMatchObject({ code: 'contract_mismatch' });
     const segApi = createApiClient(
       respond(200, {
-        call_id: 'c',
         transcript_revision_id: REV,
-        revision_no: 0,
-        segments: [
-          { segment_id: 's1', start_ms: 0, end_ms: 1, speaker: 'agent', language: 'ar', text: 'x' },
+        items: [
+          {
+            segment_id: 's1',
+            start_ms: 0,
+            end_ms: 1,
+            channel: 'L',
+            speaker_label: 'CH-L',
+            text: 'x',
+            language: 'ar',
+            asr_confidence_permille: 900,
+            low_confidence: false,
+            flags: [],
+          },
         ],
       }),
       'live',
@@ -628,7 +757,7 @@ describe('session resume and CSRF exemptions (contract v0.2.1 §D)', () => {
     const api = createApiClient(transport, 'live');
     await api.openSession('SYN-CODE-0001');
     await api.listAgents({ includeRetired: true });
-    await api.listEvaluations();
+    await api.listRunHistory('c');
     await api.retireAgent('agt 1').catch(() => undefined);
     const reqs = transport.mock.calls.map(([r]) => r);
     const exempt = reqs.filter((r) => !r.headers).map((r) => `${r.method} ${r.path}`);

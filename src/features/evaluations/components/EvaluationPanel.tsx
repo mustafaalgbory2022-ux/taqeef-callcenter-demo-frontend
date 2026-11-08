@@ -1,5 +1,6 @@
 import { useScorecardVersions } from '@/features/scorecards';
 import { combineQueries } from '@/shared/hooks/combineQueries';
+import { useApiClient } from '@/shared/api/ApiProvider';
 import { usePermission } from '@/shared/hooks/usePermission';
 import { describeError } from '@/shared/i18n/errorMessage';
 import { useI18n } from '@/shared/i18n/I18nProvider';
@@ -34,6 +35,7 @@ export function EvaluationPanel({
   const { t, fmt } = useI18n();
   const toast = useToast();
   const allowed = usePermission('evaluations.rescore');
+  const mock = useApiClient().mode === 'mock';
   const rescore = useRescore();
   const query = combineQueries([useEvaluations({ callId }), useScorecardVersions()] as const);
 
@@ -125,7 +127,8 @@ export function EvaluationPanel({
                 <Badge tone={latest.trigger === 'rescore' ? 'accent' : 'neutral'}>
                   {t(`evaluations.trigger.${latest.trigger}`)}
                 </Badge>
-                {latest.simulated && <Badge tone="mock">{t('common.simulated')}</Badge>}
+                {latest.preliminary && <Badge>{t('evaluations.preliminary')}</Badge>}
+                {mock && <Badge tone="mock">{t('common.simulated')}</Badge>}
                 {latest.outcome === 'scored' && (
                   <span className={styles.summary}>
                     {t('evaluations.awardedSummary', {
@@ -136,6 +139,11 @@ export function EvaluationPanel({
                   </span>
                 )}
               </div>
+              <p className={styles.summary} data-testid="na-counts">
+                {t('evaluations.aiDeclaredCount', { n: fmt.integer(latest.aiDeclaredCount) })}
+                {' · '}
+                {t('evaluations.codeNaCount', { n: fmt.integer(latest.codeNaCount) })}
+              </p>
               <CriterionResults
                 evaluation={latest}
                 version={version}
@@ -144,6 +152,7 @@ export function EvaluationPanel({
               />
               <ProhibitedHits
                 evaluation={latest}
+                version={version}
                 resolveEvidence={resolveEvidence}
                 onEvidence={onEvidence}
               />

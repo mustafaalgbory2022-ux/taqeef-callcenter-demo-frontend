@@ -1,16 +1,18 @@
 import type { Decoded } from '../decode';
 import type { wireAgent } from '../wire/agents';
-import type { wireCall, wireTranscript } from '../wire/calls';
-import type { WireEvaluation } from '../wire/evaluations';
+import type { wireCall } from '../wire/calls';
+import type { MockRun, MockTranscript } from './internalShapes';
 import type { wireScorecardVersion } from '../wire/scorecards';
 
 export type WireAgent = Decoded<typeof wireAgent>;
 export type WireCall = Decoded<typeof wireCall>;
-export type WireTranscript = Decoded<typeof wireTranscript>;
+/** Mock-internal transcript storage (served as v0.3 segments by ./serialize.ts). */
+export type WireTranscript = MockTranscript;
 export type WireSegment = WireTranscript['segments'][number];
 export type WireScorecard = Decoded<typeof wireScorecardVersion>;
 export type WireReasonCode = NonNullable<WireEvaluation['criteria'][number]['reason_code']>;
-export type { WireEvaluation };
+/** Mock-internal run storage (served as v0.3 run summaries and details by ./serialize.ts). */
+export type WireEvaluation = MockRun;
 
 /** Simulated model output for one criterion of one call (synthetic). */
 export interface Judgment {

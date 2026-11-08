@@ -64,3 +64,9 @@ export const useHideCall = () =>
   );
 export const useRestoreCall = () =>
   useApiMutation((api, id: string) => api.restoreCall(id), ['calls', 'evaluations']);
+
+/** Transcript revision list of a call (contract v0.3 #13). */
+export const useTranscriptRevisions = (callId: string, enabled: boolean) =>
+  useApiQuery(['calls', 'revisions', callId], (api) => api.listTranscriptRevisions(callId), {
+    enabled,
+  });

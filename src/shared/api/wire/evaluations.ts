@@ -1,44 +1,106 @@
-import type { Evaluation } from '@/shared/types/domain';
+import type { Evaluation, RunSummary, SegmentRole } from '@/shared/types/domain';
+import { isDisplayHundredths } from '@/shared/utils/score';
 import {
   arrayOf,
   bool,
   DecodeError,
   nullable,
   num,
-  numInRange,
   object,
   oneOf,
   str,
   type Decoded,
   type Decoder,
 } from '../decode';
-import { isDisplayHundredths } from '@/shared/utils/score';
-import { utcTimestamp } from './common';
-import { wireTimeToMs } from './common';
-import { revisionId, segmentId } from './ids';
+import { utcTimestamp, wireTimeToMs } from './common';
+import { opaqueId, revisionId, segmentId } from './ids';
 
-const points = numInRange(0, 1000);
 /** Non-negative integer point units. */
 const units: Decoder<number> = (v, path = '') => {
   const n = num(v, path);
   if (!Number.isInteger(n) || n < 0 || n > 2000) throw new DecodeError(path, 'integer units');
   return n;
 };
+const count: Decoder<number> = (v, path = '') => {
+  const n = num(v, path);
+  if (!Number.isInteger(n) || n < 0) throw new DecodeError(path, 'a non-negative integer');
+  return n;
+};
 const pointUnit: Decoder<1 | 2> = (v, path = '') => {
   if (v !== 1 && v !== 2) throw new DecodeError(path, '1 or 2');
   return v;
 };
-/** Integer 0–1000 (contract v0.1 3.4). */
-const hundredths: Decoder<number> = (v, path = '') => {
+/** Integer 0–1000 (`*_hundredths`, `*_permille`; contract v0.3 §2). */
+const thousandths: Decoder<number> = (v, path = '') => {
   const n = num(v, path);
   if (!isDisplayHundredths(n)) throw new DecodeError(path, 'an integer 0–1000');
   return n;
 };
-/**
- * Evidence is a segment reference only (v0.2 change list item 6). Times and text are taken
- * from the run's transcript revision. The optional word span is not decoded until its field
- * names are confirmed.
- */
+const wordSpan: Decoder<readonly [number, number]> = (v, path = '') => {
+  if (!Array.isArray(v) || v.length !== 2) throw new DecodeError(path, '[start, end]');
+  const [a, b] = v.map((x, i) => count(x, `${path}[${i}]`)) as [number, number];
+  if (a > b) throw new DecodeError(path, 'start ≤ end');
+  return [a, b];
+};
+
+const TRIGGERS = ['initial', 'rescore', 'rescore_all'] as const;
+const OUTCOMES = ['scored', 'insufficient_evidence', 'not_assessable'] as const;
+const RESULTS = ['met', 'partially_met', 'not_met', 'not_assessable'] as const;
+const NA_REASONS = ['insufficient_evidence', 'not_applicable'] as const;
+const REASON_CODES = [
+  'roles_unreliable',
+  'no_transcript',
+  'too_long',
+  'no_evidence',
+  'low_confidence_evidence',
+  'ai_declared',
+] as const;
+const ROLES = ['agent', 'customer', 'unknown'] as const;
+
+/** Run summary (contract v0.3 §7.2 = §5.3 `latest_run` + `trigger`, `previous_run_id`). */
+export const wireRunSummary = object({
+  run_id: opaqueId,
+  scorecard_version_id: opaqueId,
+  scorecard_version_number: count,
+  outcome: oneOf(OUTCOMES),
+  display_hundredths: nullable(thousandths),
+  below_threshold: nullable(bool),
+  threshold_hundredths: thousandths,
+  completed_at: utcTimestamp,
+  trigger: oneOf(TRIGGERS),
+  previous_run_id: nullable(opaqueId),
+});
+
+function assertScoreFields(
+  w: { outcome: string; display_hundredths: number | null; below_threshold: boolean | null },
+  at = '',
+): void {
+  const scored = w.outcome === 'scored';
+  if (scored !== (w.display_hundredths !== null)) {
+    throw new DecodeError(`${at}display_hundredths`, 'a value exactly when outcome is "scored"');
+  }
+  if (scored !== (w.below_threshold !== null)) {
+    throw new DecodeError(`${at}below_threshold`, 'a value exactly when outcome is "scored"');
+  }
+}
+
+export function runSummaryFromWire(w: Decoded<typeof wireRunSummary>): RunSummary {
+  assertScoreFields(w);
+  return {
+    runId: w.run_id,
+    scorecardVersionId: w.scorecard_version_id,
+    scorecardVersionNumber: w.scorecard_version_number,
+    outcome: w.outcome,
+    displayHundredths: w.display_hundredths,
+    belowThreshold: w.below_threshold,
+    thresholdHundredths: w.threshold_hundredths,
+    completedAt: w.completed_at,
+    trigger: w.trigger,
+    previousRunId: w.previous_run_id,
+  };
+}
+
+/** Evidence item (§7.5, fields CONFIRMED). */
 const wireEvidence = object({
   transcript_revision_id: revisionId,
   segment_id: segmentId,
@@ -49,77 +111,100 @@ const wireEvidence = object({
   counted: bool,
 });
 
-const REASON_CODES = [
-  'roles_unreliable',
-  'no_transcript',
-  'too_long',
-  'no_evidence',
-  'low_confidence_evidence',
-  'ai_declared',
-] as const;
+/** Criterion result (§7.4; enums CONFIRMED, shape PROPOSED). */
+const wireCriterion = object({
+  criterion_id: str,
+  criterion_version: count,
+  name_en: str,
+  name_ar: str,
+  order: count,
+  result: oneOf(RESULTS),
+  level_id: nullable(str),
+  units_awarded: units,
+  units_possible: units,
+  source: oneOf(['ai', 'code_override', 'code_na']),
+  reason_code: nullable(oneOf(REASON_CODES)),
+  na_reason: nullable(oneOf(NA_REASONS)),
+  explanation: str,
+  explanation_truncated: bool,
+  evidence: arrayOf(wireEvidence),
+  ai_original_decision: nullable(
+    object({
+      result: oneOf(RESULTS),
+      level_id: nullable(str),
+      na_reason: nullable(oneOf(NA_REASONS)),
+      evidence: arrayOf(segmentId),
+    }),
+  ),
+});
 
+/** Run detail `GET /api/evaluations/{run_id}` (§7.3; field names as-built, shape PROPOSED). */
 export const wireEvaluation = object({
-  id: str,
-  call_id: str,
-  agent_id: nullable(str),
-  scorecard_id: str,
-  scorecard_version: num,
+  run_id: opaqueId,
+  call_id: opaqueId,
+  trigger: oneOf(TRIGGERS),
+  previous_run_id: nullable(opaqueId),
   transcript_revision_id: revisionId,
-  outcome: oneOf(['scored', 'insufficient_evidence', 'not_assessable']),
-  // CONFIRMED (contract v0.1 3.5): run point sums in integer units, with the unit.
+  scorecard_version_id: opaqueId,
+  scorecard_version_number: count,
+  completed_at: utcTimestamp,
+  outcome: oneOf(OUTCOMES),
+  unit: pointUnit,
+  min_assessable_units: units,
   points_awarded_sum: units,
   points_possible_sum: units,
-  unit: pointUnit,
-  // PROVISIONAL names (not in the contract): scorecard total and minimum, in the same unit.
-  possible_points: units,
-  minimum_assessable_points: units,
-  // CONFIRMED (contract v0.1 3.4, 3.7): the displayed score and low-score flag come from the
-  // backend. `overall_score` (a float) is no longer read.
-  display_hundredths: nullable(hundredths),
+  display_hundredths: nullable(thousandths),
+  threshold_hundredths: thousandths,
   below_threshold: nullable(bool),
-  threshold_hundredths: nullable(hundredths),
-  criteria: arrayOf(
-    object({
-      criterion_id: str,
-      result: oneOf(['met', 'partially_met', 'not_met', 'not_assessable']),
-      reason_code: nullable(oneOf(REASON_CODES)),
-      na_reason: nullable(oneOf(['insufficient_evidence', 'not_applicable'])),
-      // CONFIRMED (3.2): criterion points in integer units of the run's unit.
-      units_awarded: nullable(units),
-      units_possible: units,
-      // PROVISIONAL: penalty deduction, assumed in the same unit.
-      penalty_points: units,
-      // Contract v0.3 §7.4: masked by the server, ≤ 600 characters (truncation flag PROPOSED).
-      explanation: str,
-      explanation_truncated: bool,
-      evidence: arrayOf(wireEvidence),
-    }),
-  ),
+  ai_declared_count: count,
+  code_na_count: count,
+  preliminary: bool,
+  criteria: arrayOf(wireCriterion),
+  // §7.6: no excerpt on hits (qa-security S5).
   prohibited_hits: arrayOf(
     object({
-      expression_id: str,
-      phrase: str,
+      phrase_id: str,
+      match_mode: oneOf(['whole_words_clitic', 'whole_words', 'contains']),
+      transcript_revision_id: revisionId,
       segment_id: segmentId,
-      speaker: oneOf(['agent', 'customer', 'unknown']),
-      disposition: oneOf(['penalty_applied', 'flagged_for_review']),
-      penalty_points: points,
+      word_span: wordSpan,
+      start_ms: num,
+      end_ms: num,
+      speaker_role: oneOf(ROLES),
+      reliability_permille: thousandths,
+      outcome: oneOf(['penalty', 'review_flag', 'none']),
+      flag_type: nullable(str),
     }),
   ),
-  trigger: oneOf(['initial', 'rescore']),
-  supersedes_id: nullable(str),
-  created_at: utcTimestamp,
-  simulated: bool,
+  review_flags: arrayOf(
+    object({
+      flag_id: opaqueId,
+      flag_type: str,
+      segment_id: nullable(segmentId),
+      reviewed: bool,
+      reviewed_at: nullable(utcTimestamp),
+    }),
+  ),
+  segment_roles: arrayOf(
+    object({ segment_id: segmentId, speaker_role: oneOf(ROLES), non_party: bool }),
+  ),
 });
 
 export type WireEvaluation = Decoded<typeof wireEvaluation>;
 
-/** Internal consistency checks beyond field types (fail loudly on contract drift). */
+/** Consistency rules beyond field types (fail loudly on contract drift). */
 function assertConsistent(w: WireEvaluation): void {
+  assertScoreFields(w);
+  const rev = w.transcript_revision_id;
   w.criteria.forEach((c, i) => {
     const at = `criteria[${i}]`;
     const assessed = c.result !== 'not_assessable';
-    if (assessed === (c.units_awarded === null)) {
-      throw new DecodeError(`${at}.units_awarded`, 'units exactly when the criterion is assessed');
+    // §7.4: not_assessable has units_possible = units_awarded = 0.
+    if (!assessed && (c.units_awarded !== 0 || c.units_possible !== 0)) {
+      throw new DecodeError(`${at}.units_possible`, '0 of 0 when not_assessable');
+    }
+    if (c.units_awarded > c.units_possible) {
+      throw new DecodeError(`${at}.units_awarded`, 'at most units_possible');
     }
     if (assessed === (c.reason_code !== null)) {
       throw new DecodeError(`${at}.reason_code`, 'a reason code exactly when not_assessable');
@@ -127,100 +212,125 @@ function assertConsistent(w: WireEvaluation): void {
     if ((c.reason_code === 'ai_declared') !== (c.na_reason !== null)) {
       throw new DecodeError(`${at}.na_reason`, 'a declared reason exactly when ai_declared');
     }
-    if (c.units_awarded !== null && c.units_awarded > c.units_possible) {
-      throw new DecodeError(`${at}.units_awarded`, 'at most units_possible');
+    if ((c.result === 'partially_met') !== (c.level_id !== null)) {
+      throw new DecodeError(`${at}.level_id`, 'a level exactly when partially_met');
+    }
+    if ((c.source === 'code_override') !== (c.ai_original_decision !== null)) {
+      throw new DecodeError(`${at}.ai_original_decision`, 'present exactly on code_override');
+    }
+    c.evidence.forEach((e, j) => {
+      if (e.transcript_revision_id !== rev) {
+        throw new DecodeError(`${at}.evidence[${j}].transcript_revision_id`, "the run's revision");
+      }
+      if ([...e.excerpt].length > 2000) {
+        throw new DecodeError(`${at}.evidence[${j}].excerpt`, 'at most 2,000 characters');
+      }
+    });
+  });
+  w.prohibited_hits.forEach((h, i) => {
+    if (h.transcript_revision_id !== rev) {
+      throw new DecodeError(`prohibited_hits[${i}].transcript_revision_id`, "the run's revision");
     }
   });
-  w.criteria.forEach((c, i) =>
-    c.evidence.forEach((e, j) => {
-      if (e.transcript_revision_id !== w.transcript_revision_id) {
-        throw new DecodeError(
-          `criteria[${i}].evidence[${j}].transcript_revision_id`,
-          "the run's own transcript revision",
-        );
-      }
-      if (e.excerpt.length > 2000) {
-        throw new DecodeError(`criteria[${i}].evidence[${j}].excerpt`, 'at most 2,000 characters');
-      }
-    }),
-  );
   if (w.points_awarded_sum > w.points_possible_sum) {
     throw new DecodeError('points_awarded_sum', 'at most points_possible_sum');
   }
-  const scored = w.outcome === 'scored';
-  if (scored && w.points_possible_sum === 0) {
-    throw new DecodeError('points_possible_sum', 'assessed points for a scored run');
-  }
-  // Integrity check only (M2 CHECK display_hundredths = (1000·A)/P): a mismatch is contract
-  // drift and is rejected; the displayed value is always the served display_hundredths.
-  if (
-    scored &&
-    w.display_hundredths !== null &&
-    w.display_hundredths !== Math.floor((1000 * w.points_awarded_sum) / w.points_possible_sum)
-  ) {
-    throw new DecodeError(
-      'display_hundredths',
-      '(1000 × points_awarded_sum) ÷ points_possible_sum',
-    );
-  }
-  if (scored !== (w.display_hundredths !== null)) {
-    throw new DecodeError('display_hundredths', 'a value exactly when outcome is "scored"');
-  }
-  if (scored !== (w.below_threshold !== null)) {
-    throw new DecodeError('below_threshold', 'a value exactly when outcome is "scored"');
+  if (w.outcome === 'scored') {
+    if (w.points_possible_sum === 0) {
+      throw new DecodeError('points_possible_sum', 'assessed points for a scored run');
+    }
+    // Integrity only (display_hundredths = floor(1000·A/P)); the served value is displayed.
+    if (
+      w.display_hundredths !== Math.floor((1000 * w.points_awarded_sum) / w.points_possible_sum)
+    ) {
+      throw new DecodeError(
+        'display_hundredths',
+        '(1000 × points_awarded_sum) ÷ points_possible_sum',
+      );
+    }
   }
 }
 
 export function evaluationFromWire(w: WireEvaluation): Evaluation {
   assertConsistent(w);
+  const roles = new Map<string, SegmentRole>(
+    w.segment_roles.map((r) => [r.segment_id, { role: r.speaker_role, nonParty: r.non_party }]),
+  );
   return {
-    id: w.id,
+    id: w.run_id,
     callId: w.call_id,
-    agentId: w.agent_id,
-    scorecardId: w.scorecard_id,
-    scorecardVersion: w.scorecard_version,
+    agentId: null,
+    scorecardVersionId: w.scorecard_version_id,
+    scorecardVersion: w.scorecard_version_number,
     transcriptRevisionId: w.transcript_revision_id,
     outcome: w.outcome,
     unit: w.unit,
     awardedUnits: w.points_awarded_sum,
     assessableUnits: w.points_possible_sum,
-    possibleUnits: w.possible_points,
-    minimumAssessableUnits: w.minimum_assessable_points,
+    possibleUnits: 10 * w.unit,
+    minimumAssessableUnits: w.min_assessable_units,
     displayHundredths: w.display_hundredths,
     belowThreshold: w.below_threshold,
     thresholdHundredths: w.threshold_hundredths,
-    criteria: w.criteria.map((c) => ({
-      criterionId: c.criterion_id,
-      result: c.result,
-      reasonCode: c.reason_code,
-      aiDeclaredReason: c.na_reason,
-      unit: w.unit,
-      awardedUnits: c.units_awarded,
-      possibleUnits: c.units_possible,
-      penaltyUnits: c.penalty_points,
-      rationale: c.explanation,
-      explanationTruncated: c.explanation_truncated,
-      evidence: c.evidence.map((e) => ({
-        transcriptRevisionId: e.transcript_revision_id,
-        segmentId: e.segment_id,
-        startMs: wireTimeToMs(e.start_ms),
-        endMs: wireTimeToMs(e.end_ms),
-        excerpt: e.excerpt,
-        excerptTruncated: e.excerpt_truncated,
-        counted: e.counted,
+    aiDeclaredCount: w.ai_declared_count,
+    codeNaCount: w.code_na_count,
+    preliminary: w.preliminary,
+    criteria: [...w.criteria]
+      .sort((a, b) => a.order - b.order)
+      .map((c) => ({
+        criterionId: c.criterion_id,
+        criterionVersion: c.criterion_version,
+        name: { en: c.name_en, ar: c.name_ar },
+        order: c.order,
+        result: c.result,
+        levelId: c.level_id,
+        source: c.source,
+        reasonCode: c.reason_code,
+        aiDeclaredReason: c.na_reason,
+        unit: w.unit,
+        awardedUnits: c.result === 'not_assessable' ? null : c.units_awarded,
+        possibleUnits: c.units_possible,
+        rationale: c.explanation,
+        explanationTruncated: c.explanation_truncated,
+        evidence: c.evidence.map((e) => ({
+          transcriptRevisionId: e.transcript_revision_id,
+          segmentId: e.segment_id,
+          startMs: wireTimeToMs(e.start_ms),
+          endMs: wireTimeToMs(e.end_ms),
+          excerpt: e.excerpt,
+          excerptTruncated: e.excerpt_truncated,
+          counted: e.counted,
+        })),
+        aiOriginalDecision: c.ai_original_decision && {
+          result: c.ai_original_decision.result,
+          levelId: c.ai_original_decision.level_id,
+          aiDeclaredReason: c.ai_original_decision.na_reason,
+          evidenceSegmentIds: c.ai_original_decision.evidence,
+        },
       })),
-    })),
     prohibitedHits: w.prohibited_hits.map((h) => ({
-      expressionId: h.expression_id,
-      phrase: h.phrase,
+      phraseId: h.phrase_id,
+      matchMode: h.match_mode,
+      transcriptRevisionId: h.transcript_revision_id,
       segmentId: h.segment_id,
-      speaker: h.speaker,
-      disposition: h.disposition,
-      penaltyPoints: h.penalty_points,
+      wordSpan: h.word_span,
+      startMs: wireTimeToMs(h.start_ms),
+      endMs: wireTimeToMs(h.end_ms),
+      speakerRole: h.speaker_role,
+      reliabilityPermille: h.reliability_permille,
+      outcome: h.outcome,
+      flagType: h.flag_type,
     })),
+    reviewFlags: w.review_flags.map((f) => ({
+      flagId: f.flag_id,
+      flagType: f.flag_type,
+      segmentId: f.segment_id,
+      reviewed: f.reviewed,
+      reviewedAt: f.reviewed_at,
+    })),
+    segmentRoles: roles,
     trigger: w.trigger,
-    supersedesId: w.supersedes_id,
-    createdAt: w.created_at,
-    simulated: w.simulated,
+    supersedesId: w.previous_run_id,
+    createdAt: w.completed_at,
   };
 }

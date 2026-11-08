@@ -1,7 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createApiClient } from '../client';
+import { createApiClient, type ApiClient } from '../client';
 import type { ApiError } from '../errors';
 import { createMockTransport } from './server';
+
+/** Runs of one call via the documented routes: history (#18), then each detail (#19). */
+async function listRuns(api: ApiClient, callId: string) {
+  const history = await api.listRunHistory(callId);
+  return Promise.all(history.map((h) => api.getRun(h.runId)));
+}
 
 describe('simulated backend', () => {
   beforeEach(() => {
@@ -80,14 +86,13 @@ describe('simulated backend', () => {
     await api.openSession('SYN-TEST02-DEMO');
     const calls = await api.listCalls();
     expect(calls).toHaveLength(5);
-    const before = await api.listEvaluations({ callId: 'DEMO-005' });
+    const before = await listRuns(api, 'DEMO-005');
     const rescored = await api.rescoreCall('DEMO-005');
     expect(rescored).toMatchObject({
       trigger: 'rescore',
       supersedesId: before[0]?.id,
-      simulated: true,
     });
-    expect(await api.listEvaluations({ callId: 'DEMO-005' })).toHaveLength(before.length + 1);
+    expect(await listRuns(api, 'DEMO-005')).toHaveLength(before.length + 1);
   });
 
   it('seeds the approved scorecard and points-based results', async () => {
@@ -100,7 +105,7 @@ describe('simulated backend', () => {
       lowScoreThreshold: 7,
       prohibitedPenalty: { points: 0 },
     });
-    const [demo1] = await api.listEvaluations({ callId: 'DEMO-001' });
+    const [demo1] = await listRuns(api, 'DEMO-001');
     expect(demo1).toMatchObject({
       outcome: 'scored',
       unit: 1,
@@ -110,7 +115,7 @@ describe('simulated backend', () => {
       belowThreshold: false,
       thresholdHundredths: 700,
     });
-    const [demo4] = await api.listEvaluations({ callId: 'DEMO-004' });
+    const [demo4] = await listRuns(api, 'DEMO-004');
     expect(demo4).toMatchObject({
       outcome: 'insufficient_evidence',
       assessableUnits: 4,
@@ -161,7 +166,7 @@ describe('simulated backend', () => {
     const call = await api.getCall('DEMO-001');
     expect(call.currentTranscriptRevisionId).toMatch(/^[0-9a-f-]{36}$/);
     const transcript = await api.getTranscript(call.currentTranscriptRevisionId ?? '');
-    const [run] = await api.listEvaluations({ callId: 'DEMO-001' });
+    const [run] = await listRuns(api, 'DEMO-001');
     expect(run?.transcriptRevisionId).toBe(transcript.revisionId);
     const ids = new Set(transcript.segments.map((seg) => seg.id));
     const cited = run?.criteria.flatMap((c) => c.evidence.map((e) => e.segmentId)) ?? [];
@@ -196,12 +201,15 @@ describe('simulated backend', () => {
     expect((await api.getCall('DEMO-001')).status).toBe('scored');
     expect((await api.getCall('DEMO-004')).status).toBe('insufficient_evidence');
     const call2 = await api.getCall('DEMO-002');
-    const [run] = await api.listEvaluations({ callId: 'DEMO-002' });
+    const [run] = await listRuns(api, 'DEMO-002');
     // DEMO-002 was re-transcribed: its run stays linked to the earlier revision.
     expect(run?.transcriptRevisionId).not.toBe(call2.currentTranscriptRevisionId);
-    const older = await api.getTranscript(run?.transcriptRevisionId ?? '');
-    const newer = await api.getTranscript(call2.currentTranscriptRevisionId ?? '');
-    expect([older.revisionNo, newer.revisionNo]).toEqual([0, 1]);
+    const revisions = await api.listTranscriptRevisions('DEMO-002');
+    expect(revisions.map((r) => [r.revisionNo, r.isCurrent])).toEqual([
+      [0, false],
+      [1, true],
+    ]);
+    expect(revisions[0]?.revisionId).toBe(run?.transcriptRevisionId);
     // Re-scoring evaluates the current revision.
     const rescored = await api.rescoreCall('DEMO-002');
     expect(rescored.transcriptRevisionId).toBe(call2.currentTranscriptRevisionId);
@@ -267,7 +275,7 @@ describe('simulated backend', () => {
     const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
     await api.openSession('SYN-HIDE-DEMO');
     const before = await api.getDashboard({ scorecardVersionId: null, agentId: null });
-    const runsBefore = await api.listEvaluations({ callId: 'DEMO-005' });
+    const runsBefore = await listRuns(api, 'DEMO-005');
     const hidden = await api.hideCall('DEMO-005', 'Synthetic duplicate');
     expect(hidden).toMatchObject({ id: 'DEMO-005', hidden: true });
     // Excluded from the default list and the dashboard, included on request.
@@ -279,7 +287,7 @@ describe('simulated backend', () => {
     const detail = await api.getCall('DEMO-005');
     expect(detail.hidden).toBe(true);
     expect(detail.latestRun?.runId).toBe(runsBefore[0]?.id);
-    expect(await api.listEvaluations({ callId: 'DEMO-005' })).toHaveLength(runsBefore.length);
+    expect(await listRuns(api, 'DEMO-005')).toHaveLength(runsBefore.length);
     await expect(api.getTranscript(detail.currentTranscriptRevisionId ?? '')).resolves.toBeTruthy();
     // Stale actions are refused (mock assumption, see handoff): hide twice, restore twice.
     await expect(api.hideCall('DEMO-005')).rejects.toMatchObject({ code: 'conflict' });
@@ -326,5 +334,24 @@ describe('simulated backend', () => {
     expect(demo1?.hidden).toBe(true);
     // A missing request_id is refused before anything runs.
     expect((await transport({ ...hide, path: '/calls/DEMO-002', body: {} })).status).toBe(422);
+  });
+
+  it('serves run history, details with per-run speaker roles, and hits without excerpts', async () => {
+    const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
+    await api.openSession('SYN-RUNS-DEMO');
+    const history = await api.listRunHistory('DEMO-003');
+    expect(history.map((h) => h.trigger)).toEqual(['rescore', 'initial']); // newest first
+    expect(history[0]?.previousRunId).toBe(history[1]?.runId);
+    const run = await api.getRun(history[0]?.runId ?? '');
+    const transcript = await api.getTranscript(run.transcriptRevisionId);
+    // Stereo fixture: roles come from the run, one per segment of that revision.
+    expect(run.segmentRoles.size).toBe(transcript.segments.length);
+    expect([...run.segmentRoles.values()].map((r) => r.role)).toContain('agent');
+    const hit = run.prohibitedHits[0];
+    expect(hit?.transcriptRevisionId).toBe(run.transcriptRevisionId);
+    expect(hit).not.toHaveProperty('excerpt');
+    // Mono upload-style call: roles unknown.
+    const demo2 = await listRuns(api, 'DEMO-002');
+    expect(demo2[0]?.criteria.every((c) => c.name.en.length > 0)).toBe(true);
   });
 });

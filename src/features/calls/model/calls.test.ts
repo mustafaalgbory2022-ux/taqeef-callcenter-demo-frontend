@@ -16,9 +16,13 @@ const seg = (id: string, startMs: number, endMs: number, text = id): TranscriptS
   id,
   startMs,
   endMs,
-  speaker: 'agent',
+  channel: 'L',
+  speakerLabel: 'CH-L',
   language: 'ar',
   text,
+  asrConfidencePermille: 900,
+  lowConfidence: false,
+  flags: [],
 });
 
 describe('findActiveSegment', () => {

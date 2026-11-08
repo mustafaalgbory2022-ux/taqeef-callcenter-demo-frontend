@@ -26,7 +26,7 @@ import { TranscriptView } from '../components/TranscriptView';
 import { locateEvidence, revisionToShow, type EvidenceLocation } from '../model/transcript';
 import { useAudioPlayer } from '../hooks/useAudioPlayer';
 import { isEvaluatedStatus } from '../model/status';
-import { useCall, useTranscript } from '../hooks/useCallData';
+import { useCall, useTranscript, useTranscriptRevisions } from '../hooks/useCallData';
 import styles from './CallDetail.module.css';
 
 export function CallDetailPage() {
@@ -51,6 +51,14 @@ function CallDetail({ call }: { call: Call }) {
   const { revisionId, isLatest } = revisionToShow(call, run);
   const hasTranscript = revisionId !== null && !waitingForRun;
   const transcript = useTranscript(revisionId ?? '', hasTranscript);
+  // Revision numbers and "current" come from the revision list (contract v0.3 §6.1).
+  const revisions = useTranscriptRevisions(call.id, hasTranscript);
+  const shownRevision =
+    revisions.status === 'success'
+      ? revisions.data.find((r) => r.revisionId === revisionId)
+      : undefined;
+  // Speaker roles only from the run that was scored on this very revision (§6.2, §7.3).
+  const roles = run && run.transcriptRevisionId === revisionId ? run.segmentRoles : undefined;
   const audioSrc = useMemo(() => api.audioSrc(call.id), [api, call.id]);
   const player = useAudioPlayer(audioSrc, call.durationMs);
   const [highlight, setHighlight] = useState<ReadonlySet<string>>(new Set());
@@ -152,9 +160,11 @@ function CallDetail({ call }: { call: Call }) {
                       data-testid="transcript-revision"
                       data-revision-id={data.revisionId}
                     >
-                      {t('calls.transcript.revision', { n: data.revisionNo + 1 })}
+                      {shownRevision
+                        ? t('calls.transcript.revision', { n: shownRevision.revisionNo + 1 })
+                        : t('calls.transcript.revisionUnknown')}
                     </p>
-                    {!isLatest && (
+                    {(shownRevision ? !shownRevision.isCurrent : !isLatest) && (
                       <Notice
                         tone="info"
                         title={t('calls.transcript.olderRevision')}
@@ -179,6 +189,7 @@ function CallDetail({ call }: { call: Call }) {
                             }
                           : null
                       }
+                      roles={roles}
                       onSeek={(ms) => seek(ms, true)}
                     />
                   </>

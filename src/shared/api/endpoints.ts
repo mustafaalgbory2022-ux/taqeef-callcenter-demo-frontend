@@ -21,7 +21,10 @@ export const endpoints = {
   callRestore: (id: string) => `/calls/${seg(id)}/restore`,
   transcriptSegments: (revisionId: string) => `/transcripts/${seg(revisionId)}/segments`,
   rescore: (id: string) => `/calls/${seg(id)}/rescore`,
-  evaluations: '/evaluations',
+  /** Contract v0.3 #18 run history, #19 run detail, #13 revision list (PROPOSED). */
+  callEvaluations: (id: string) => `/calls/${seg(id)}/evaluations`,
+  evaluation: (runId: string) => `/evaluations/${seg(runId)}`,
+  callTranscripts: (id: string) => `/calls/${seg(id)}/transcripts`,
   /** Contract v0.3 route #38 (PROPOSED). */
   dashboard: '/dashboard',
   // Scorecard routes follow contract v0.1 §5 / v0.2 item D (PROPOSED); bodies are provisional.

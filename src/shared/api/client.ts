@@ -8,6 +8,8 @@ import type {
   ScorecardVersion,
   Session,
   Transcript,
+  TranscriptRevision,
+  RunSummary,
   UploadAccepted,
   DashboardQuery,
   DashboardSummary,
@@ -24,9 +26,16 @@ import {
   uploadAcceptedFromWire,
   wireCall,
   wireTranscript,
+  wireTranscriptRevision,
+  transcriptRevisionFromWire,
   wireUploadAccepted,
 } from './wire/calls';
-import { evaluationFromWire, wireEvaluation } from './wire/evaluations';
+import {
+  evaluationFromWire,
+  runSummaryFromWire,
+  wireEvaluation,
+  wireRunSummary,
+} from './wire/evaluations';
 import { scorecardDraftToWire, scorecardFromWire, wireScorecardVersion } from './wire/scorecards';
 import { wireSessionExchange, wireSessionResume } from './wire/session';
 import { dashboardFromWire, wireDashboard } from './wire/dashboard';
@@ -37,6 +46,7 @@ export interface CallFilter {
   includeHidden?: boolean | undefined;
 }
 
+/** Which runs a list view needs: one call's, or all calls' (optionally one agent's). */
 export interface EvaluationFilter {
   callId?: string | undefined;
   agentId?: string | undefined;
@@ -75,7 +85,12 @@ export interface ApiClient {
   restoreCall(id: string): Promise<Call>;
   /** One immutable transcript revision. */
   getTranscript(revisionId: string): Promise<Transcript>;
-  listEvaluations(filter?: EvaluationFilter): Promise<Evaluation[]>;
+  /** Run history of one call, newest first (contract v0.3 #18, `{items: [run summary]}`). */
+  listRunHistory(callId: string): Promise<RunSummary[]>;
+  /** One sealed run with criteria, evidence, hits, flags and roles (#19). */
+  getRun(runId: string): Promise<Evaluation>;
+  /** Revision list of one call (#13). */
+  listTranscriptRevisions(callId: string): Promise<TranscriptRevision[]>;
   rescoreCall(callId: string): Promise<Evaluation>;
   /**
    * The newest saved version. NOT necessarily the active one: the contract does not yet say
@@ -157,7 +172,8 @@ export function createApiClient(
 
   const agents = list(wireAgent, agentFromWire);
   const calls = list(wireCall, callFromWire);
-  const evaluations = list(wireEvaluation, evaluationFromWire);
+  const runs = list(wireRunSummary, runSummaryFromWire);
+  const revisions = list(wireTranscriptRevision, transcriptRevisionFromWire);
   const versions = list(wireScorecardVersion, scorecardFromWire);
 
   return {
@@ -296,15 +312,19 @@ export function createApiClient(
         wireTranscript,
         transcriptFromWire,
       ),
-    listEvaluations: (filter = {}) =>
+    listRunHistory: (callId) =>
+      send({ method: 'GET', path: endpoints.callEvaluations(callId) }, runs.decoder, runs.map),
+    getRun: (runId) =>
       send(
-        {
-          method: 'GET',
-          path: endpoints.evaluations,
-          query: { call_id: filter.callId, agent_id: filter.agentId },
-        },
-        evaluations.decoder,
-        evaluations.map,
+        { method: 'GET', path: endpoints.evaluation(runId) },
+        wireEvaluation,
+        evaluationFromWire,
+      ),
+    listTranscriptRevisions: (callId) =>
+      send(
+        { method: 'GET', path: endpoints.callTranscripts(callId) },
+        revisions.decoder,
+        revisions.map,
       ),
     rescoreCall: (callId) =>
       send(

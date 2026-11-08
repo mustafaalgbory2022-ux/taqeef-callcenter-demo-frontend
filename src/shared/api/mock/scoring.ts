@@ -195,15 +195,7 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
     criteria.map((c) => ({
       criterionId: c.criterion_id,
       result: c.result,
-      reasonCode: c.reason_code,
-      aiDeclaredReason: c.na_reason,
-      unit: 1 as const,
       awardedUnits: c.units_awarded,
-      possibleUnits: c.units_possible,
-      penaltyUnits: c.penalty_points,
-      rationale: '',
-      explanationTruncated: false,
-      evidence: [],
     })),
     scorecard.minimum_assessable_points,
   );

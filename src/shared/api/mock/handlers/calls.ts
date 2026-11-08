@@ -4,6 +4,7 @@ import { refreshUpload } from '../processing';
 import { fail, invalid, ok, type Route } from '../router';
 import type { MockState, WireCall } from '../types';
 import { idempotent } from '../idempotency';
+import { findRevision, serializeRevisions, serializeSegments } from '../serialize';
 
 /** Contract 5.3 (CONFIRMED): WAV only, at most 100 MB. */
 export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
@@ -80,10 +81,20 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
       pattern: '/transcripts/:revisionId/segments',
       handler: ({ params }) => {
         refreshAll();
-        const transcript = [...Object.values(state.transcripts), ...state.revisions].find(
-          (tr) => tr.transcript_revision_id === params.revisionId,
-        );
-        return transcript ? ok(transcript) : fail(404, 'Transcript revision not found.');
+        const transcript = findRevision(state, params.revisionId ?? '');
+        return transcript
+          ? ok(serializeSegments(state, transcript))
+          : fail(404, 'Transcript revision not found.');
+      },
+    },
+    {
+      // Revision list of one call (contract v0.3 #13).
+      method: 'GET',
+      pattern: '/calls/:id/transcripts',
+      handler: ({ params }) => {
+        refreshAll();
+        if (!state.calls.some((c) => c.call_id === params.id)) return fail(404, 'Call not found.');
+        return ok({ items: serializeRevisions(state, params.id ?? ''), truncated: false });
       },
     },
     {

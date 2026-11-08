@@ -10,6 +10,7 @@ const evaluation = {
   criteria: [
     {
       criterionId: 'greeting',
+      name: { en: 'Greeting', ar: 'الترحيب' },
       result: 'met',
       reasonCode: null,
       aiDeclaredReason: null,
