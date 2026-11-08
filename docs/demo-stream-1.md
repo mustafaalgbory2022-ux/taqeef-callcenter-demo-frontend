@@ -420,6 +420,22 @@ decoding, retire body, list shape incl. bare-array rejection, simulated name rul
 spelling variants and `edit_value_masked`). `npm run test:e2e`: 70 passed (new: retired agent
 leaves upload choices but stays in call list, filter and agent page; masked-token refusal).
 
+## Task 13 — call adapter and hide/restore, contract v0.3 r4 (Stream 13)
+
+**Completed** (handoff §5e): v0.3 call object everywhere (list, detail, upload handling, mock
+fixtures); obsolete call fields removed; agent identity from the call itself; rejection reasons;
+channel-based speaker notice; soft delete and restore with request ids; hidden calls excluded by
+default (lists and simulated dashboard); simulated replay protection.
+
+**Ambiguities documented, not invented** (handoff §5e): repeated hide or restore with a new
+request id, hidden-call detail reads, a list toggle for hidden calls, `latest_job` display.
+
+**QA.** `npm run check`: 130 unit/component/mock-integration tests passed (new: v0.3 call
+decoding and consistency, absence of obsolete fields, hide/restore bodies with fresh request ids,
+soft delete keeps runs and transcripts, dashboard exclusion, replay without a repeated side
+effect, request-id conflict, CSRF on DELETE, missing request id). `npm run test:e2e`: 74 passed
+(new: hide → excluded from the list → restore; Arabic wording).
+
 ## Proposed next tasks (prioritized, client-only unless noted)
 
 1. On approval: launch code in the URL fragment (Task 3a finding 9).
