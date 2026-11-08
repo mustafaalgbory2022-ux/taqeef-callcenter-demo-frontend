@@ -1,11 +1,10 @@
 import type { Decoded } from '../decode';
-import type { wireAgent, wireAuditEntry } from '../wire/agents';
+import type { wireAgent } from '../wire/agents';
 import type { wireCall, wireTranscript } from '../wire/calls';
 import type { WireEvaluation } from '../wire/evaluations';
 import type { wireScorecardVersion } from '../wire/scorecards';
 
 export type WireAgent = Decoded<typeof wireAgent>;
-export type WireAudit = Decoded<typeof wireAuditEntry>;
 export type WireCall = Decoded<typeof wireCall>;
 export type WireTranscript = Decoded<typeof wireTranscript>;
 export type WireSegment = WireTranscript['segments'][number];
@@ -28,7 +27,6 @@ export interface Judgment {
 
 export interface MockState {
   agents: WireAgent[];
-  audit: Record<string, WireAudit[]>;
   calls: WireCall[];
   /** First revision per call (the one seeded runs were scored on). */
   transcripts: Record<string, WireTranscript>;

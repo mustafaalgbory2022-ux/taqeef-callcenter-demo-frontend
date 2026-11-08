@@ -20,6 +20,7 @@ const NAME_REASONS = [
   'name_shape',
   'name_length',
   'name_exists',
+  'edit_value_masked',
 ] as const;
 const isNameReason = (r: string): r is (typeof NAME_REASONS)[number] =>
   (NAME_REASONS as readonly string[]).includes(r);
@@ -57,13 +58,7 @@ export function AgentFormDialog({ agents, onClose }: AgentFormDialogProps) {
       const mapped = mapFieldIssues(err, SERVER_FIELD, (issue) =>
         issue.field === 'display_name' && isNameReason(issue.reason)
           ? t(`agents.form.errors.${issue.reason}`)
-          : issue.reason === 'duplicate'
-            ? t(
-                issue.field === 'extension'
-                  ? 'agents.form.errors.extensionTaken'
-                  : 'agents.form.errors.nameTaken',
-              )
-            : describeFieldIssue(issue, t),
+          : describeFieldIssue(issue, t),
       );
       if (mapped) setErrors(mapped.fields);
       if (!mapped || mapped.unmapped.length > 0) {
@@ -98,21 +93,6 @@ export function AgentFormDialog({ agents, onClose }: AgentFormDialogProps) {
                 maxLength={80}
                 autoComplete="off"
                 onChange={(e) => set('displayName', e.target.value)}
-              />
-            )}
-          </Field>
-          <Field
-            label={t('agents.fields.extension')}
-            hint={t('agents.form.extensionHint')}
-            error={errors.extension}
-          >
-            {(p) => (
-              <input
-                {...p}
-                value={values.extension}
-                dir="ltr"
-                autoComplete="off"
-                onChange={(e) => set('extension', e.target.value)}
               />
             )}
           </Field>

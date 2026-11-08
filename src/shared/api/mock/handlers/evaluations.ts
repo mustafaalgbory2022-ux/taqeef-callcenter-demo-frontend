@@ -13,12 +13,13 @@ export function evaluationRoutes(state: MockState, persist: () => void): Route[]
       method: 'GET',
       pattern: '/evaluations',
       handler: ({ query }) =>
-        ok(
-          state.evaluations
+        ok({
+          items: state.evaluations
             .filter((e) => !query.call_id || e.call_id === query.call_id)
             .filter((e) => !query.agent_id || e.agent_id === query.agent_id)
             .sort(byCreatedDesc),
-        ),
+          truncated: false,
+        }),
     },
     {
       method: 'POST',

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createApiClient } from '../client';
+import type { ApiError } from '../errors';
 import { createMockTransport } from './server';
 
 describe('simulated backend', () => {
@@ -45,7 +46,7 @@ describe('simulated backend', () => {
     expect((await api.listAgents({ includeRetired: true })).map((a) => a.id)).toContain(target.id);
     await expect(api.retireAgent(target.id)).rejects.toMatchObject({ code: 'conflict' });
     await expect(
-      api.createAgent({ displayName: ` ${target.displayName.toUpperCase()} `, extension: '' }),
+      api.createAgent({ displayName: ` ${target.displayName.toUpperCase()} ` }),
     ).rejects.toMatchObject({ fieldIssues: [{ field: 'display_name', reason: 'name_exists' }] });
     const wav = new File(['x'], 'a.wav', { type: 'audio/wav' });
     for (const [agentId, reason] of [
@@ -119,12 +120,20 @@ describe('simulated backend', () => {
     });
   });
 
-  it('validates agent extensions on the server side too', async () => {
+  it('applies the v0.3 agent name rules and refuses masked values (§4.2, §2.2.1)', async () => {
     const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
     await api.openSession('SYN-TEST03-DEMO');
-    await expect(api.createAgent({ displayName: 'X', extension: 'SYN-101' })).rejects.toMatchObject(
-      { code: 'validation_error', fieldIssues: [{ field: 'extension' }] },
-    );
+    const reasonFor = async (displayName: string) =>
+      ((await api.createAgent({ displayName }).catch((e: unknown) => e)) as ApiError).fieldIssues[0]
+        ?.reason;
+    expect(await reasonFor('Agent 7')).toBe('name_digits');
+    expect(await reasonFor('Agentأ')).toBe('name_mixed_script');
+    expect(await reasonFor('Agent\u200bX')).toBe('name_invalid_char');
+    expect(await reasonFor('x'.repeat(81))).toBe('name_length');
+    expect(await reasonFor('Caller [NUMBER]')).toBe('edit_value_masked');
+    // Arabic spelling variants count as the same name.
+    await api.createAgent({ displayName: 'أحمد علي' });
+    expect(await reasonFor('احمد  علي')).toBe('name_exists');
   });
 
   it('enforces the CSRF header on every non-exempt route, GET included', async () => {
@@ -202,15 +211,13 @@ describe('simulated backend', () => {
   it('returns the structured error envelope without echoing input', async () => {
     const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
     await api.openSession('SYN-TEST09-DEMO');
-    const err = await api
-      .createAgent({ displayName: 'Secret Name', extension: 'SYN-101' })
-      .catch((e: unknown) => e);
+    const err = await api.createAgent({ displayName: 'Agent A' }).catch((e: unknown) => e);
     expect(err).toMatchObject({
       code: 'validation_error',
       serverCode: 'demo.mock.http_422',
-      fieldIssues: [{ field: 'extension', reason: 'duplicate' }],
+      fieldIssues: [{ field: 'display_name', reason: 'name_exists' }],
     });
-    expect(JSON.stringify(err)).not.toContain('Secret Name');
+    expect(JSON.stringify(err)).not.toContain('Agent A');
   });
 
   it('activates a scorecard draft as a new immutable version', async () => {

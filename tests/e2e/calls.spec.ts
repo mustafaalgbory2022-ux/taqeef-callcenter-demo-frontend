@@ -71,7 +71,7 @@ test('uploads a synthetic file and shows simulated processing', async ({ page })
   await page.getByLabel('Display name').fill('Synthetic upload test');
   await page
     .getByRole('combobox', { name: 'Agent', exact: true })
-    .selectOption({ label: 'Agent B · SYN-102' });
+    .selectOption({ label: 'Agent B' });
   await page.getByLabel(/I confirm this recording is synthetic/).check();
   await page.getByRole('button', { name: 'Upload and process' }).click();
 

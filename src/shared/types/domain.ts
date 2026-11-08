@@ -33,35 +33,20 @@ export interface Session {
 export type AgentStatus = 'active' | 'retired';
 
 export interface Agent {
-  /** Stable internal id. Opaque: conventions are not yet confirmed by the backend. */
+  /** `agent_id`: opaque, server-generated, never reused. */
   id: string;
+  /** Masked presentation name (contract v0.3 §2.2.1); immutable, never edited. */
   displayName: string;
-  /** PROVISIONAL extra label (not in contract v0.2.1); null when the server sends none. */
-  extension: string | null;
-  status: AgentStatus;
-  synthetic: boolean;
   createdAt: string;
-  updatedAt: string;
+  /** Null while active; set once when retired (never reactivated). */
+  retiredAt: string | null;
+  /** Derived from `retiredAt`. */
+  status: AgentStatus;
 }
 
 /** Create-only input: names are immutable (no rename route). */
 export interface AgentInput {
   displayName: string;
-  extension: string;
-}
-
-export interface AuditChange {
-  field: string;
-  before: string | null;
-  after: string | null;
-}
-
-export interface AuditEntry {
-  id: string;
-  action: 'created' | 'retired';
-  actor: string;
-  at: string;
-  changes: readonly AuditChange[];
 }
 
 /** Call status (demo API contract v0.2 item C, CONFIRMED). */

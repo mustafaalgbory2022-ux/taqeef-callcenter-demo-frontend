@@ -1,7 +1,7 @@
 import { Link } from 'react-router';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import type { Agent } from '@/shared/types/domain';
-import { Badge, SyntheticBadge } from '@/shared/ui/Badge';
+import { Badge } from '@/shared/ui/Badge';
 import { Card } from '@/shared/ui/Card';
 import styles from './Dashboard.module.css';
 
@@ -18,7 +18,6 @@ export function AgentBreakdown({ agents }: { agents: readonly Agent[] }) {
         {agents.map((agent) => (
           <li key={agent.id}>
             <Link to={`/agents/${encodeURIComponent(agent.id)}`}>{agent.displayName}</Link>{' '}
-            {agent.synthetic && <SyntheticBadge />}{' '}
             {agent.status === 'retired' && <Badge>{t('agents.status.retired')}</Badge>}
           </li>
         ))}

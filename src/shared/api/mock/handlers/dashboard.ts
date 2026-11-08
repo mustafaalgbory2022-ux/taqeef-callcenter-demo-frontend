@@ -25,7 +25,7 @@ export function dashboardRoutes(state: MockState): Route[] {
             : state.scorecards.find((v) => v.scorecard_version_id === versionId);
         if (versionId !== null && !version) return fail(404, 'Unknown scorecard version.');
         const agentId = query.agent_id ?? null;
-        const agent = agentId ? state.agents.find((a) => a.id === agentId) : null;
+        const agent = agentId ? state.agents.find((a) => a.agent_id === agentId) : null;
         if (agentId && !agent) return fail(404, 'Unknown agent.');
 
         const calls = state.calls.filter((c) => !agentId || c.agent_id === agentId);

@@ -1,3 +1,4 @@
+import { ApiError } from '@/shared/api/errors';
 import { describeError } from '@/shared/i18n/errorMessage';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import type { Agent } from '@/shared/types/domain';
@@ -21,7 +22,16 @@ export function ConfirmStatusDialog({ agent, onClose }: { agent: Agent; onClose:
       toast('success', t('agents.status.retiredToast', { name: agent.displayName }));
       onClose();
     } catch (err) {
-      toast('error', describeError(err, t));
+      // As-built refusals (contract v0.3 §4.3): unknown_agent → 404, already_retired → 409.
+      const reason = err instanceof ApiError ? err.fieldIssues[0]?.reason : undefined;
+      toast(
+        'error',
+        reason === 'unknown_agent' || (err instanceof ApiError && err.code === 'not_found')
+          ? t('agents.status.unknownAgent')
+          : reason === 'already_retired' || (err instanceof ApiError && err.code === 'conflict')
+            ? t('agents.status.alreadyRetired')
+            : describeError(err, t),
+      );
     }
   }
 

@@ -1,11 +1,11 @@
-import { agents, initialAudit } from './fixtures/agents';
+import { agents } from './fixtures/agents';
 import { callFixtures } from './fixtures/calls';
 import { scorecardVersions } from './fixtures/scorecards';
 import { syntheticRevisionId } from './ids';
 import { simulateEvaluation } from './scoring';
 import type { MockState, WireScorecard } from './types';
 
-const STORAGE_KEY = 'taqeef.mock.db.v6';
+const STORAGE_KEY = 'taqeef.mock.db.v7';
 
 function versionOf(n: number): WireScorecard {
   const v = scorecardVersions.find((sc) => sc.version === n);
@@ -17,7 +17,6 @@ function versionOf(n: number): WireScorecard {
 export function createSeedState(): MockState {
   const state: MockState = {
     agents: structuredClone(agents),
-    audit: Object.fromEntries(agents.map((a) => [a.id, initialAudit(a)])),
     calls: callFixtures.map((f, i) => ({
       ...structuredClone(f.call),
       current_transcript_revision_id: syntheticRevisionId(i + 1),

@@ -116,7 +116,7 @@ export function UploadForm() {
               <option value="">{t('calls.upload.selectAgent')}</option>
               {active.map((a) => (
                 <option key={a.id} value={a.id}>
-                  {a.displayName} · {a.extension}
+                  {a.displayName}
                 </option>
               ))}
             </select>

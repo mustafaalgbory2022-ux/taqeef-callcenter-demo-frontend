@@ -1,50 +1,45 @@
 import type { Agent, AgentInput } from '@/shared/types/domain';
 import type { MessageKey } from '@/shared/i18n/translate';
-import { EXTENSION_PATTERN, isBlank } from '@/shared/utils/validation';
+import { isBlank } from '@/shared/utils/validation';
 
-export type AgentField = 'displayName' | 'extension';
+export type AgentField = 'displayName';
 export type AgentErrors = Partial<Record<AgentField, MessageKey>>;
 
-export const emptyAgentInput: AgentInput = { displayName: '', extension: '' };
+export const emptyAgentInput: AgentInput = { displayName: '' };
 
-/** Case-insensitive, whitespace-collapsed form used for name uniqueness (contract v0.2.1 §A). */
+/** The server's masking token (contract v0.3 §2.2). */
+export const MASK_TOKEN = '[NUMBER]';
+
+/** Case-insensitive, whitespace-collapsed form (a convenience; the server's name_key decides). */
 export function normalizeAgentName(name: string): string {
   return name.normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
 }
 
 /**
- * Client-side validation for creating an agent, mirroring server rules. Errors are i18n
- * message keys. Names are unique across ALL agents, retired included (never reused).
+ * Client-side checks before `POST /api/agents`. The server is authoritative (name rules,
+ * Arabic spelling variants via `name_key`); these only give early feedback. A value that
+ * contains the masking token is refused here too, so a masked presentation value is never
+ * submitted as an original (contract v0.3 §2.2.1 write path).
  */
 export function validateAgent(input: AgentInput, agents: readonly Agent[]): AgentErrors {
   const errors: AgentErrors = {};
   const name = normalizeAgentName(input.displayName);
   if (isBlank(input.displayName)) errors.displayName = 'agents.form.errors.nameRequired';
+  else if (input.displayName.includes(MASK_TOKEN))
+    errors.displayName = 'agents.form.errors.edit_value_masked';
   else if (input.displayName.trim().length > 80)
     errors.displayName = 'agents.form.errors.nameTooLong';
   else if (agents.some((a) => normalizeAgentName(a.displayName) === name))
     errors.displayName = 'agents.form.errors.nameTaken';
-
-  // Extension is a PROVISIONAL optional label (not defined by contract v0.2.1).
-  const ext = input.extension.trim();
-  if (ext && !EXTENSION_PATTERN.test(ext)) errors.extension = 'agents.form.errors.extensionFormat';
-  else if (ext && agents.some((a) => a.extension?.toLowerCase() === ext.toLowerCase())) {
-    errors.extension = 'agents.form.errors.extensionTaken';
-  }
   return errors;
 }
 
 /** Map server (snake_case) field names to form fields. */
-export const SERVER_FIELD: Record<string, AgentField> = {
-  display_name: 'displayName',
-  extension: 'extension',
-};
+export const SERVER_FIELD: Record<string, AgentField> = { display_name: 'displayName' };
 
 /** Alphabetical by name — never by score (no rankings). */
 export function sortAgents(agents: readonly Agent[]): Agent[] {
   return [...agents].sort(
-    (a, b) =>
-      a.displayName.localeCompare(b.displayName) ||
-      (a.extension ?? '').localeCompare(b.extension ?? ''),
+    (a, b) => a.displayName.localeCompare(b.displayName) || a.id.localeCompare(b.id),
   );
 }

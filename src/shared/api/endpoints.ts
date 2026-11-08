@@ -14,8 +14,6 @@ export const endpoints = {
   session: '/session',
   agents: '/agents',
   agentRetire: (id: string) => `/agents/${seg(id)}/retire`,
-  /** PROVISIONAL: not listed in contract v0.2.1 (audit history route undefined). */
-  agentHistory: (id: string) => `/agents/${seg(id)}/history`,
   calls: '/calls',
   call: (id: string) => `/calls/${seg(id)}`,
   callAudio: (id: string) => `/calls/${seg(id)}/audio`,

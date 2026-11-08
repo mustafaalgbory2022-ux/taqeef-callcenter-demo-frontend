@@ -63,7 +63,11 @@ export function scorecardRoutes(state: MockState, persist: () => void): Route[] 
     {
       method: 'GET',
       pattern: '/scorecard/versions',
-      handler: () => ok([...state.scorecards].sort((a, b) => b.version - a.version)),
+      handler: () =>
+        ok({
+          items: [...state.scorecards].sort((a, b) => b.version - a.version),
+          truncated: false,
+        }),
     },
     {
       method: 'GET',

@@ -401,6 +401,25 @@ decoding and threshold-mode consistency, mock server aggregation by scope/versio
 single active version after activation, excerpt indicators EN/AR, three-part error codes).
 `npm run test:e2e`: 68 passed (new: no horizontal overflow after evidence selection, mobile AR).
 
+## Task 12 — contract v0.3 r4: agents, lists and session (Stream 12)
+
+**Inputs (all three read):** `README-handoff.md`, `demo-api-contract-v0.3.md` (r4: edit routes
+#39–#41, `?view=edit` removed, `edit_value_masked` write refusal) and the updated
+`cloud-alignment-note.md`.
+
+**Completed** (handoff §5d): v0.3 agent object and lifecycle (create/retire only; extension and
+history removed); create/retire bodies and all refusal reasons; masked-value write guard;
+active-only upload choices with retired agents kept in history views; `{items, truncated}` list
+shape everywhere; session reviewed against §3 (no change needed).
+
+**Deferred** (handoff §6): call object and hide/restore (started, then reverted to keep the
+checkpoint tested), edit routes #39–#41, runs, hits, transcripts, jobs, scorecard draft.
+
+**QA.** `npm run check`: 126 unit/component/mock-integration tests passed (new: v0.3 agent
+decoding, retire body, list shape incl. bare-array rejection, simulated name rules incl. Arabic
+spelling variants and `edit_value_masked`). `npm run test:e2e`: 70 passed (new: retired agent
+leaves upload choices but stays in call list, filter and agent page; masked-token refusal).
+
 ## Proposed next tasks (prioritized, client-only unless noted)
 
 1. On approval: launch code in the URL fragment (Task 3a finding 9).

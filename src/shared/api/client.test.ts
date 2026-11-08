@@ -24,8 +24,10 @@ const wireCall = {
   channel_layout: 'dual',
 };
 
+/** Wraps array bodies in the v0.3 list shape `{items, truncated}` (§2). */
+const asList = (body: unknown) => (Array.isArray(body) ? { items: body, truncated: false } : body);
 const respond = (status: number, body: unknown) =>
-  vi.fn<Transport>().mockResolvedValue({ status, body });
+  vi.fn<Transport>().mockResolvedValue({ status, body: asList(body) });
 
 describe('ApiClient over a transport', () => {
   it('maps snake_case wire data to camelCase domain types', async () => {
@@ -41,6 +43,17 @@ describe('ApiClient over a transport', () => {
       path: '/calls',
       query: { agent_id: 'agt-001' },
     });
+  });
+
+  it('decodes the v0.3 list shape and rejects bare arrays (§2)', async () => {
+    const bare = vi.fn<Transport>().mockResolvedValue({ status: 200, body: [wireCall] });
+    await expect(createApiClient(bare, 'live').listCalls()).rejects.toMatchObject({
+      code: 'contract_mismatch',
+    });
+    const truncated = vi
+      .fn<Transport>()
+      .mockResolvedValue({ status: 200, body: { items: [wireCall], truncated: true } });
+    await expect(createApiClient(truncated, 'live').listCalls()).resolves.toHaveLength(1);
   });
 
   it('requires UTC timestamps with milliseconds and Z (contract v0.2 item 4)', async () => {
@@ -84,7 +97,7 @@ describe('ApiClient over a transport', () => {
       .fn<Transport>()
       .mockResolvedValueOnce({ status: 200, body: {} })
       .mockResolvedValueOnce({ status: 201, body: version })
-      .mockResolvedValueOnce({ status: 200, body: [{ ...version, version: 2 }, version] });
+      .mockResolvedValueOnce({ status: 200, body: asList([{ ...version, version: 2 }, version]) });
     const api = createApiClient(transport, 'live');
     await api.saveScorecardVersion({
       name: version.name,
@@ -105,14 +118,11 @@ describe('ApiClient over a transport', () => {
   it('sends snake_case request bodies', async () => {
     const transport = respond(201, { ...wireCall });
     await createApiClient(transport, 'live')
-      .createAgent({
-        displayName: ' Agent E ',
-        extension: 'SYN-105',
-      })
+      .createAgent({ displayName: ' Agent E ' })
       .catch(() => undefined);
     const req = transport.mock.calls[0]?.[0] as ApiRequest;
-    // Create only: no status (a new agent is active) and no rename route.
-    expect(req.body).toEqual({ display_name: 'Agent E', extension: 'SYN-105' });
+    // Contract v0.3 §4.2: exactly {request_id, display_name}; no status, no extension.
+    expect(req.body).toEqual({ request_id: expect.any(String), display_name: 'Agent E' });
   });
 
   it('rejects responses that break the contract', async () => {
@@ -315,7 +325,7 @@ describe('ApiClient over a transport', () => {
       },
     };
     const err = await createApiClient(respond(422, body), 'live')
-      .createAgent({ displayName: 'Agent X', extension: 'x' })
+      .createAgent({ displayName: 'Agent X' })
       .catch((e: unknown) => e);
     expect(err).toBeInstanceOf(ApiError);
     expect(err).toMatchObject({
@@ -374,7 +384,7 @@ describe('session and CSRF (demo API contract 1.2–1.7)', () => {
     const transport = vi
       .fn<Transport>()
       .mockResolvedValueOnce({ status: 200, body: exchanged })
-      .mockResolvedValue({ status: 200, body: [] });
+      .mockResolvedValue({ status: 200, body: asList([]) });
     const api = createApiClient(transport, 'live');
     const session = await api.openSession(' SYN-CODE-0001 ');
     expect(session).toMatchObject({ mode: 'live', idleTimeoutS: 1800, absoluteTimeoutS: 43200 });
@@ -398,7 +408,7 @@ describe('session and CSRF (demo API contract 1.2–1.7)', () => {
       .fn<Transport>()
       .mockResolvedValueOnce({ status: 200, body: exchanged })
       .mockResolvedValueOnce({ status: 401, body: { detail: 'Session expired' } })
-      .mockResolvedValue({ status: 200, body: [] });
+      .mockResolvedValue({ status: 200, body: asList([]) });
     const api = createApiClient(transport, 'live');
     const ended = vi.fn();
     api.onSessionEnded(ended);
@@ -409,6 +419,45 @@ describe('session and CSRF (demo API contract 1.2–1.7)', () => {
     await api.listCalls();
     expect(transport.mock.calls[2]?.[0].headers).toBeUndefined();
     expect(transport).toHaveBeenCalledTimes(3);
+  });
+
+  it('decodes v0.3 agents and retires with {request_id} only (§4)', async () => {
+    const transport = vi.fn<Transport>().mockResolvedValue({
+      status: 200,
+      body: {
+        items: [
+          {
+            agent_id: 'agt-1',
+            display_name: 'Agent A',
+            created_at: '2026-11-05T09:30:00.000Z',
+            retired_at: null,
+          },
+          {
+            agent_id: 'agt-2',
+            display_name: 'Agent B',
+            created_at: '2026-11-05T09:30:00.000Z',
+            retired_at: '2026-11-06T09:30:00.000Z',
+          },
+        ],
+        truncated: false,
+      },
+    });
+    const api = createApiClient(transport, 'live');
+    const list = await api.listAgents({ includeRetired: true });
+    expect(list.map((a) => [a.id, a.status])).toEqual([
+      ['agt-1', 'active'],
+      ['agt-2', 'retired'],
+    ]);
+    expect(list[0]).not.toHaveProperty('extension');
+    await api.retireAgent('agt-1').catch(() => undefined);
+    expect(transport.mock.calls[1]?.[0]).toMatchObject({
+      method: 'POST',
+      path: '/agents/agt-1/retire',
+      body: { request_id: expect.any(String) },
+    });
+    expect(Object.keys((transport.mock.calls[1]?.[0].body ?? {}) as object)).toEqual([
+      'request_id',
+    ]);
   });
 
   it('builds the protected audio URL from the call id', () => {
@@ -458,7 +507,7 @@ describe('session resume and CSRF exemptions (contract v0.2.1 §D)', () => {
     const transport = vi
       .fn<Transport>()
       .mockResolvedValueOnce({ status: 200, body: { csrf_token: 'resumed' } })
-      .mockResolvedValue({ status: 200, body: [] });
+      .mockResolvedValue({ status: 200, body: asList([]) });
     const api = createApiClient(transport, 'live');
     const session = await api.resumeSession();
     expect(session).toMatchObject({ mode: 'live', idleTimeoutS: null });
@@ -476,7 +525,7 @@ describe('session resume and CSRF exemptions (contract v0.2.1 §D)', () => {
     const transport = vi
       .fn<Transport>()
       .mockResolvedValueOnce({ status: 401, body: {} })
-      .mockResolvedValue({ status: 200, body: [] });
+      .mockResolvedValue({ status: 200, body: asList([]) });
     const api = createApiClient(transport, 'live');
     await expect(api.resumeSession()).resolves.toBeNull();
     await api.listCalls();
@@ -489,7 +538,7 @@ describe('session resume and CSRF exemptions (contract v0.2.1 §D)', () => {
       body:
         req.path === '/session/exchange'
           ? { csrf_token: 't', idle_timeout_s: 1, absolute_timeout_s: 2 }
-          : [],
+          : { items: [], truncated: false },
     }));
     const api = createApiClient(transport, 'live');
     await api.openSession('SYN-CODE-0001');

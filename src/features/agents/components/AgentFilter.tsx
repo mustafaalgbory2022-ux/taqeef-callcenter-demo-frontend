@@ -28,14 +28,14 @@ export function AgentFilter() {
         <option value="">{t('agents.filter.all')}</option>
         {active.map((a) => (
           <option key={a.id} value={a.id}>
-            {a.displayName} · {a.extension}
+            {a.displayName}
           </option>
         ))}
         {inactive.length > 0 && (
           <optgroup label={t('agents.filter.inactiveGroup')}>
             {inactive.map((a) => (
               <option key={a.id} value={a.id}>
-                {a.displayName} · {a.extension}
+                {a.displayName}
               </option>
             ))}
           </optgroup>

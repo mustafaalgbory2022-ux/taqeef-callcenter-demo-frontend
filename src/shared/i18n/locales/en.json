@@ -145,7 +145,6 @@
   "agents": {
     "fields": {
       "name": "Agent",
-      "extension": "Extension / agent number",
       "status": "Status"
     },
     "status": {
@@ -154,7 +153,9 @@
       "retire": "Retire",
       "retireTitle": "Retire {name}?",
       "retireBody": "Retirement is permanent. The agent can no longer be selected for uploads and cannot be reactivated, renamed or deleted. Earlier calls, evaluations and history keep this agent.",
-      "retiredToast": "{name} was retired."
+      "retiredToast": "{name} was retired.",
+      "unknownAgent": "This agent no longer exists. Reload the list.",
+      "alreadyRetired": "This agent is already retired."
     },
     "filter": {
       "label": "Agent",
@@ -172,38 +173,28 @@
     },
     "table": {
       "label": "Agent profiles",
-      "updated": "Last changed"
+      "created": "Created",
+      "retired": "Retired"
     },
     "form": {
       "createTitle": "Add agent",
       "editTitle": "Edit agent",
-      "extensionHint": "2–20 letters, digits or hyphens. Must be unique.",
       "syntheticNote": "Use fictional names and synthetic extensions only.",
       "created": "{name} was added.",
       "updated": "{name} was updated.",
       "errors": {
         "nameRequired": "Enter the agent's name.",
         "nameTooLong": "Use at most 80 characters.",
-        "extensionFormat": "Use 2–20 letters, digits or hyphens.",
-        "extensionTaken": "This extension is already assigned to another agent.",
         "nameTaken": "This name is already used by another agent, including retired agents.",
         "name_invalid_char": "The name contains a character that is not allowed (including invisible formatting).",
         "name_digits": "Names cannot contain digits.",
         "name_mixed_script": "Do not mix Arabic and Latin letters in one word.",
         "name_shape": "Use a name made of words separated by single spaces.",
         "name_length": "Use 1–80 characters.",
-        "name_exists": "This name is already used by another agent, including retired agents (spelling variants count as the same name)."
+        "name_exists": "This name is already used by another agent, including retired agents (spelling variants count as the same name).",
+        "edit_value_masked": "The name contains the masking token [NUMBER]. Enter the original name."
       },
       "immutableNote": "Names cannot be changed later. To rename an agent, retire it and create a new one."
-    },
-    "history": {
-      "open": "History",
-      "title": "Change history — {name}",
-      "empty": "No changes recorded.",
-      "actions": {
-        "created": "Created",
-        "retired": "Retired"
-      }
     }
   },
   "calls": {

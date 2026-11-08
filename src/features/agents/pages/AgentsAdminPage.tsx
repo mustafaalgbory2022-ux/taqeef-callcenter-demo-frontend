@@ -9,17 +9,12 @@ import { Notice } from '@/shared/ui/Notice';
 import { PageHeader } from '@/shared/ui/PageHeader';
 import { QueryView } from '@/shared/ui/States';
 import { AgentFormDialog } from '../components/AgentFormDialog';
-import { AgentHistoryDialog } from '../components/AgentHistoryDialog';
 import { AgentsTable } from '../components/AgentsTable';
 import { ConfirmStatusDialog } from '../components/ConfirmStatusDialog';
 import { useAgents } from '../hooks/useAgentData';
 import { sortAgents } from '../model/agents';
 
-type DialogState =
-  | { kind: 'none' }
-  | { kind: 'form' }
-  | { kind: 'status'; agent: Agent }
-  | { kind: 'history'; agent: Agent };
+type DialogState = { kind: 'none' } | { kind: 'form' } | { kind: 'status'; agent: Agent };
 
 export function AgentsAdminPage() {
   const { t } = useI18n();
@@ -61,7 +56,6 @@ export function AgentsAdminPage() {
               agents={sortAgents(data)}
               canManage={canManage}
               onRetire={(agent) => setDialog({ kind: 'status', agent })}
-              onHistory={(agent) => setDialog({ kind: 'history', agent })}
             />
           )}
         </QueryView>
@@ -69,7 +63,6 @@ export function AgentsAdminPage() {
 
       {dialog.kind === 'form' && <AgentFormDialog agents={list} onClose={close} />}
       {dialog.kind === 'status' && <ConfirmStatusDialog agent={dialog.agent} onClose={close} />}
-      {dialog.kind === 'history' && <AgentHistoryDialog agent={dialog.agent} onClose={close} />}
     </>
   );
 }

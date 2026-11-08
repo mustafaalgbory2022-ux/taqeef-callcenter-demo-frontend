@@ -120,8 +120,7 @@ function CallDetail({ call }: { call: Call }) {
             {agent && (
               <>
                 {t('agents.fields.name')}:{' '}
-                <Link to={`/agents/${encodeURIComponent(agent.id)}`}>{agent.displayName}</Link>{' '}
-                <bdi>({agent.extension})</bdi>
+                <Link to={`/agents/${encodeURIComponent(agent.id)}`}>{agent.displayName}</Link>
               </>
             )}
             <CallStatusBadge status={call.status} />

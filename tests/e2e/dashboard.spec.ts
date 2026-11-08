@@ -38,7 +38,7 @@ test('agent filter is stored in the URL and carries to Calls', async ({ page }) 
   await openSession(page);
   await page
     .getByRole('combobox', { name: 'Agent', exact: true })
-    .selectOption({ label: 'Agent A · SYN-101' });
+    .selectOption({ label: 'Agent A' });
   await expect(page).toHaveURL(/agent=agt-001/);
   await expect(page).not.toHaveURL(/#c=|launch_code/); // never reintroduced by navigation
   await expect(page.getByTestId('kpi-evaluated')).toContainText('2');

@@ -3,7 +3,7 @@ import { CallsCard } from '@/features/calls';
 import { EvaluationLog, useEvaluations } from '@/features/evaluations';
 import { useDocumentTitle } from '@/shared/hooks/useDocumentTitle';
 import { useI18n } from '@/shared/i18n/I18nProvider';
-import { Badge, SyntheticBadge } from '@/shared/ui/Badge';
+import { Badge } from '@/shared/ui/Badge';
 import { LinkButton } from '@/shared/ui/Button';
 import { Card } from '@/shared/ui/Card';
 import { PageHeader } from '@/shared/ui/PageHeader';
@@ -67,12 +67,6 @@ function AgentDashboard({
         description={
           <dl className={styles.profileList}>
             <div>
-              <dt>{t('agents.fields.extension')}</dt>
-              <dd>
-                <bdi>{agent.extension ?? '—'}</bdi>
-              </dd>
-            </div>
-            <div>
               <dt>{t('agents.fields.status')}</dt>
               <dd>
                 <Badge tone={agent.status === 'active' ? 'success' : 'neutral'}>
@@ -80,14 +74,6 @@ function AgentDashboard({
                 </Badge>
               </dd>
             </div>
-            {agent.synthetic && (
-              <div>
-                <dt>{t('common.dataLabel')}</dt>
-                <dd>
-                  <SyntheticBadge />
-                </dd>
-              </div>
-            )}
           </dl>
         }
         actions={

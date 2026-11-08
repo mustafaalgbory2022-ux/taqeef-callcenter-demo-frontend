@@ -10,10 +10,6 @@ export const useAgents = ({ includeRetired = false }: { includeRetired?: boolean
   useApiQuery(['agents', includeRetired ? 'all' : 'active'], (api) =>
     api.listAgents({ includeRetired }),
   );
-export const useAgentHistory = (id: string | null) =>
-  useApiQuery(['agents', 'history', id], (api) => api.getAgentHistory(id ?? ''), {
-    enabled: id !== null,
-  });
 
 /** Agent changes affect dashboards, calls and evaluations views. */
 const AFFECTED = ['agents', 'calls', 'evaluations'] as const;

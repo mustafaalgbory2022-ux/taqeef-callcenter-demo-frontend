@@ -30,6 +30,11 @@ export type FieldReason =
   | 'unknown_agent'
   | 'already_retired'
   | 'name_exists'
+  | 'name_length'
+  | 'name_invalid_char'
+  | 'name_digits'
+  | 'name_mixed_script'
+  | 'edit_value_masked'
   | 'invalid';
 
 const correlationId = () => crypto.randomUUID();

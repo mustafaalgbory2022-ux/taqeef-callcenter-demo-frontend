@@ -1,45 +1,31 @@
-import type { Agent, AgentInput, AuditEntry } from '@/shared/types/domain';
-import { arrayOf, bool, nullable, object, oneOf, str, type Decoded } from '../decode';
+import type { Agent, AgentInput } from '@/shared/types/domain';
+import { nullable, object, str, type Decoded } from '../decode';
 import { utcTimestamp } from './common';
+import { opaqueId } from './ids';
 
+/**
+ * Agent object (contract v0.3 §4.1; shape PROPOSED, identity and lifecycle CONFIRMED).
+ * `display_name` arrives MASKED on this route (§2.2.1); raw names exist only on the separate
+ * edit route #39, which this demo does not need (names are immutable, nothing is pre-filled).
+ */
 export const wireAgent = object({
-  id: str,
+  agent_id: opaqueId,
   display_name: str,
-  // PROVISIONAL: `extension` and `status` are not defined by contract v0.2.1.
-  extension: nullable(str),
-  status: oneOf(['active', 'retired']),
-  synthetic: bool,
   created_at: utcTimestamp,
-  updated_at: utcTimestamp,
+  retired_at: nullable(utcTimestamp),
 });
 
 export function agentFromWire(w: Decoded<typeof wireAgent>): Agent {
   return {
-    id: w.id,
+    id: w.agent_id,
     displayName: w.display_name,
-    extension: w.extension,
-    status: w.status,
-    synthetic: w.synthetic,
     createdAt: w.created_at,
-    updatedAt: w.updated_at,
+    retiredAt: w.retired_at,
+    status: w.retired_at === null ? 'active' : 'retired',
   };
 }
 
-/** `POST /api/agents` body (PROPOSED). No status: a new agent is active. */
-export function agentInputToWire(input: AgentInput): Record<string, unknown> {
-  const out: Record<string, unknown> = { display_name: input.displayName.trim() };
-  if (input.extension.trim()) out.extension = input.extension.trim();
-  return out;
-}
-
-export const wireAuditEntry = object({
-  id: str,
-  action: oneOf(['created', 'retired']),
-  actor: str,
-  at: utcTimestamp,
-  changes: arrayOf(object({ field: str, before: nullable(str), after: nullable(str) })),
-});
-
-export function auditFromWire(w: Decoded<typeof wireAuditEntry>): AuditEntry {
-  return { id: w.id, action: w.action, actor: w.actor, at: w.at, changes: w.changes };
+/** `POST /api/agents` body (contract v0.3 §4.2): the name and the action's request id. */
+export function agentInputToWire(input: AgentInput, requestId: string): Record<string, unknown> {
+  return { request_id: requestId, display_name: input.displayName.trim() };
 }

@@ -1,7 +1,6 @@
 import type {
   Agent,
   AgentInput,
-  AuditEntry,
   Call,
   CallUpload,
   Evaluation,
@@ -14,17 +13,11 @@ import type {
   DashboardSummary,
 } from '@/shared/types/domain';
 import { apiConfig, type ApiMode } from './config';
-import { arrayOf, DecodeError, type Decoder } from './decode';
+import { arrayOf, bool, DecodeError, nullable, object, type Decoder } from './decode';
 import { endpoints } from './endpoints';
 import { ApiError, toApiError } from './errors';
 import type { ApiRequest, Transport } from './transport';
-import {
-  agentFromWire,
-  agentInputToWire,
-  auditFromWire,
-  wireAgent,
-  wireAuditEntry,
-} from './wire/agents';
+import { agentFromWire, agentInputToWire, wireAgent } from './wire/agents';
 import {
   callFromWire,
   transcriptFromWire,
@@ -68,7 +61,6 @@ export interface ApiClient {
   createAgent(input: AgentInput): Promise<Agent>;
   /** Irreversible: a retired agent is never reactivated. */
   retireAgent(id: string): Promise<Agent>;
-  getAgentHistory(id: string): Promise<AuditEntry[]>;
   listCalls(filter?: CallFilter): Promise<Call[]>;
   getCall(id: string): Promise<Call>;
   uploadCall(upload: CallUpload): Promise<UploadAccepted>;
@@ -147,16 +139,17 @@ export function createApiClient(
     }
   }
 
+  // Lists are `{"items": [...], "truncated": false}` (contract v0.3 §2, PROPOSED). The demo
+  // lists are small and never truncated; `truncated` is decoded but not needed by any view.
   const list = <W, T>(decoder: Decoder<W>, map: (w: W) => T) => ({
-    decoder: arrayOf(decoder),
-    map: (ws: W[]) => ws.map(map),
+    decoder: object({ items: arrayOf(decoder), truncated: nullable(bool) }),
+    map: (w: { items: W[] }) => w.items.map(map),
   });
 
   const agents = list(wireAgent, agentFromWire);
   const calls = list(wireCall, callFromWire);
   const evaluations = list(wireEvaluation, evaluationFromWire);
   const versions = list(wireScorecardVersion, scorecardFromWire);
-  const audit = list(wireAuditEntry, auditFromWire);
 
   return {
     mode,
@@ -231,7 +224,7 @@ export function createApiClient(
       ),
     createAgent: (input) =>
       send(
-        { method: 'POST', path: endpoints.agents, body: agentInputToWire(input) },
+        { method: 'POST', path: endpoints.agents, body: agentInputToWire(input, requestId()) },
         wireAgent,
         agentFromWire,
       ),
@@ -241,8 +234,6 @@ export function createApiClient(
         wireAgent,
         agentFromWire,
       ),
-    getAgentHistory: (id) =>
-      send({ method: 'GET', path: endpoints.agentHistory(id) }, audit.decoder, audit.map),
     listCalls: (filter = {}) =>
       send(
         { method: 'GET', path: endpoints.calls, query: { agent_id: filter.agentId } },

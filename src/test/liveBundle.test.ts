@@ -9,7 +9,7 @@ import { build } from 'vite';
  * Regression guard: the live build must contain no simulated backend and no synthetic data.
  * A mock build is produced too, so the markers are proven meaningful.
  */
-const MOCK_MARKERS = ['taqeef.mock.db', 'Synthetic administrator', 'SYN-101', 'DEMO-001'];
+const MOCK_MARKERS = ['taqeef.mock.db', 'Synthetic administrator', 'agt-001', 'DEMO-001'];
 const MOCK_SOURCE = /[\\/]src[\\/]shared[\\/]api[\\/](mock[\\/]|runtime[\\/]mock\.ts)/;
 
 interface Output {
