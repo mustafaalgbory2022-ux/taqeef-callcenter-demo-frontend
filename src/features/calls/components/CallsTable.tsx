@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
 import { resultPresentation } from '@/features/evaluations';
+import { useApiClient } from '@/shared/api/ApiProvider';
 import { useI18n } from '@/shared/i18n/I18nProvider';
 import type { Agent, Call, Evaluation, ScorecardVersion } from '@/shared/types/domain';
 import { Badge, SyntheticBadge } from '@/shared/ui/Badge';
@@ -18,9 +19,13 @@ export interface CallsTableProps {
   label: string;
 }
 
-export function CallsTable({ calls, agents, current, label }: CallsTableProps) {
+/**
+ * Call list (contract v0.3 §5.3). The agent comes from the call itself (`agent_id`,
+ * masked `agent_display_name`), so retired agents stay visible on their calls.
+ */
+export function CallsTable({ calls, current, label }: CallsTableProps) {
   const { t, fmt } = useI18n();
-  const agentOf = (id: string | null) => agents.find((a) => a.id === id);
+  const mock = useApiClient().mode === 'mock';
 
   return (
     <TableRegion label={label}>
@@ -38,7 +43,6 @@ export function CallsTable({ calls, agents, current, label }: CallsTableProps) {
       <tbody>
         {calls.map((call) => {
           const evaluation = current.get(call.id);
-          const agent = agentOf(call.agentId);
           return (
             <tr key={call.id}>
               <td className={tableStyles.mono}>
@@ -47,17 +51,21 @@ export function CallsTable({ calls, agents, current, label }: CallsTableProps) {
                 </Link>
               </td>
               <td>
-                {call.title} {call.synthetic && <SyntheticBadge />}
-              </td>
-              <td>
-                {agent ? (
-                  <Link to={`/agents/${encodeURIComponent(agent.id)}`}>{agent.displayName}</Link>
-                ) : (
-                  '—'
+                {call.title} {mock && <SyntheticBadge />}
+                {call.hidden && (
+                  <>
+                    {' '}
+                    <Badge icon="minus">{t('calls.hidden.badge')}</Badge>
+                  </>
                 )}
               </td>
+              <td>
+                <Link to={`/agents/${encodeURIComponent(call.agentId)}`}>
+                  {call.agentDisplayName}
+                </Link>
+              </td>
               <td className={tableStyles.muted}>
-                <bdi>{fmt.dateTime(call.recordedAt)}</bdi>
+                <bdi>{fmt.dateTime(call.uploadedAt)}</bdi>
               </td>
               <td>
                 <bdi>{call.durationMs === null ? '—' : formatDuration(call.durationMs)}</bdi>

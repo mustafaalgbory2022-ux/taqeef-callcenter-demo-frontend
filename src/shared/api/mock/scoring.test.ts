@@ -34,7 +34,12 @@ const run = (
 ) =>
   simulateEvaluation({
     id: 'e',
-    call: { id: 'c', agent_id: 'a', channel_layout: opts.layout ?? 'dual' },
+    call: {
+      call_id: 'c',
+      agent_id: 'a',
+      channels: opts.layout === 'mixed' ? 1 : 2,
+      channel_map: opts.layout === 'mixed' ? 'none' : 'left_agent',
+    },
     transcriptRevisionId: REV,
     segments: segments.map((s) => ({ ...s, speaker: opts.speaker ?? s.speaker })),
     judgments,
@@ -89,7 +94,7 @@ describe('simulated scoring — minimum assessable points', () => {
   it('marks mixed-channel uploads not assessable (roles unreliable), never scored', () => {
     const e = simulateEvaluation({
       id: 'e',
-      call: { id: 'u', agent_id: 'a', channel_layout: 'mixed' },
+      call: { call_id: 'u', agent_id: 'a', channels: 1, channel_map: 'none' },
       transcriptRevisionId: REV,
       segments: [],
       judgments: syntheticUploadJudgments(base),
@@ -131,7 +136,7 @@ describe('simulated scoring — penalty accounting', () => {
   const evaluate = (language: Judgment) =>
     simulateEvaluation({
       id: 'e',
-      call: { id: 'c', agent_id: 'a', channel_layout: 'dual' },
+      call: { call_id: 'c', agent_id: 'a', channels: 2, channel_map: 'left_agent' },
       transcriptRevisionId: REV,
       segments: twoHits,
       judgments: judgments.map((j) => (j.criterionId === 'c-language' ? language : j)),
@@ -193,7 +198,7 @@ describe('simulated scoring — configurable points and partial credit', () => {
     };
     const e = simulateEvaluation({
       id: 'e',
-      call: { id: 'c', agent_id: 'a', channel_layout: 'dual' },
+      call: { call_id: 'c', agent_id: 'a', channels: 2, channel_map: 'left_agent' },
       transcriptRevisionId: REV,
       segments: [],
       judgments: [

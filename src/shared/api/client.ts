@@ -33,6 +33,8 @@ import { dashboardFromWire, wireDashboard } from './wire/dashboard';
 
 export interface CallFilter {
   agentId?: string | undefined;
+  /** `include_hidden=true` (contract v0.3 §5.3); hidden calls are excluded by default. */
+  includeHidden?: boolean | undefined;
 }
 
 export interface EvaluationFilter {
@@ -64,6 +66,13 @@ export interface ApiClient {
   listCalls(filter?: CallFilter): Promise<Call[]>;
   getCall(id: string): Promise<Call>;
   uploadCall(upload: CallUpload): Promise<UploadAccepted>;
+  /**
+   * Soft delete (contract v0.3 §5.4): `DELETE /api/calls/{call_id}` with
+   * `{request_id, reason?}`; the call is hidden, nothing is removed. Returns the call.
+   */
+  hideCall(id: string, reason?: string): Promise<Call>;
+  /** `POST /api/calls/{call_id}/restore` with `{request_id}`. Returns the call. */
+  restoreCall(id: string): Promise<Call>;
   /** One immutable transcript revision. */
   getTranscript(revisionId: string): Promise<Transcript>;
   listEvaluations(filter?: EvaluationFilter): Promise<Evaluation[]>;
@@ -236,11 +245,36 @@ export function createApiClient(
       ),
     listCalls: (filter = {}) =>
       send(
-        { method: 'GET', path: endpoints.calls, query: { agent_id: filter.agentId } },
+        {
+          method: 'GET',
+          path: endpoints.calls,
+          query: {
+            agent_id: filter.agentId,
+            include_hidden: filter.includeHidden ? 'true' : undefined,
+          },
+        },
         calls.decoder,
         calls.map,
       ),
     getCall: (id) => send({ method: 'GET', path: endpoints.call(id) }, wireCall, callFromWire),
+    hideCall: (id, reason) => {
+      const text = reason?.trim();
+      return send(
+        {
+          method: 'DELETE',
+          path: endpoints.call(id),
+          body: text ? { request_id: requestId(), reason: text } : { request_id: requestId() },
+        },
+        wireCall,
+        callFromWire,
+      );
+    },
+    restoreCall: (id) =>
+      send(
+        { method: 'POST', path: endpoints.callRestore(id), body: { request_id: requestId() } },
+        wireCall,
+        callFromWire,
+      ),
     uploadCall: ({ file, displayName, agentId, channelMap }) => {
       const form = new FormData();
       form.append('file', file);

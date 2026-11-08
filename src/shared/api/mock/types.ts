@@ -35,6 +35,10 @@ export interface MockState {
   judgments: Record<string, Judgment[]>;
   scorecards: WireScorecard[];
   evaluations: WireEvaluation[];
+  /** Completed actions by request_id (simulated replay protection, contract v0.3 §2.1). */
+  requests: Record<string, { route: string; status: number }>;
+  /** Append-only hide/restore events (simulated `call_visibility_events`). */
+  visibilityEvents: { call_id: string; hidden: boolean; at: string }[];
   /** Stored scorecard draft (PUT /scorecard/draft). */
   draft?: unknown;
   /** Upload time (epoch ms) per uploaded call, used to simulate processing stages. */

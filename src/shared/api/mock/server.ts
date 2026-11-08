@@ -161,12 +161,12 @@ export function createMockBackend({ latencyMs = 160 }: MockTransportOptions = {}
   };
 
   const audioSrc = (callId: string): string | null => {
-    const call = state.calls.find((c) => c.id === callId);
+    const call = state.calls.find((c) => c.call_id === callId);
     if (!call) return null;
-    if (call.source === 'upload') return cachedAudioUrl(call.id);
-    const transcript = state.transcripts[call.id];
+    if (state.uploads[call.call_id] !== undefined) return cachedAudioUrl(call.call_id);
+    const transcript = state.transcripts[call.call_id];
     return transcript && call.duration_ms
-      ? synthesizeCallAudio(call.id, call.duration_ms, transcript.segments)
+      ? synthesizeCallAudio(call.call_id, call.duration_ms, transcript.segments)
       : null;
   };
 

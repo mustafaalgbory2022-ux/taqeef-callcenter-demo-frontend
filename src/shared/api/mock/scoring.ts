@@ -11,7 +11,7 @@ import type {
 
 export interface SimulateInput {
   id: string;
-  call: Pick<WireCall, 'id' | 'agent_id' | 'channel_layout'>;
+  call: Pick<WireCall, 'call_id' | 'agent_id' | 'channels' | 'channel_map'>;
   segments: readonly WireSegment[];
   transcriptRevisionId: string;
   judgments: readonly Judgment[];
@@ -61,7 +61,12 @@ type WireCriterion = WireEvaluation['criteria'][number];
 
 /** Agent attribution is reliable only on separated channels with an agent-labelled segment. */
 function reliablyAgent(call: SimulateInput['call'], seg: WireSegment): boolean {
-  return call.channel_layout === 'dual' && seg.speaker === 'agent';
+  return (
+    call.channels === 2 &&
+    call.channel_map !== null &&
+    call.channel_map !== 'none' &&
+    seg.speaker === 'agent'
+  );
 }
 
 /**
@@ -211,7 +216,7 @@ export function simulateEvaluation(input: SimulateInput): WireEvaluation {
 
   return {
     id: input.id,
-    call_id: call.id,
+    call_id: call.call_id,
     agent_id: call.agent_id,
     scorecard_id: scorecard.scorecard_id,
     scorecard_version: scorecard.version,

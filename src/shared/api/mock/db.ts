@@ -5,7 +5,7 @@ import { syntheticRevisionId } from './ids';
 import { simulateEvaluation } from './scoring';
 import type { MockState, WireScorecard } from './types';
 
-const STORAGE_KEY = 'taqeef.mock.db.v7';
+const STORAGE_KEY = 'taqeef.mock.db.v8';
 
 function versionOf(n: number): WireScorecard {
   const v = scorecardVersions.find((sc) => sc.version === n);
@@ -23,25 +23,27 @@ export function createSeedState(): MockState {
     })),
     transcripts: Object.fromEntries(
       callFixtures.map((f, i) => [
-        f.call.id,
+        f.call.call_id,
         {
-          call_id: f.call.id,
+          call_id: f.call.call_id,
           transcript_revision_id: syntheticRevisionId(i + 1),
           revision_no: 0,
           segments: f.segments,
         },
       ]),
     ),
-    judgments: Object.fromEntries(callFixtures.map((f) => [f.call.id, f.judgments])),
+    judgments: Object.fromEntries(callFixtures.map((f) => [f.call.call_id, f.judgments])),
     scorecards: structuredClone(scorecardVersions),
     revisions: [],
+    requests: {},
+    visibilityEvents: [],
     evaluations: [],
     uploads: {},
     seq: 100,
   };
 
   callFixtures.forEach((f, i) => {
-    const recorded = Date.parse(f.call.recorded_at);
+    const recorded = Date.parse(f.call.uploaded_at);
     state.evaluations.push(
       simulateEvaluation({
         id: `ev-${String(i + 1).padStart(3, '0')}`,
@@ -57,7 +59,7 @@ export function createSeedState(): MockState {
     );
   });
 
-  const dispute = callFixtures.find((f) => f.call.id === 'DEMO-003');
+  const dispute = callFixtures.find((f) => f.call.call_id === 'DEMO-003');
   if (dispute) {
     state.evaluations.push(
       simulateEvaluation({
@@ -76,7 +78,7 @@ export function createSeedState(): MockState {
   // DEMO-002 was re-transcribed after scoring: revision 1 is current but unscored, so the call
   // page must keep showing revision 0 with its run (contract v0.2 item 7).
   const retranscribed = state.transcripts['DEMO-002'];
-  const call2 = state.calls.find((c) => c.id === 'DEMO-002');
+  const call2 = state.calls.find((c) => c.call_id === 'DEMO-002');
   if (retranscribed && call2) {
     const rev1 = {
       ...structuredClone(retranscribed),
@@ -90,7 +92,7 @@ export function createSeedState(): MockState {
   // Each call's status reflects its latest run's explicit outcome (contract v0.2 item C).
   for (const call of state.calls) {
     const latest = state.evaluations
-      .filter((e) => e.call_id === call.id)
+      .filter((e) => e.call_id === call.call_id)
       .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at))[0];
     if (latest) call.status = latest.outcome;
   }

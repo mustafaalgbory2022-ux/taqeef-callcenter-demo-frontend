@@ -277,3 +277,31 @@ test('Arabic shows the twelve-status labels and the revision notice', async ({ p
     'أدلة غير كافية',
   );
 });
+
+test('hiding a call is a soft delete that can be restored (contract v0.3 §5.4)', async ({
+  page,
+}) => {
+  await openSession(page, { path: '/calls/DEMO-005' });
+  await page.getByRole('button', { name: 'Hide call' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Hide this call?' });
+  await expect(dialog).toContainText('nothing is removed');
+  await dialog.getByLabel('Reason (optional)').fill('Synthetic duplicate');
+  await dialog.getByRole('button', { name: 'Hide call' }).click();
+  await expect(page.getByTestId('call-hidden')).toBeVisible();
+  // The recording, transcript and evaluation stay available.
+  await expect(page.getByTestId('overall-score')).toBeVisible();
+  await expect(page.locator('[data-segment-id]').first()).toBeVisible();
+  await gotoInApp(page, '/calls');
+  await expect(page.getByRole('row', { name: /DEMO-001/ })).toBeVisible();
+  await expect(page.getByRole('row', { name: /DEMO-005/ })).toHaveCount(0);
+  await gotoInApp(page, '/calls/DEMO-005');
+  await page.getByRole('button', { name: 'Restore call' }).click();
+  await expect(page.getByTestId('call-hidden')).toHaveCount(0);
+  await gotoInApp(page, '/calls');
+  await expect(page.getByRole('row', { name: /DEMO-005/ })).toBeVisible();
+});
+
+test('Arabic shows the hide and restore wording', async ({ page }) => {
+  await openSession(page, { path: '/calls/DEMO-005', lang: 'ar', theme: 'dark' });
+  await expect(page.getByRole('button', { name: 'إخفاء المكالمة' })).toBeVisible();
+});

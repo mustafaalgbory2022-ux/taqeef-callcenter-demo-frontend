@@ -25,20 +25,20 @@ export function evaluationRoutes(state: MockState, persist: () => void): Route[]
       method: 'POST',
       pattern: '/calls/:id/rescore',
       handler: ({ params }) => {
-        const call = state.calls.find((c) => c.id === params.id);
+        const call = state.calls.find((c) => c.call_id === params.id);
         if (!call) return fail(404, 'Call not found.');
         // Re-score evaluates the call's CURRENT revision (never re-scored automatically).
         const transcript =
           state.revisions.find(
             (tr) => tr.transcript_revision_id === call.current_transcript_revision_id,
-          ) ?? state.transcripts[call.id];
-        const judgments = state.judgments[call.id];
+          ) ?? state.transcripts[call.call_id];
+        const judgments = state.judgments[call.call_id];
         const evaluated = ['scored', 'insufficient_evidence', 'not_assessable'];
         if (!evaluated.includes(call.status) || !transcript || !judgments) {
           return fail(409, 'The call has not finished processing.');
         }
         const previous = state.evaluations
-          .filter((e) => e.call_id === call.id)
+          .filter((e) => e.call_id === call.call_id)
           .sort(byCreatedDesc)[0];
         const evaluation = simulateEvaluation({
           id: nextId(state, 'ev'),

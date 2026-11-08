@@ -43,30 +43,32 @@ function stageAt(elapsed: number): Stage {
 
 /** Advance an uploaded call through simulated stages; materialise results when done. */
 export function refreshUpload(state: MockState, call: WireCall, now = Date.now()): boolean {
-  const uploadedAt = state.uploads[call.id];
+  const uploadedAt = state.uploads[call.call_id];
   const current = STAGE_ORDER.indexOf(call.status as Stage);
   if (uploadedAt === undefined || current < 0) return false;
   const stage = stageAt(now - uploadedAt);
   if (STAGE_ORDER.indexOf(stage) <= current) return false;
 
+  // Probing determines the channel count; synthetic uploads are mono (speaker roles unknown).
+  if (STAGE_ORDER.indexOf(stage) >= STAGE_ORDER.indexOf('ready')) call.channels ??= 1;
   if (STAGE_ORDER.indexOf(stage) >= STAGE_ORDER.indexOf('transcribed')) {
-    if (!state.transcripts[call.id]) {
+    if (!state.transcripts[call.call_id]) {
       state.seq += 1;
-      state.transcripts[call.id] = {
-        call_id: call.id,
+      state.transcripts[call.call_id] = {
+        call_id: call.call_id,
         transcript_revision_id: syntheticRevisionId(state.seq),
         revision_no: 0,
         segments: uploadTranscriptTemplate,
       };
     }
     call.current_transcript_revision_id =
-      state.transcripts[call.id]?.transcript_revision_id ?? null;
+      state.transcripts[call.call_id]?.transcript_revision_id ?? null;
     call.duration_ms ??= 60_000;
   }
   if (stage === 'evaluated') {
     const scorecard = latestScorecard(state);
     const judgments = syntheticUploadJudgments(scorecard);
-    state.judgments[call.id] = judgments;
+    state.judgments[call.call_id] = judgments;
     const run = simulateEvaluation({
       id: nextId(state, 'ev'),
       call,

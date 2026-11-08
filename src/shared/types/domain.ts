@@ -78,27 +78,61 @@ export const JOB_STATES = [
 ] as const;
 export type JobState = (typeof JOB_STATES)[number];
 
+/** Probe rejection reasons (contract v0.3 §5.1, enum CONFIRMED). */
+export const REJECTION_REASONS = [
+  'unsupported_format',
+  'unreadable',
+  'too_long',
+  'too_short',
+  'channels',
+] as const;
+export type RejectionReason = (typeof REJECTION_REASONS)[number];
+
+/** `latest_run` on a call: latest completed run of any version (contract v0.3 §5.3, PROPOSED). */
+export interface CallLatestRun {
+  runId: string;
+  scorecardVersionId: string;
+  scorecardVersionNumber: number;
+  outcome: EvaluationOutcome;
+  displayHundredths: number | null;
+  belowThreshold: boolean | null;
+  thresholdHundredths: number;
+  completedAt: string;
+}
+
+/** `latest_job` on a call (contract v0.3 §5.3, PROPOSED). */
+export interface CallLatestJob {
+  jobId: string;
+  kind: 'probe' | 'transcribe' | 'evaluate';
+  state: JobState;
+  errorCode: string | null;
+  retry: 'yes' | 'user_action' | 'no' | 'n/a';
+}
+
+/** Call list item / detail (contract v0.3 §5.3; shape PROPOSED, enums CONFIRMED). */
 export interface Call {
+  /** `call_id` (opaque). */
   id: string;
+  /** `display_name`: the call title, served masked; the server default is `Untitled call`. */
   title: string;
-  agentId: string | null;
-  /** PROPOSED (contract v0.2.1 §A): returned with call list and detail. */
-  agentDisplayName: string | null;
-  language: Language | 'mixed';
-  durationMs: number | null;
-  recordedAt: string;
+  /** Required at upload; a call's agent never changes. */
+  agentId: string;
+  /** Masked agent name served with the call; stays after the agent is retired. */
+  agentDisplayName: string;
+  uploadedAt: string;
   status: CallStatus;
+  /** Non-null exactly when `status = rejected`. */
+  rejectionReason: RejectionReason | null;
+  /** Soft-deleted ("hidden"); runs, transcripts and audio are kept. */
+  hidden: boolean;
+  durationMs: number | null;
+  /** Known once probed. */
+  channels: 1 | 2 | null;
+  channelMap: ChannelMap | null;
   /** Current transcript revision; null until transcription has produced one. */
   currentTranscriptRevisionId: string | null;
-  synthetic: boolean;
-  /** True when processing was simulated by the mock backend. */
-  simulated: boolean;
-  source: 'fixture' | 'upload';
-  /**
-   * 'dual' = agent and customer on separate channels (speaker attribution reliable);
-   * 'mixed' = single mixed channel: speakers stay unresolved unless evidence supports them.
-   */
-  channelLayout: 'dual' | 'mixed';
+  latestRun: CallLatestRun | null;
+  latestJob: CallLatestJob | null;
 }
 
 /** Channel map for an upload; null = the server's global default. */

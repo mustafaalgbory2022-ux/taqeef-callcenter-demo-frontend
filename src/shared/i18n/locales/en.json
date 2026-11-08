@@ -240,6 +240,13 @@
         "rejected": "The file was rejected when it was checked. Upload a supported WAV file.",
         "transcription_failed": "Transcription failed. No transcript or evaluation was produced.",
         "evaluation_failed": "Evaluation failed. No evaluation run was created and no score is shown."
+      },
+      "rejection": {
+        "unsupported_format": "Unsupported audio format.",
+        "unreadable": "The file could not be read.",
+        "too_long": "The recording is longer than 60 minutes.",
+        "too_short": "The recording is shorter than 5 seconds.",
+        "channels": "Only 1 or 2 channels are supported."
       }
     },
     "player": {
@@ -346,6 +353,20 @@
       "failed": "Failed",
       "waiting": "Waiting",
       "cancelled": "Cancelled"
+    },
+    "hidden": {
+      "badge": "Hidden",
+      "hide": "Hide call",
+      "restore": "Restore call",
+      "title": "This call is hidden",
+      "body": "It is excluded from call lists and dashboards. Its recording, transcripts, evaluations and history are kept.",
+      "confirmTitle": "Hide this call?",
+      "confirmBody": "Hiding is a soft delete: the call leaves lists and dashboards, and nothing is removed. It can be restored.",
+      "reason": "Reason (optional)",
+      "reasonHint": "Up to 500 characters.",
+      "hiddenToast": "The call was hidden.",
+      "restoredToast": "The call was restored.",
+      "showHidden": "Show hidden calls"
     }
   },
   "evaluations": {

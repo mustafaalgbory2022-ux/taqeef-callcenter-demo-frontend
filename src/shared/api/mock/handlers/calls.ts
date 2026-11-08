@@ -3,6 +3,7 @@ import { nextId } from '../db';
 import { refreshUpload } from '../processing';
 import { fail, invalid, ok, type Route } from '../router';
 import type { MockState, WireCall } from '../types';
+import { idempotent } from '../idempotency';
 
 /** Contract 5.3 (CONFIRMED): WAV only, at most 100 MB. */
 export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
@@ -13,12 +14,39 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
     if (state.calls.map((c) => refreshUpload(state, c)).some(Boolean)) persist();
   };
 
-  /** Call list and detail carry `agent_display_name` (contract v0.2.1 §A, PROPOSED). */
-  const withAgentName = (call: WireCall): WireCall => ({
-    ...call,
-    agent_display_name:
-      state.agents.find((a) => a.agent_id === call.agent_id)?.display_name ?? null,
-  });
+  /**
+   * The call as served (contract v0.3 §5.3): the agent's (masked) name, and `latest_run` =
+   * the latest completed run of any scorecard version. The simulated pipeline has no jobs,
+   * so `latest_job` stays null.
+   */
+  const withAgentName = (call: WireCall): WireCall => {
+    const runs = state.evaluations
+      .filter((e) => e.call_id === call.call_id)
+      .sort(
+        (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at) || (b.id > a.id ? 1 : -1),
+      );
+    const run = runs[0];
+    const version = run && state.scorecards.find((v) => v.version === run.scorecard_version);
+    return {
+      ...call,
+      agent_display_name:
+        state.agents.find((a) => a.agent_id === call.agent_id)?.display_name ??
+        call.agent_display_name,
+      latest_run:
+        run && version
+          ? {
+              run_id: run.id,
+              scorecard_version_id: version.scorecard_version_id,
+              scorecard_version_number: run.scorecard_version,
+              outcome: run.outcome,
+              display_hundredths: run.display_hundredths,
+              below_threshold: run.below_threshold,
+              threshold_hundredths: run.threshold_hundredths ?? 700,
+              completed_at: run.created_at,
+            }
+          : null,
+    };
+  };
 
   return [
     {
@@ -26,12 +54,13 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
       pattern: '/calls',
       handler: ({ query }) => {
         refreshAll();
-        const list = query.agent_id
-          ? state.calls.filter((c) => c.agent_id === query.agent_id)
-          : state.calls;
+        // Hidden (soft-deleted) calls are excluded unless include_hidden=true (§5.3).
+        const list = state.calls
+          .filter((c) => !query.agent_id || c.agent_id === query.agent_id)
+          .filter((c) => query.include_hidden === 'true' || !c.hidden);
         return ok({
           items: [...list]
-            .sort((a, b) => Date.parse(b.recorded_at) - Date.parse(a.recorded_at))
+            .sort((a, b) => Date.parse(b.uploaded_at) - Date.parse(a.uploaded_at))
             .map(withAgentName),
           truncated: false,
         });
@@ -42,7 +71,7 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
       pattern: '/calls/:id',
       handler: ({ params }) => {
         refreshAll();
-        const call = state.calls.find((c) => c.id === params.id);
+        const call = state.calls.find((c) => c.call_id === params.id);
         return call ? ok(withAgentName(call)) : fail(404, 'Call not found.');
       },
     },
@@ -82,27 +111,95 @@ export function callRoutes(state: MockState, persist: () => void): Route[] {
 
         const id = nextId(state, 'UPL').toUpperCase();
         const call: WireCall = {
-          id,
-          // Optional display name; the synthetic fallback is mock-only.
-          title: title || `Uploaded call ${id}`,
+          call_id: id,
+          // Server default title when none is given (contract v0.3 §5.1): never the file name.
+          display_name: title || 'Untitled call',
           agent_id: agent.agent_id,
-          agent_display_name: null,
-          language: 'ar',
-          duration_ms: null,
-          recorded_at: new Date().toISOString(),
+          agent_display_name: agent.display_name,
+          uploaded_at: new Date().toISOString(),
           status: 'uploaded',
+          rejection_reason: null,
+          hidden: false,
+          duration_ms: null,
+          // Known after probing (see ../processing.ts).
+          channels: null,
+          channel_map: channelMap === null ? null : (String(channelMap) as WireCall['channel_map']),
           current_transcript_revision_id: null,
-          synthetic: true,
-          simulated: true,
-          source: 'upload',
-          // Uploads are treated as a single mixed channel: speakers stay unknown.
-          channel_layout: 'mixed',
+          latest_run: null,
+          latest_job: null,
         };
         state.calls.push(call);
         state.uploads[id] = Date.now();
         registerUploadedAudio(id, file);
         persist();
         return { status: 202, body: { call_id: id, status: 'uploaded', job_id: `job-${id}` } };
+      },
+    },
+    {
+      // Soft delete (contract v0.3 §5.4): hidden only; runs, transcripts and audio are kept.
+      method: 'DELETE',
+      pattern: '/calls/:id',
+      handler: ({ params, body }) => {
+        const input = (typeof body === 'object' && body !== null ? body : {}) as {
+          request_id?: unknown;
+          reason?: unknown;
+        };
+        if (typeof input.request_id !== 'string' || !input.request_id)
+          return invalid('request_id', 'required');
+        if (
+          input.reason !== undefined &&
+          (typeof input.reason !== 'string' || input.reason.length > 500)
+        )
+          return invalid('reason', 'too_long');
+        return idempotent(
+          state,
+          input.request_id,
+          `hide:${params.id}`,
+          () => {
+            const call = state.calls.find((c) => c.call_id === params.id);
+            if (!call) return fail(404, 'Call not found.');
+            if (call.hidden) return fail(409, 'The call is already hidden.');
+            call.hidden = true;
+            state.visibilityEvents.push({
+              call_id: call.call_id,
+              hidden: true,
+              at: new Date().toISOString(),
+            });
+            persist();
+            return ok(withAgentName(call));
+          },
+          () => withAgentName(state.calls.find((c) => c.call_id === params.id) as WireCall),
+        );
+      },
+    },
+    {
+      method: 'POST',
+      pattern: '/calls/:id/restore',
+      handler: ({ params, body }) => {
+        const input = (typeof body === 'object' && body !== null ? body : {}) as {
+          request_id?: unknown;
+        };
+        if (typeof input.request_id !== 'string' || !input.request_id)
+          return invalid('request_id', 'required');
+        return idempotent(
+          state,
+          input.request_id,
+          `restore:${params.id}`,
+          () => {
+            const call = state.calls.find((c) => c.call_id === params.id);
+            if (!call) return fail(404, 'Call not found.');
+            if (!call.hidden) return fail(409, 'The call is not hidden.');
+            call.hidden = false;
+            state.visibilityEvents.push({
+              call_id: call.call_id,
+              hidden: false,
+              at: new Date().toISOString(),
+            });
+            persist();
+            return ok(withAgentName(call));
+          },
+          () => withAgentName(state.calls.find((c) => c.call_id === params.id) as WireCall),
+        );
       },
     },
   ];

@@ -1,5 +1,5 @@
 import { useI18n } from '@/shared/i18n/I18nProvider';
-import type { CallStatus } from '@/shared/types/domain';
+import type { CallStatus, RejectionReason } from '@/shared/types/domain';
 import { Card } from '@/shared/ui/Card';
 import { Icon } from '@/shared/ui/Icon';
 import { Notice } from '@/shared/ui/Notice';
@@ -17,9 +17,12 @@ const FAILURE_TEXT = {
 /** Pipeline progress for an uploaded call. Simulated in mock mode; real in live mode. */
 export function ProcessingStatus({
   status,
+  rejectionReason = null,
   simulated,
 }: {
   status: CallStatus;
+  /** Contract v0.3 §5.1: set exactly when the status is `rejected`. */
+  rejectionReason?: RejectionReason | null;
   simulated: boolean;
 }) {
   const { t } = useI18n();
@@ -32,6 +35,12 @@ export function ProcessingStatus({
       {statusGroup(status) === 'failed' ? (
         <Notice tone="danger" title={t(`calls.status.${status}`)}>
           {t(FAILURE_TEXT[status as keyof typeof FAILURE_TEXT] ?? 'calls.processing.failed')}
+          {rejectionReason && (
+            <span data-testid="rejection-reason">
+              {' '}
+              {t(`calls.processing.rejection.${rejectionReason}`)}
+            </span>
+          )}
         </Notice>
       ) : (
         <ol className={styles.steps} aria-live="polite">

@@ -17,6 +17,8 @@ export const endpoints = {
   calls: '/calls',
   call: (id: string) => `/calls/${seg(id)}`,
   callAudio: (id: string) => `/calls/${seg(id)}/audio`,
+  /** Contract v0.3 #11 (PROPOSED). Soft delete uses DELETE on `call` (#10, CONFIRMED route). */
+  callRestore: (id: string) => `/calls/${seg(id)}/restore`,
   transcriptSegments: (revisionId: string) => `/transcripts/${seg(revisionId)}/segments`,
   rescore: (id: string) => `/calls/${seg(id)}/rescore`,
   evaluations: '/evaluations',

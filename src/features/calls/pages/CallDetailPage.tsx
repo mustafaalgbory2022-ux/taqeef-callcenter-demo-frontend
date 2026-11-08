@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
-import { useAgents } from '@/features/agents';
 import {
   currentEvaluations,
   EvaluationHistoryPanel,
@@ -20,6 +19,7 @@ import { QueryView } from '@/shared/ui/States';
 import type { Call } from '@/shared/types/domain';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { CallStatusBadge } from '../components/CallStatusBadge';
+import { HideRestore } from '../components/HideRestore';
 import { ProcessingStatus } from '../components/ProcessingStatus';
 import { EvidenceStatus } from '../components/EvidenceStatus';
 import { TranscriptView } from '../components/TranscriptView';
@@ -39,11 +39,9 @@ export function CallDetailPage() {
 function CallDetail({ call }: { call: Call }) {
   const { t } = useI18n();
   const api = useApiClient();
+  const mock = api.mode === 'mock';
   useDocumentTitle(`${call.id} · ${call.title}`, t('app.title'));
   const [params] = useSearchParams();
-  const agents = useAgents({ includeRetired: true });
-  const agent =
-    agents.status === 'success' ? agents.data.find((a) => a.id === call.agentId) : undefined;
   // Show the revision the displayed run was scored on (same "latest run" rule as the
   // evaluation panel). Evidence is resolved only against that revision.
   const evaluations = useEvaluations({ callId: call.id });
@@ -117,30 +115,32 @@ function CallDetail({ call }: { call: Call }) {
         title={call.title}
         description={
           <span className={styles.meta}>
-            {agent && (
-              <>
-                {t('agents.fields.name')}:{' '}
-                <Link to={`/agents/${encodeURIComponent(agent.id)}`}>{agent.displayName}</Link>
-              </>
-            )}
+            {t('agents.fields.name')}:{' '}
+            <Link to={`/agents/${encodeURIComponent(call.agentId)}`}>{call.agentDisplayName}</Link>
             <CallStatusBadge status={call.status} />
-            {call.synthetic && <SyntheticBadge />}
-            {call.simulated && <Badge tone="mock">{t('common.simulated')}</Badge>}
+            {mock && <SyntheticBadge />}
+            {mock && <Badge tone="mock">{t('common.simulated')}</Badge>}
           </span>
         }
       />
-      {call.channelLayout === 'mixed' && (
+      <HideRestore call={call} />
+      {/* One channel, or explicitly unmapped: speaker roles cannot come from channels. */}
+      {(call.channels === 1 || call.channelMap === 'none') && (
         <Notice tone="info" title={t('calls.channel.mixedTitle')} testId="mixed-channel">
           {t('calls.channel.mixedBody')}
         </Notice>
       )}
       {!isEvaluatedStatus(call.status) && (
-        <ProcessingStatus status={call.status} simulated={call.simulated} />
+        <ProcessingStatus
+          status={call.status}
+          rejectionReason={call.rejectionReason}
+          simulated={mock}
+        />
       )}
       <div className={styles.layout}>
         <div className={styles.column}>
           <Card title={t('calls.player.title')} flush>
-            <AudioPlayer src={audioSrc} player={player} simulated={call.simulated} />
+            <AudioPlayer src={audioSrc} player={player} simulated={mock} />
           </Card>
           <Card title={t('calls.transcript.title')} caption={t('calls.transcript.caption')} flush>
             {hasTranscript ? (

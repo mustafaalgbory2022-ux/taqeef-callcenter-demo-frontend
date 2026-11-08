@@ -1,4 +1,5 @@
 import { syntheticSegmentId } from '../ids';
+import { agents } from './agents';
 import type { Judgment, WireCall, WireSegment } from '../types';
 
 /**
@@ -45,34 +46,36 @@ const j = (
   segmentIds: segmentIds.map(segId),
 });
 
+/** A synthetic call in the v0.3 shape (contract §5.3). */
 const call = (
   id: string,
   title: string,
   agentId: string,
-  language: WireCall['language'],
   durationSec: number,
-  recordedAt: string,
+  uploadedAt: string,
 ): WireCall => ({
-  id,
-  title,
+  call_id: id,
+  display_name: title,
   agent_id: agentId,
-  agent_display_name: null,
-  language,
-  duration_ms: durationSec * 1000,
-  recorded_at: recordedAt,
+  agent_display_name: agents.find((a) => a.agent_id === agentId)?.display_name ?? '',
+  uploaded_at: uploadedAt,
   status: 'scored',
+  rejection_reason: null,
+  hidden: false,
+  duration_ms: durationSec * 1000,
+  // Fixtures are stereo with the agent on the left channel (reliable attribution).
+  channels: 2,
+  channel_map: 'left_agent',
   // Set from the seeded transcript revision (see ../db.ts).
   current_transcript_revision_id: null,
-  synthetic: true,
-  simulated: true,
-  source: 'fixture',
-  // Fixtures assume agent and customer on separate channels (reliable attribution).
-  channel_layout: 'dual',
+  // Computed when served (see ../handlers/calls.ts); the simulated pipeline has no jobs.
+  latest_run: null,
+  latest_job: null,
 });
 
 export const callFixtures: CallFixture[] = [
   {
-    call: call('DEMO-001', 'Billing inquiry', 'agt-001', 'ar', 78, '2026-10-20T07:12:00.000Z'),
+    call: call('DEMO-001', 'Billing inquiry', 'agt-001', 78, '2026-10-20T07:12:00.000Z'),
     segments: [
       s(
         's1',
@@ -114,7 +117,7 @@ export const callFixtures: CallFixture[] = [
     ],
   },
   {
-    call: call('DEMO-002', 'Plan change', 'agt-002', 'ar', 70, '2026-10-21T10:40:00.000Z'),
+    call: call('DEMO-002', 'Plan change', 'agt-002', 70, '2026-10-21T10:40:00.000Z'),
     segments: [
       s('s1', 0.5, 6, 'agent', 'ar', 'مساء الخير، خدمة العملاء وياك. المكالمة مسجلة لضمان الجودة.'),
       s('s2', 7, 12, 'customer', 'ar', 'أريد أغير باقتي لباقة أكبر بالبيانات.'),
@@ -141,7 +144,7 @@ export const callFixtures: CallFixture[] = [
     ],
   },
   {
-    call: call('DEMO-003', 'Billing dispute', 'agt-001', 'ar', 92, '2026-10-22T06:05:00.000Z'),
+    call: call('DEMO-003', 'Billing dispute', 'agt-001', 92, '2026-10-22T06:05:00.000Z'),
     segments: [
       s('s1', 0.5, 3, 'agent', 'ar', 'نعم، خدمة العملاء.'),
       s('s2', 4, 11, 'customer', 'ar', 'السلام عليكم، انخصم مني مبلغ مرتين بنفس الفاتورة.'),
@@ -183,7 +186,6 @@ export const callFixtures: CallFixture[] = [
       'DEMO-004',
       'Internet outage (call dropped)',
       'agt-003',
-      'en',
       32,
       '2026-10-23T05:30:00.000Z',
     ),
@@ -230,7 +232,7 @@ export const callFixtures: CallFixture[] = [
     ],
   },
   {
-    call: call('DEMO-005', 'Router setup', 'agt-004', 'ar', 88, '2026-10-24T13:20:00.000Z'),
+    call: call('DEMO-005', 'Router setup', 'agt-004', 88, '2026-10-24T13:20:00.000Z'),
     segments: [
       s('s1', 0.5, 6, 'agent', 'ar', 'هلا وغلا، الدعم الفني وياك. المكالمة مسجلة.'),
       s('s2', 7, 13, 'customer', 'ar', 'اشتريت راوتر جديد وما يشتغل الواي فاي.'),

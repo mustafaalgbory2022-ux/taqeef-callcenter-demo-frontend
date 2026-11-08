@@ -28,7 +28,8 @@ export function dashboardRoutes(state: MockState): Route[] {
         const agent = agentId ? state.agents.find((a) => a.agent_id === agentId) : null;
         if (agentId && !agent) return fail(404, 'Unknown agent.');
 
-        const calls = state.calls.filter((c) => !agentId || c.agent_id === agentId);
+        // Hidden calls are excluded from every figure (contract v0.3 §11.4).
+        const calls = state.calls.filter((c) => !c.hidden && (!agentId || c.agent_id === agentId));
         const later = (a: WireEvaluation, b: WireEvaluation) =>
           Date.parse(a.created_at) > Date.parse(b.created_at) ||
           (a.created_at === b.created_at && a.id > b.id);
@@ -36,7 +37,7 @@ export function dashboardRoutes(state: MockState): Route[] {
         for (const call of calls) {
           let pick: WireEvaluation | null = null;
           for (const e of state.evaluations) {
-            if (e.call_id !== call.id) continue;
+            if (e.call_id !== call.call_id) continue;
             if (version && e.scorecard_version !== version.version) continue;
             if (!pick || later(e, pick)) pick = e;
           }

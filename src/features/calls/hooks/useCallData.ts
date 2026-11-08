@@ -55,3 +55,12 @@ export const useTranscript = (revisionId: string, enabled: boolean) =>
 
 export const useUploadCall = () =>
   useApiMutation((api, upload: CallUpload) => api.uploadCall(upload), ['calls', 'evaluations']);
+
+/** Hide (soft delete) and restore refresh lists, the call and dashboards. */
+export const useHideCall = () =>
+  useApiMutation(
+    (api, { id, reason }: { id: string; reason?: string }) => api.hideCall(id, reason),
+    ['calls', 'evaluations'],
+  );
+export const useRestoreCall = () =>
+  useApiMutation((api, id: string) => api.restoreCall(id), ['calls', 'evaluations']);

@@ -35,6 +35,7 @@ export type FieldReason =
   | 'name_digits'
   | 'name_mixed_script'
   | 'edit_value_masked'
+  | 'request_id_conflict'
   | 'invalid';
 
 const correlationId = () => crypto.randomUUID();

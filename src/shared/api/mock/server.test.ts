@@ -80,7 +80,6 @@ describe('simulated backend', () => {
     await api.openSession('SYN-TEST02-DEMO');
     const calls = await api.listCalls();
     expect(calls).toHaveLength(5);
-    expect(calls.every((c) => c.synthetic)).toBe(true);
     const before = await api.listEvaluations({ callId: 'DEMO-005' });
     const rescored = await api.rescoreCall('DEMO-005');
     expect(rescored).toMatchObject({
@@ -262,5 +261,70 @@ describe('simulated backend', () => {
     expect((await api.listScorecardVersions()).filter((v) => v.status === 'active')).toHaveLength(
       1,
     );
+  });
+
+  it('hides as a soft delete and restores (contract v0.3 §5.4)', async () => {
+    const api = createApiClient(createMockTransport({ latencyMs: 0 }), 'mock');
+    await api.openSession('SYN-HIDE-DEMO');
+    const before = await api.getDashboard({ scorecardVersionId: null, agentId: null });
+    const runsBefore = await api.listEvaluations({ callId: 'DEMO-005' });
+    const hidden = await api.hideCall('DEMO-005', 'Synthetic duplicate');
+    expect(hidden).toMatchObject({ id: 'DEMO-005', hidden: true });
+    // Excluded from the default list and the dashboard, included on request.
+    expect((await api.listCalls()).map((c) => c.id)).not.toContain('DEMO-005');
+    expect((await api.listCalls({ includeHidden: true })).map((c) => c.id)).toContain('DEMO-005');
+    const after = await api.getDashboard({ scorecardVersionId: null, agentId: null });
+    expect(after.callsTotal).toBe(before.callsTotal - 1);
+    // Nothing is removed: the call, its runs, transcript and latest run remain.
+    const detail = await api.getCall('DEMO-005');
+    expect(detail.hidden).toBe(true);
+    expect(detail.latestRun?.runId).toBe(runsBefore[0]?.id);
+    expect(await api.listEvaluations({ callId: 'DEMO-005' })).toHaveLength(runsBefore.length);
+    await expect(api.getTranscript(detail.currentTranscriptRevisionId ?? '')).resolves.toBeTruthy();
+    // Stale actions are refused (mock assumption, see handoff): hide twice, restore twice.
+    await expect(api.hideCall('DEMO-005')).rejects.toMatchObject({ code: 'conflict' });
+    expect((await api.restoreCall('DEMO-005')).hidden).toBe(false);
+    await expect(api.restoreCall('DEMO-005')).rejects.toMatchObject({ code: 'conflict' });
+    expect((await api.listCalls()).map((c) => c.id)).toContain('DEMO-005');
+  });
+
+  it('replays a repeated request_id without repeating the side effect (§2.1)', async () => {
+    const transport = createMockTransport({ latencyMs: 0 });
+    const res = await transport({
+      method: 'POST',
+      path: '/session/exchange',
+      body: { code: 'SYN-REPLAY-DEMO' },
+    });
+    const headers = { 'X-Taqeef-CSRF': (res.body as { csrf_token: string }).csrf_token };
+    const hide = { method: 'DELETE' as const, path: '/calls/DEMO-001', headers };
+    // CSRF is required on the state-changing route.
+    expect((await transport({ ...hide, headers: {}, body: { request_id: 'r1' } })).status).toBe(
+      403,
+    );
+    const first = await transport({ ...hide, body: { request_id: 'r1' } });
+    const replay = await transport({ ...hide, body: { request_id: 'r1' } });
+    expect([first.status, replay.status]).toEqual([200, 200]);
+    expect((replay.body as { hidden: boolean }).hidden).toBe(true);
+    // The same request_id on another route is a conflict; nothing runs.
+    const conflict = await transport({
+      method: 'POST',
+      path: '/calls/DEMO-001/restore',
+      headers,
+      body: { request_id: 'r1' },
+    });
+    expect(conflict.status).toBe(409);
+    expect(JSON.stringify(conflict.body)).toContain('request_id_conflict');
+    const list = await transport({
+      method: 'GET',
+      path: '/calls',
+      headers,
+      query: { include_hidden: 'true' },
+    });
+    const demo1 = (list.body as { items: { call_id: string; hidden: boolean }[] }).items.find(
+      (c) => c.call_id === 'DEMO-001',
+    );
+    expect(demo1?.hidden).toBe(true);
+    // A missing request_id is refused before anything runs.
+    expect((await transport({ ...hide, path: '/calls/DEMO-002', body: {} })).status).toBe(422);
   });
 });

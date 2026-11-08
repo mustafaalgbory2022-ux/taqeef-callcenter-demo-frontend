@@ -8,20 +8,31 @@ import { createFetchTransport, type ApiRequest, type Transport } from './transpo
 
 const REV = '0193a000-0000-7000-8000-000000000001';
 
+/** A v0.3 call (contract §5.3). */
 const wireCall = {
-  id: 'DEMO-001',
-  title: 'Synthetic',
+  call_id: 'DEMO-001',
+  display_name: 'Synthetic',
   agent_id: 'agt-001',
-  queue_id: null,
-  language: 'ar',
-  duration_ms: 78000,
-  recorded_at: '2026-10-20T07:12:00.000Z',
+  agent_display_name: 'Agent A',
+  uploaded_at: '2026-10-20T07:12:00.000Z',
   status: 'scored',
+  rejection_reason: null,
+  hidden: false,
+  duration_ms: 78000,
+  channels: 2,
+  channel_map: 'left_agent',
   current_transcript_revision_id: '0193a000-0000-7000-8000-000000000001',
-  synthetic: true,
-  simulated: false,
-  source: 'fixture',
-  channel_layout: 'dual',
+  latest_run: {
+    run_id: 'run-1',
+    scorecard_version_id: 'scv-1',
+    scorecard_version_number: 1,
+    outcome: 'scored',
+    display_hundredths: 900,
+    below_threshold: false,
+    threshold_hundredths: 700,
+    completed_at: '2026-10-20T07:27:00.000Z',
+  },
+  latest_job: null,
 };
 
 /** Wraps array bodies in the v0.3 list shape `{items, truncated}` (§2). */
@@ -36,13 +47,82 @@ describe('ApiClient over a transport', () => {
     expect(call).toMatchObject({
       agentId: 'agt-001',
       durationMs: 78000,
-      recordedAt: wireCall.recorded_at,
+      uploadedAt: wireCall.uploaded_at,
     });
     expect(transport).toHaveBeenCalledWith({
       method: 'GET',
       path: '/calls',
       query: { agent_id: 'agt-001' },
     });
+  });
+
+  it('decodes the v0.3 call object and rejects obsolete or inconsistent fields (§5.3)', async () => {
+    const [call] = await createApiClient(respond(200, [wireCall]), 'live').listCalls();
+    expect(call).toMatchObject({
+      id: 'DEMO-001',
+      title: 'Synthetic',
+      agentDisplayName: 'Agent A',
+      hidden: false,
+      channels: 2,
+      channelMap: 'left_agent',
+      rejectionReason: null,
+      latestRun: { runId: 'run-1', displayHundredths: 900, belowThreshold: false },
+      latestJob: null,
+    });
+    for (const k of ['recordedAt', 'language', 'synthetic', 'simulated', 'source', 'channelLayout'])
+      expect(call).not.toHaveProperty(k);
+    const bad = [
+      { ...wireCall, status: 'rejected' },
+      { ...wireCall, rejection_reason: 'too_short' },
+      { ...wireCall, rejection_reason: 'other', status: 'rejected' },
+      { ...wireCall, hidden: undefined },
+      { ...wireCall, channels: 3 },
+      { ...wireCall, latest_run: { ...wireCall.latest_run, display_hundredths: null } },
+    ];
+    for (const body of bad) {
+      await expect(createApiClient(respond(200, [body]), 'live').listCalls()).rejects.toMatchObject(
+        { code: 'contract_mismatch' },
+      );
+    }
+    const [rejected] = await createApiClient(
+      respond(200, [
+        { ...wireCall, status: 'rejected', rejection_reason: 'too_short', latest_run: null },
+      ]),
+      'live',
+    ).listCalls();
+    expect(rejected?.rejectionReason).toBe('too_short');
+  });
+
+  it('hides with DELETE {request_id, reason?} and restores with POST {request_id} (§5.4)', async () => {
+    const transport = vi
+      .fn<Transport>()
+      .mockResolvedValueOnce({ status: 200, body: { ...wireCall, hidden: true } })
+      .mockResolvedValueOnce({ status: 200, body: { ...wireCall, hidden: true } })
+      .mockResolvedValueOnce({ status: 200, body: wireCall })
+      .mockResolvedValue({ status: 200, body: asList([wireCall]) });
+    const api = createApiClient(transport, 'live');
+    expect((await api.hideCall('DEMO 1', '  duplicate upload ')).hidden).toBe(true);
+    await api.hideCall('DEMO 1');
+    await api.restoreCall('DEMO 1');
+    await api.listCalls({ includeHidden: true });
+    const [hide, hideNoReason, restore, list] = transport.mock.calls.map(([r]) => r);
+    expect(hide).toMatchObject({
+      method: 'DELETE',
+      path: '/calls/DEMO%201',
+      body: { request_id: expect.any(String), reason: 'duplicate upload' },
+    });
+    expect(Object.keys(hideNoReason?.body as object)).toEqual(['request_id']);
+    expect(restore).toMatchObject({
+      method: 'POST',
+      path: '/calls/DEMO%201/restore',
+      body: { request_id: expect.any(String) },
+    });
+    // Each user action gets its own request id.
+    const ids = [hide, hideNoReason, restore].map(
+      (r) => (r?.body as { request_id: string }).request_id,
+    );
+    expect(new Set(ids).size).toBe(3);
+    expect(list).toMatchObject({ query: { include_hidden: 'true' } });
   });
 
   it('decodes the v0.3 list shape and rejects bare arrays (§2)', async () => {
@@ -59,7 +139,10 @@ describe('ApiClient over a transport', () => {
   it('requires UTC timestamps with milliseconds and Z (contract v0.2 item 4)', async () => {
     for (const recorded_at of ['2026-10-20T10:12:00+03:00', '2026-10-20T07:12:00Z', '2026-10-20']) {
       await expect(
-        createApiClient(respond(200, [{ ...wireCall, recorded_at }]), 'live').listCalls(),
+        createApiClient(
+          respond(200, [{ ...wireCall, uploaded_at: recorded_at }]),
+          'live',
+        ).listCalls(),
       ).rejects.toMatchObject({ code: 'contract_mismatch' });
     }
   });
@@ -67,7 +150,9 @@ describe('ApiClient over a transport', () => {
   it('decodes all twelve confirmed call statuses and rejects others', async () => {
     for (const status of CALL_STATUSES) {
       const [call] = await createApiClient(
-        respond(200, [{ ...wireCall, status }]),
+        respond(200, [
+          { ...wireCall, status, rejection_reason: status === 'rejected' ? 'unreadable' : null },
+        ]),
         'live',
       ).listCalls();
       expect(call?.status).toBe(status);
