@@ -13,7 +13,6 @@ import { SampleNotice, VersionNotice } from '../components/SampleNotice';
 import { usePerformance } from '../hooks/usePerformance';
 import { VersionFilter } from '../components/VersionFilter';
 import styles from './Pages.module.css';
-import layout from '../components/Dashboard.module.css';
 
 /** Overall performance across all agents (or the agent selected in the filter). */
 export function OverviewPage() {
@@ -69,9 +68,7 @@ export function OverviewPage() {
                 <VersionNotice versions={derived.availableVersions} />
               )}
               {!agentId && <AgentBreakdown agents={sortAgents(derived.agents)} />}
-              <div className={layout.split}>
-                <CriteriaPerformance summary={derived.summary} />
-              </div>
+              <CriteriaPerformance summary={derived.summary} />
             </div>
           )
         }

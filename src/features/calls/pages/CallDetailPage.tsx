@@ -15,7 +15,7 @@ import { Badge, SyntheticBadge } from '@/shared/ui/Badge';
 import { Card } from '@/shared/ui/Card';
 import { Notice } from '@/shared/ui/Notice';
 import { PageHeader } from '@/shared/ui/PageHeader';
-import { QueryView } from '@/shared/ui/States';
+import { LoadingState, QueryView } from '@/shared/ui/States';
 import type { Call } from '@/shared/types/domain';
 import { AudioPlayer } from '../components/AudioPlayer';
 import { CallStatusBadge } from '../components/CallStatusBadge';
@@ -195,6 +195,9 @@ function CallDetail({ call }: { call: Call }) {
                   </>
                 )}
               </QueryView>
+            ) : // While the runs load, show loading rather than "not yet transcribed".
+            waitingForRun ? (
+              <LoadingState rows={3} />
             ) : (
               <p className={styles.pending}>{t('calls.transcript.pending')}</p>
             )}

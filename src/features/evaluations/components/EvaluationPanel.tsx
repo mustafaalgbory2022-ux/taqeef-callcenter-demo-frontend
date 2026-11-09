@@ -139,11 +139,13 @@ export function EvaluationPanel({
                   </span>
                 )}
               </div>
-              <p className={styles.summary} data-testid="na-counts">
-                {t('evaluations.aiDeclaredCount', { n: fmt.integer(latest.aiDeclaredCount) })}
-                {' · '}
-                {t('evaluations.codeNaCount', { n: fmt.integer(latest.codeNaCount) })}
-              </p>
+              <div className={styles.section}>
+                <p className={styles.summary} data-testid="na-counts">
+                  {t('evaluations.aiDeclaredCount', { n: fmt.integer(latest.aiDeclaredCount) })}
+                  {' · '}
+                  {t('evaluations.codeNaCount', { n: fmt.integer(latest.codeNaCount) })}
+                </p>
+              </div>
               <CriterionResults
                 evaluation={latest}
                 version={version}

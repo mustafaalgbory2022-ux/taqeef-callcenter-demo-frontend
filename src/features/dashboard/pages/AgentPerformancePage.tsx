@@ -14,7 +14,6 @@ import { KpiRow } from '../components/KpiRow';
 import { SampleNotice, VersionNotice } from '../components/SampleNotice';
 import { usePerformance } from '../hooks/usePerformance';
 import { VersionFilter } from '../components/VersionFilter';
-import layout from '../components/Dashboard.module.css';
 import styles from './Pages.module.css';
 
 /** Individual agent dashboard with click-through to calls, evidence and history. */
@@ -99,9 +98,7 @@ function AgentDashboard({
       {derived.summary.scope === 'all_versions' && (
         <VersionNotice versions={derived.availableVersions} />
       )}
-      <div className={layout.split}>
-        <CriteriaPerformance summary={derived.summary} />
-      </div>
+      <CriteriaPerformance summary={derived.summary} />
       <CallsCard
         agentId={agent.id}
         actions={
